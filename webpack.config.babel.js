@@ -53,6 +53,8 @@ module.exports = {
     new HotModuleReplacementPlugin(),
   ],
 
+  devtool: 'eval',
+
   devServer: {
     hot: true,
   },
