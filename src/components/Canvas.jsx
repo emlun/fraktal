@@ -59,15 +59,13 @@ export default class Canvas extends React.Component {
       this.canvas.addEventListener('mouseup', this.onClick.bind(this));
       this.canvas.addEventListener('wheel', this.onWheel.bind(this));
     }
-
-    this.renderPixels.bind(this)();
   }
 
   renderPixels() {
     if (this.canvas) {
       const ctx = this.canvas.getContext('2d');
-      // this.setState({ status: 'Computing...' });
-      //
+      this.setState({ status: 'Computing...' });
+
       console.log('About to render pixels...');
 
       _.defer(() => {
@@ -81,7 +79,7 @@ export default class Canvas extends React.Component {
 
         ctx.putImageData(imageData, 0, 0);
         ctx.save();
-        // this.setState({ status: undefined });
+        this.setState({ status: undefined });
       });
     }
   }
@@ -110,6 +108,15 @@ export default class Canvas extends React.Component {
     }));
   }
 
+  componentWillUpdate(newProps, newState) {
+    if (
+      newState.center !== this.state.center
+        || newState.scale !== this.state.scale
+    ) {
+      this.renderPixels();
+    }
+  }
+
   render() {
     console.log('render', this.state);
     return <div>
@@ -119,6 +126,7 @@ export default class Canvas extends React.Component {
         ref={ this.updateCanvas.bind(this) }
       />
       <p> { this.state.status } </p>
+      <button onClick={ this.renderPixels.bind(this) } > Render </button>
     </div>;
   }
 
