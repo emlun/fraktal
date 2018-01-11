@@ -54,6 +54,10 @@ export default class Canvas extends React.Component {
     };
   }
 
+  getLimits() {
+    return getLimits({ center: this.state.center, scale: this.state.scale, W, H });
+  }
+
   updateCanvas(canvas) {
     console.log('updateCanvas', canvas, this.canvas);
 
@@ -130,6 +134,8 @@ export default class Canvas extends React.Component {
       />
       <p> Center: { this.state.center.toString() } </p>
       <p> Scale: { this.state.scale } </p>
+      <p> Top left: { this.getLimits().topLeft.toString() } </p>
+      <p> Bottom right: { this.getLimits().btmRight.toString() } </p>
       <button onClick={ this.renderPixels.bind(this) } > Render </button>
       <p> { this.state.status } </p>
     </div>;
