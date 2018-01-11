@@ -128,7 +128,7 @@ export default class Canvas extends React.Component {
         height={ H }
         ref={ this.updateCanvas.bind(this) }
       />
-      <p> Center: { this.state.center.re } + { this.state.center.im }i </p>
+      <p> Center: { this.state.center.toString() } </p>
       <p> Scale: { this.state.scale } </p>
       <button onClick={ this.renderPixels.bind(this) } > Render </button>
       <p> { this.state.status } </p>
