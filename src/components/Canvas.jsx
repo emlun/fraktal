@@ -105,14 +105,19 @@ export default class Canvas extends React.Component {
 
   onWheel(event) {
     console.log('onWheel', event);
-    this.setState(state => ({
-      scale: event.deltaY > 0
-        ? state.scale * 2
-        : event.deltaY < 0
-          ? state.scale / 2
-          : state.scale
-      ,
-    }));
+    if (event.deltaY > 0) {
+      this.zoomOut();
+    } else {
+      this.zoomIn();
+    }
+  }
+
+  zoomIn() {
+    this.setState(state => ({ scale: state.scale / 2 }));
+  }
+
+  zoomOut() {
+    this.setState(state => ({ scale: state.scale * 2 }));
   }
 
   componentWillUpdate(newProps, newState) {
@@ -134,6 +139,10 @@ export default class Canvas extends React.Component {
       />
       <p> Center: { this.state.center.toString() } </p>
       <p> Scale: { this.state.scale } </p>
+      <p>
+        <button onClick={ this.zoomOut.bind(this) }> Zoom out </button>
+        <button onClick={ this.zoomIn.bind(this) }> Zoom in </button>
+      </p>
       <p> Top left: { this.getLimits().topLeft.toString() } </p>
       <p> Bottom right: { this.getLimits().btmRight.toString() } </p>
       <button onClick={ this.renderPixels.bind(this) } > Render </button>
