@@ -4,8 +4,6 @@ import _ from 'underscore';
 
 import * as mandelbrot from 'fractals/mandelbrot';
 
-const W = 300;
-const H = 200;
 
 function getLimits({ center, scale, W, H }) {
   const aspectRatio = H / W;
@@ -49,13 +47,22 @@ export default class Canvas extends React.Component {
     super(props);
     this.state = {
       center: new Complex(-0.5, 0),
+      dimensions: {
+        height: 200,
+        width: 300,
+      },
       scale: 2.5,
       status: undefined,
     };
   }
 
   getLimits() {
-    return getLimits({ center: this.state.center, scale: this.state.scale, W, H });
+    return getLimits({
+      center: this.state.center,
+      scale: this.state.scale,
+      W: this.state.dimensions.width,
+      H: this.state.dimensions.height,
+    });
   }
 
   updateCanvas(canvas) {
@@ -77,7 +84,7 @@ export default class Canvas extends React.Component {
 
       _.defer(() => {
         const imageData = renderPixels(
-          ctx.getImageData(0, 0, W, H),
+          ctx.getImageData(0, 0, this.state.dimensions.width, this.state.dimensions.height),
           this.state.center,
           this.state.scale
         );
@@ -96,11 +103,18 @@ export default class Canvas extends React.Component {
     this.setState(state => ({
       center: state.center.add(
         new Complex(
-          (event.offsetX / W - 0.5) * state.scale,
-          (0.5 - event.offsetY / H) * state.scale * (H / W)
+          (event.offsetX / this.state.dimensions.width - 0.5) * state.scale,
+          (0.5 - event.offsetY / this.state.dimensions.height) * state.scale * (this.state.dimensions.height / this.state.dimensions.width)
         )
       ),
     }));
+  }
+
+  onSubmit(event) {
+    if (event && event.preventDefault) {
+      event.preventDefault();
+    }
+    this.renderPixels();
   }
 
   onWheel(event) {
@@ -133,20 +147,56 @@ export default class Canvas extends React.Component {
     console.log('render', this.state);
     return <div>
       <canvas
-        width={ W }
-        height={ H }
+        width={ this.state.dimensions.width }
+        height={ this.state.dimensions.height }
         ref={ this.updateCanvas.bind(this) }
       />
-      <p> Center: { this.state.center.toString() } </p>
-      <p> Scale: { this.state.scale } </p>
-      <p>
-        <button onClick={ this.zoomOut.bind(this) }> Zoom out </button>
-        <button onClick={ this.zoomIn.bind(this) }> Zoom in </button>
-      </p>
-      <p> Top left: { this.getLimits().topLeft.toString() } </p>
-      <p> Bottom right: { this.getLimits().btmRight.toString() } </p>
-      <button onClick={ this.renderPixels.bind(this) } > Render </button>
-      <p> { this.state.status } </p>
+
+      <form onSubmit={ this.onSubmit.bind(this) }>
+        <p> Center: { this.state.center.toString() } </p>
+        <p> Scale: { this.state.scale } </p>
+        <p>
+          <button type="button" onClick={ this.zoomOut.bind(this) }> Zoom out </button>
+          <button type="button" onClick={ this.zoomIn.bind(this) }> Zoom in </button>
+        </p>
+        <p> Top left: { this.getLimits().topLeft.toString() } </p>
+        <p> Bottom right: { this.getLimits().btmRight.toString() } </p>
+        <button type="submit" > Render </button>
+        <p>
+          Width: <input type="number"
+            onChange={
+              ({ target: { value } }) =>
+                this.setState(state =>
+                  ({
+                    dimensions: {
+                      ...state.dimensions,
+                      width: parseInt(value),
+                    },
+                  })
+                )
+            }
+            value={ this.state.dimensions.width }
+          />
+        </p>
+        <p>
+          Height: <input type="number"
+            onChange={
+              ({ target: { value } }) =>
+                this.setState(state =>
+                  ({
+                    dimensions: {
+                      ...state.dimensions,
+                      height: parseInt(value),
+                    },
+                  })
+                )
+            }
+            value={ this.state.dimensions.height }
+          />
+        </p>
+        <p> { this.state.status } </p>
+      </form>
+
     </div>;
   }
 
