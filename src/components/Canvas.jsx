@@ -60,7 +60,10 @@ export default class Canvas extends React.Component {
         height: 200,
         width: 300,
       },
-      palette: range(256).map(i => [i, i, i]),
+      gradient: {
+        bottom: [0, 0, 0],
+        top: [255, 255, 255],
+      },
       scale: 2.5,
       status: undefined,
     };
@@ -92,12 +95,20 @@ export default class Canvas extends React.Component {
 
       console.log('About to render pixels...');
 
+      const palette = range(256).map(i =>
+        [
+          (this.state.gradient.top[0] - this.state.gradient.bottom[0]) * (i / 255.0) + this.state.gradient.bottom[0],
+          (this.state.gradient.top[1] - this.state.gradient.bottom[1]) * (i / 255.0) + this.state.gradient.bottom[1],
+          (this.state.gradient.top[2] - this.state.gradient.bottom[2]) * (i / 255.0) + this.state.gradient.bottom[2],
+        ]
+      );
+
       _.defer(() => {
         const imageData = renderPixels(
           ctx.getImageData(0, 0, this.state.dimensions.width, this.state.dimensions.height),
           this.state.center,
           this.state.scale,
-          this.state.palette
+          palette
         );
 
         console.log('Saving pixels', imageData);
@@ -206,6 +217,53 @@ export default class Canvas extends React.Component {
           />
         </p>
         <p> { this.state.status } </p>
+
+        <p>
+          Gradient top:
+          <input type="number"
+            onChange={
+              ({ target: { value } }) =>
+                this.setState(state =>
+                  ({
+                    gradient: {
+                      ...state.gradient,
+                      top: [parseInt(value), state.gradient.top[1], state.gradient.top[2]],
+                    },
+                  })
+                )
+            }
+            value={ this.state.gradient.top[0] }
+          />
+          <input type="number"
+            onChange={
+              ({ target: { value } }) =>
+                this.setState(state =>
+                  ({
+                    gradient: {
+                      ...state.gradient,
+                      top: [state.gradient.top[0], parseInt(value), state.gradient.top[2]],
+                    },
+                  })
+                )
+            }
+            value={ this.state.gradient.top[1] }
+          />
+          <input type="number"
+            onChange={
+              ({ target: { value } }) =>
+                this.setState(state =>
+                  ({
+                    gradient: {
+                      ...state.gradient,
+                      top: [state.gradient.top[0], state.gradient.top[1], parseInt(value)],
+                    },
+                  })
+                )
+            }
+            value={ this.state.gradient.top[2] }
+          />
+        </p>
+
       </form>
 
     </div>;
