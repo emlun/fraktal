@@ -5,6 +5,10 @@ import _ from 'underscore';
 import * as mandelbrot from 'fractals/mandelbrot';
 
 
+function range(length) {
+  return Array(...Array(length)).map((_, i) => i);
+}
+
 function getLimits({ center, scale, W, H }) {
   const aspectRatio = H / W;
   const w = scale;
@@ -14,7 +18,7 @@ function getLimits({ center, scale, W, H }) {
   return { topLeft, btmRight };
 }
 
-function renderPixels(imageData, center, scale) {
+function renderPixels(imageData, center, scale, palette) {
   console.log('renderPixels', center, scale);
 
   const W = imageData.width;
@@ -29,11 +33,16 @@ function renderPixels(imageData, center, scale) {
       );
 
       const iterations = mandelbrot.check(c);
-      const color = iterations > 0 ? iterations : 0;
 
-      imageData.data[y * W * 4 + x * 4] = color;
-      imageData.data[y * W * 4 + x * 4 + 1] = color;
-      imageData.data[y * W * 4 + x * 4 + 2] = color;
+      if (iterations > 0) {
+        imageData.data[y * W * 4 + x * 4] = palette[iterations][0];
+        imageData.data[y * W * 4 + x * 4 + 1] = palette[iterations][1];
+        imageData.data[y * W * 4 + x * 4 + 2] = palette[iterations][2];
+      } else {
+        imageData.data[y * W * 4 + x * 4] = 0;
+        imageData.data[y * W * 4 + x * 4 + 1] = 0;
+        imageData.data[y * W * 4 + x * 4 + 2] = 0;
+      }
       imageData.data[y * W * 4 + x * 4 + 3] = 255;
     }
   }
@@ -51,6 +60,7 @@ export default class Canvas extends React.Component {
         height: 200,
         width: 300,
       },
+      palette: range(256).map(i => [i, i, i]),
       scale: 2.5,
       status: undefined,
     };
@@ -86,7 +96,8 @@ export default class Canvas extends React.Component {
         const imageData = renderPixels(
           ctx.getImageData(0, 0, this.state.dimensions.width, this.state.dimensions.height),
           this.state.center,
-          this.state.scale
+          this.state.scale,
+          this.state.palette
         );
 
         console.log('Saving pixels', imageData);
