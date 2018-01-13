@@ -44,9 +44,9 @@ function renderPixels(imageData, matrix, palette) {
       const iterations = matrix[x][y];
 
       if (iterations > 0) {
-        imageData.data[y * W * 4 + x * 4] = palette.getIn([iterations, 0], 0);
-        imageData.data[y * W * 4 + x * 4 + 1] = palette.getIn([iterations, 1], 0);
-        imageData.data[y * W * 4 + x * 4 + 2] = palette.getIn([iterations, 2], 0);
+        imageData.data[y * W * 4 + x * 4] = palette.getIn([0, iterations], 0);
+        imageData.data[y * W * 4 + x * 4 + 1] = palette.getIn([1, iterations], 0);
+        imageData.data[y * W * 4 + x * 4 + 2] = palette.getIn([2, iterations], 0);
       } else {
         imageData.data[y * W * 4 + x * 4] = 0;
         imageData.data[y * W * 4 + x * 4 + 1] = 0;
@@ -124,8 +124,8 @@ export default class Canvas extends React.Component {
     if (this.canvas) {
       console.log('About to render pixels...');
 
-      const palette = Immutable.Range(0, 256).map(i =>
-        Immutable.Range(0, 3).map(c =>
+      const palette = Immutable.Range(0, 3).map(c =>
+        Immutable.Range(0, 256).map(i =>
           (this.get(['gradient', 'top', c]) - this.get(['gradient', 'bottom', c])) * (i / 255.0) + this.get(['gradient', 'bottom', c])
         )
       );
