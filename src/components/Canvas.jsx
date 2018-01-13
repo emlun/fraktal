@@ -105,8 +105,6 @@ export default class Canvas extends React.Component {
   }
 
   updateCanvas(canvas) {
-    console.log('updateCanvas', canvas, this.canvas);
-
     if (canvas && canvas !== this.canvas) {
       this.canvas = canvas;
       this.canvas.addEventListener('mouseup', this.onClick.bind(this));
