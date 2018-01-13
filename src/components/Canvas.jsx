@@ -2,6 +2,7 @@ import React from 'react';
 import Complex from 'complex.js';
 import Immutable from 'immutable';
 import _ from 'underscore';
+import { sprintf } from 'sprintf-js';
 
 import * as mandelbrot from 'fractals/mandelbrot';
 
@@ -232,15 +233,19 @@ export default class Canvas extends React.Component {
 
         <p>
           Gradient top:
-          { [0, 1, 2].map(index =>
-            <input type="number"
-              key={ index }
-              onChange={
-                ({ target: { value } }) => this.set(['gradient', 'top', index], parseInt(value || 0))
-              }
-              value={ this.get(['gradient', 'top', index]) }
-            />
-          ) }
+          <input type="color"
+            value={ '#' + this.get(['gradient', 'top']).map(d => sprintf('%02x', d)).join('') }
+            onChange={
+              ({ target: { value } }) =>
+                this.set(['gradient', 'top'],
+                  Immutable.List([
+                    parseInt(value.substring(1, 3), 16),
+                    parseInt(value.substring(3, 5), 16),
+                    parseInt(value.substring(5, 7), 16),
+                  ])
+                )
+            }
+          />
         </p>
 
       </form>

@@ -21,6 +21,7 @@ rules:
   new-cap:
     - error
     - capIsNewExceptions:
+      - List
       - Map
   no-console: warn
   object-curly-spacing: [error, always]
