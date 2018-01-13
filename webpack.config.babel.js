@@ -27,14 +27,14 @@ const prodPlugins = [
 
 module.exports = {
 
-  entry: [
-    'react-hot-loader/patch',
-    path.resolve(SRC_DIR, 'index'),
-  ],
+  entry: {
+    index: ['react-hot-loader/patch', path.resolve(SRC_DIR, 'index')],
+    worker: path.resolve(SRC_DIR, 'worker'),
+  },
 
   output: {
     path: BUILD_DIR,
-    filename: 'bundle.js',
+    filename: '[name].js',
   },
 
   resolve: {
