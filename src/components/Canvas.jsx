@@ -20,21 +20,32 @@ function getLimits({ center, scale, W, H }) {
   return { topLeft, btmRight };
 }
 
-function renderPixels(imageData, center, scale, palette) {
-  console.log('renderPixels', center, scale);
+function computeMatrix(W, H, center, scale) {
+  console.log('computeMatrix', W, H, center, scale);
 
-  const W = imageData.width;
-  const H = imageData.height;
   const { topLeft, btmRight } = getLimits({ center, scale, W, H });
 
-  for (let x = 0; x < W; x += 1) {
-    for (let y = 0; y < H; y += 1) {
+  return Immutable.Range(0, W).toJS().map(x =>
+    Immutable.Range(0, H).toJS().map(y => {
       const c = new Complex(
         (btmRight.re - topLeft.re) * (x / W) + topLeft.re,
         (btmRight.im - topLeft.im) * (y / H) + topLeft.im
       );
 
-      const iterations = mandelbrot.check(c);
+      return mandelbrot.check(c);
+    })
+  );
+}
+
+function renderPixels(imageData, matrix, palette) {
+  console.log('renderPixels', imageData, matrix, palette.toJS());
+
+  const W = Math.min(imageData.width, matrix.length);
+  const H = Math.min(imageData.height, matrix[0] ? matrix[0].length : 0);
+
+  for (let x = 0; x < W; x += 1) {
+    for (let y = 0; y < H; y += 1) {
+      const iterations = matrix[x][y];
 
       if (iterations > 0) {
         imageData.data[y * W * 4 + x * 4] = palette[iterations][0];
@@ -67,6 +78,7 @@ export default class Canvas extends React.Component {
           bottom: [0, 0, 0],
           top: [255, 255, 255],
         }),
+        matrix: [[]],
         scale: 2.5,
         status: undefined,
       }),
@@ -114,9 +126,6 @@ export default class Canvas extends React.Component {
 
   renderPixels() {
     if (this.canvas) {
-      const ctx = this.canvas.getContext('2d');
-      this.set(['status'], 'Computing...');
-
       console.log('About to render pixels...');
 
       const palette = range(256).map(i =>
@@ -127,21 +136,41 @@ export default class Canvas extends React.Component {
         ]
       );
 
+      const ctx = this.canvas.getContext('2d');
+
       _.defer(() => {
         const imageData = renderPixels(
           ctx.getImageData(0, 0, this.get(['dimensions', 'width']), this.get(['dimensions', 'height'])),
-          this.get(['center']),
-          this.get(['scale']),
+          this.get(['matrix']),
           palette
         );
 
-        console.log('Saving pixels', imageData);
-
         ctx.putImageData(imageData, 0, 0);
         ctx.save();
-        this.set(['status'], undefined);
       });
     }
+  }
+
+  computeMatrix() {
+    this.set(['status'], 'Computing...');
+
+    console.log('About to compute matrix...');
+
+    _.defer(() => {
+      const matrix = computeMatrix(
+        this.get(['dimensions', 'width']),
+        this.get(['dimensions', 'height']),
+        this.get(['center']),
+        this.get(['scale'])
+      );
+
+      console.log('Saving matrix', matrix);
+
+      this.update(state =>
+        state.set('status', undefined)
+          .set('matrix', matrix)
+      );
+    });
   }
 
   onClick(event) {
@@ -163,7 +192,7 @@ export default class Canvas extends React.Component {
     if (event && event.preventDefault) {
       event.preventDefault();
     }
-    this.renderPixels();
+    this.computeMatrix();
   }
 
   onWheel(event) {
@@ -187,6 +216,12 @@ export default class Canvas extends React.Component {
     if (
       newState.state.get('center') !== this.get(['center'])
         || newState.state.get('scale') !== this.get(['scale'])
+    ) {
+      this.computeMatrix();
+    }
+    if (
+      newState.state.get('matrix') !== this.get(['matrix'])
+        || newState.state.get('gradient') !== this.get(['gradient'])
     ) {
       this.renderPixels();
     }

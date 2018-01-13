@@ -23,6 +23,7 @@ rules:
     - capIsNewExceptions:
       - List
       - Map
+      - Range
   no-console: warn
   object-curly-spacing: [error, always]
   padded-blocks: off
