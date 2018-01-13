@@ -19,6 +19,7 @@ const devPlugins = [
 ];
 
 const prodConfig = {
+  devtool: 'source-map',
 };
 
 const prodPlugins = [
