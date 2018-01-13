@@ -18,6 +18,10 @@ rules:
   brace-style: [error, 1tbs, allowSingleLine: true]
   block-spacing: [error, always]
   max-len: off
+  new-cap:
+    - error
+    - capIsNewExceptions:
+      - Map
   no-console: warn
   object-curly-spacing: [error, always]
   padded-blocks: off
