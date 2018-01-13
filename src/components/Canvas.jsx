@@ -61,7 +61,7 @@ function renderPixels(imageData, matrix, palette) {
 
 
 const defaultBottom = Immutable.fromJS({ value: 0, color: [0, 0, 0] });
-const defaultTop = Immutable.fromJS({ value: 255, color: [255, 255, 255] });
+const defaultTop = Immutable.fromJS({ value: 50, color: [255, 0, 255] });
 
 export default class Canvas extends React.Component {
 
