@@ -72,12 +72,34 @@ export default class Canvas extends React.Component {
     };
   }
 
+  get(path) {
+    return this.state.state.getIn(path);
+  }
+
+  set(path, value) {
+    return this.setState(state => ({
+      state: state.state.setIn(path, value),
+    }));
+  }
+
+  update(pathOrUpdater, updater) {
+    if (updater) {
+      return this.setState(state => ({
+        state: state.state.updateIn(pathOrUpdater, updater),
+      }));
+    } else {
+      return this.setState(state => ({
+        state: pathOrUpdater(state.state),
+      }));
+    }
+  }
+
   getLimits() {
     return getLimits({
-      center: this.state.state.get('center'),
-      scale: this.state.state.get('scale'),
-      W: this.state.state.getIn(['dimensions', 'width']),
-      H: this.state.state.getIn(['dimensions', 'height']),
+      center: this.get(['center']),
+      scale: this.get(['scale']),
+      W: this.get(['dimensions', 'width']),
+      H: this.get(['dimensions', 'height']),
     });
   }
 
@@ -94,23 +116,23 @@ export default class Canvas extends React.Component {
   renderPixels() {
     if (this.canvas) {
       const ctx = this.canvas.getContext('2d');
-      this.setState(state => ({ state: state.state.set('status', 'Computing...') }));
+      this.set(['status'], 'Computing...');
 
       console.log('About to render pixels...');
 
       const palette = range(256).map(i =>
         [
-          (this.state.state.getIn(['gradient', 'top', 0]) - this.state.state.getIn(['gradient', 'bottom', 0])) * (i / 255.0) + this.state.state.getIn(['gradient', 'bottom', 0]),
-          (this.state.state.getIn(['gradient', 'top', 1]) - this.state.state.getIn(['gradient', 'bottom', 1])) * (i / 255.0) + this.state.state.getIn(['gradient', 'bottom', 1]),
-          (this.state.state.getIn(['gradient', 'top', 2]) - this.state.state.getIn(['gradient', 'bottom', 2])) * (i / 255.0) + this.state.state.getIn(['gradient', 'bottom', 2]),
+          (this.get(['gradient', 'top', 0]) - this.get(['gradient', 'bottom', 0])) * (i / 255.0) + this.get(['gradient', 'bottom', 0]),
+          (this.get(['gradient', 'top', 1]) - this.get(['gradient', 'bottom', 1])) * (i / 255.0) + this.get(['gradient', 'bottom', 1]),
+          (this.get(['gradient', 'top', 2]) - this.get(['gradient', 'bottom', 2])) * (i / 255.0) + this.get(['gradient', 'bottom', 2]),
         ]
       );
 
       _.defer(() => {
         const imageData = renderPixels(
-          ctx.getImageData(0, 0, this.state.state.getIn(['dimensions', 'width']), this.state.state.getIn(['dimensions', 'height'])),
-          this.state.state.get('center'),
-          this.state.state.get('scale'),
+          ctx.getImageData(0, 0, this.get(['dimensions', 'width']), this.get(['dimensions', 'height'])),
+          this.get(['center']),
+          this.get(['scale']),
           palette
         );
 
@@ -118,24 +140,24 @@ export default class Canvas extends React.Component {
 
         ctx.putImageData(imageData, 0, 0);
         ctx.save();
-        this.setState(state => ({ state: state.state.set('status', undefined) }));
+        this.set(['status'], undefined);
       });
     }
   }
 
   onClick(event) {
     console.log('onClick', event, event.offsetX, event.offsetY);
-    this.setState(state => ({
-      state: state.state.set(
+    this.update(state =>
+      state.set(
         'center',
-        state.state.get('center').add(
+        state.get('center').add(
           new Complex(
-            (event.offsetX / state.state.getIn(['dimensions', 'width']) - 0.5) * state.state.get('scale'),
-            (0.5 - event.offsetY / state.state.getIn(['dimensions', 'height'])) * state.state.get('scale') * (state.state.getIn(['dimensions', 'height']) / state.state.getIn(['dimensions', 'width']))
+            (event.offsetX / state.getIn(['dimensions', 'width']) - 0.5) * state.get('scale'),
+            (0.5 - event.offsetY / state.getIn(['dimensions', 'height'])) * state.get('scale') * (state.getIn(['dimensions', 'height']) / state.getIn(['dimensions', 'width']))
           )
         )
-      ),
-    }));
+      )
+    );
   }
 
   onSubmit(event) {
@@ -155,17 +177,17 @@ export default class Canvas extends React.Component {
   }
 
   zoomIn() {
-    this.setState(state => ({ state: state.state.update('scale', scale => scale / 2) }));
+    this.update(['scale'], scale => scale / 2);
   }
 
   zoomOut() {
-    this.setState(state => ({ state: state.state.update('scale', scale => scale * 2) }));
+    this.update(['scale'], scale => scale * 2);
   }
 
   componentWillUpdate(newProps, newState) {
     if (
-      newState.state.get('center') !== this.state.state.get('center')
-        || newState.state.get('scale') !== this.state.state.get('scale')
+      newState.state.get('center') !== this.get(['center'])
+        || newState.state.get('scale') !== this.get(['scale'])
     ) {
       this.renderPixels();
     }
@@ -175,14 +197,14 @@ export default class Canvas extends React.Component {
     console.log('render', this.state);
     return <div>
       <canvas
-        width={ this.state.state.getIn(['dimensions', 'width']) }
-        height={ this.state.state.getIn(['dimensions', 'height']) }
+        width={ this.get(['dimensions', 'width']) }
+        height={ this.get(['dimensions', 'height']) }
         ref={ this.updateCanvas.bind(this) }
       />
 
       <form onSubmit={ this.onSubmit.bind(this) }>
-        <p> Center: { this.state.state.get('center').toString() } </p>
-        <p> Scale: { this.state.state.get('scale') } </p>
+        <p> Center: { this.get(['center']).toString() } </p>
+        <p> Scale: { this.get(['scale']) } </p>
         <p>
           <button type="button" onClick={ this.zoomOut.bind(this) }> Zoom out </button>
           <button type="button" onClick={ this.zoomIn.bind(this) }> Zoom in </button>
@@ -193,22 +215,20 @@ export default class Canvas extends React.Component {
         <p>
           Width: <input type="number"
             onChange={
-              ({ target: { value } }) =>
-                this.setState(state => ({ state: state.state.setIn(['dimensions', 'width'], parseInt(value)) }))
+              ({ target: { value } }) => this.set(['dimensions', 'width'], parseInt(value || 0))
             }
-            value={ this.state.state.getIn(['dimensions', 'width']) }
+            value={ this.get(['dimensions', 'width']) }
           />
         </p>
         <p>
           Height: <input type="number"
             onChange={
-              ({ target: { value } }) =>
-                this.setState(state => ({ state: state.state.setIn(['dimensions', 'height'], parseInt(value)) }))
+              ({ target: { value } }) => this.set(['dimensions', 'height'], parseInt(value || 0))
             }
-            value={ this.state.state.getIn(['dimensions', 'height']) }
+            value={ this.get(['dimensions', 'height']) }
           />
         </p>
-        <p> { this.state.state.get('status') } </p>
+        <p> { this.get(['status']) } </p>
 
         <p>
           Gradient top:
@@ -216,10 +236,9 @@ export default class Canvas extends React.Component {
             <input type="number"
               key={ index }
               onChange={
-                ({ target: { value } }) =>
-                  this.setState(state => ({ state: state.state.setIn(['gradient', 'top', index], parseInt(value)) }))
+                ({ target: { value } }) => this.set(['gradient', 'top', index], parseInt(value || 0))
               }
-              value={ this.state.state.getIn(['gradient', 'top', index]) }
+              value={ this.get(['gradient', 'top', index]) }
             />
           ) }
         </p>
