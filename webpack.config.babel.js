@@ -1,10 +1,28 @@
 const path = require('path');
 
-const HotModuleReplacementPlugin = require('webpack').HotModuleReplacementPlugin;
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const SRC_DIR = path.resolve(__dirname, 'src');
 const BUILD_DIR = path.resolve(__dirname, 'build');
+
+const devConfig = {
+  devtool: 'eval',
+
+  devServer: {
+    hot: true,
+  },
+};
+
+const devPlugins = [
+  new webpack.HotModuleReplacementPlugin(),
+];
+
+const prodConfig = {
+};
+
+const prodPlugins = [
+];
 
 module.exports = {
 
@@ -49,14 +67,17 @@ module.exports = {
   },
 
   plugins: [
+    new webpack.EnvironmentPlugin({ 'NODE_ENV': 'development' }),
     new HtmlWebpackPlugin({ title: 'Fraktal' }),
-    new HotModuleReplacementPlugin(),
+    ...(process.env.NODE_ENV === 'production'
+      ? prodPlugins
+      : devPlugins
+    ),
   ],
 
-  devtool: 'eval',
-
-  devServer: {
-    hot: true,
-  },
+  ...(process.env.NODE_ENV === 'production'
+    ? prodConfig
+    : devConfig
+  ),
 
 };
