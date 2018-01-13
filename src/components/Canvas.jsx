@@ -16,8 +16,8 @@ function getLimits({ center, scale, W, H }) {
   return { topLeft, btmRight };
 }
 
-function computeMatrix(W, H, center, scale) {
-  console.log('computeMatrix', W, H, center, scale);
+function computeMatrix(W, H, center, scale, iterationLimit) {
+  console.log('computeMatrix', W, H, center, scale, iterationLimit);
 
   const { topLeft, btmRight } = getLimits({ center, scale, W, H });
 
@@ -28,7 +28,7 @@ function computeMatrix(W, H, center, scale) {
         (btmRight.im - topLeft.im) * (y / H) + topLeft.im
       );
 
-      return mandelbrot.check(c);
+      return mandelbrot.check(c, iterationLimit);
     })
   );
 }
