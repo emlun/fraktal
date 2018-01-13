@@ -85,8 +85,8 @@ export default class Canvas extends React.Component {
     };
   }
 
-  get(path) {
-    return this.state.state.getIn(path);
+  get(path, defaultValue) {
+    return this.state.state.getIn(path, defaultValue);
   }
 
   set(path, value) {
