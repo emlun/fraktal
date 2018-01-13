@@ -49,7 +49,7 @@ module.exports = {
   },
 
   plugins: [
-    new HtmlWebpackPlugin(),
+    new HtmlWebpackPlugin({ title: 'Fraktal' }),
     new HotModuleReplacementPlugin(),
   ],
 
