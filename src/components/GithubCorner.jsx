@@ -2,7 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 // Source: http://tholman.com/github-corners/
-export default function GithubCorner({ repo }) {
+export default function GithubCorner({
+  fillColor = '#151513',
+  repo,
+}) {
   return <div>
     <a
       href={ 'https://github.com/' + repo }
@@ -12,7 +15,7 @@ export default function GithubCorner({ repo }) {
         width="80"
         height="80"
         viewBox="0 0 250 250"
-        style={ { fill: '#151513', color: '#fff', position: 'absolute', top: 0, border: 0, right: 0 } }
+        style={ { fill: fillColor, color: '#fff', position: 'absolute', top: 0, border: 0, right: 0 } }
         aria-hidden="true"
       >
         <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
@@ -25,4 +28,6 @@ export default function GithubCorner({ repo }) {
 }
 GithubCorner.propTypes = {
   repo: PropTypes.string.isRequired,
+
+  fillColor: PropTypes.string,
 };
