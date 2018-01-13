@@ -4,6 +4,7 @@ import Immutable from 'immutable';
 import _ from 'underscore';
 import { sprintf } from 'sprintf-js';
 
+import { debug } from 'logging';
 import * as mandelbrot from 'fractals/mandelbrot';
 
 
@@ -17,7 +18,7 @@ function getLimits({ center, scale, W, H }) {
 }
 
 function computeMatrix(W, H, center, scale, iterationLimit) {
-  console.log('computeMatrix', W, H, center, scale, iterationLimit);
+  debug('computeMatrix', W, H, center, scale, iterationLimit);
 
   const { topLeft, btmRight } = getLimits({ center, scale, W, H });
 
@@ -34,7 +35,7 @@ function computeMatrix(W, H, center, scale, iterationLimit) {
 }
 
 function renderPixels(imageData, matrix, palette) {
-  console.log('renderPixels', imageData, matrix, palette.toJS());
+  debug('renderPixels', imageData, matrix, palette.toJS());
 
   const W = Math.min(imageData.width, matrix.length);
   const H = Math.min(imageData.height, matrix[0] ? matrix[0].length : 0);
@@ -126,7 +127,7 @@ export default class Canvas extends React.Component {
 
   renderPixels() {
     if (this.canvas) {
-      console.log('About to render pixels...');
+      debug('About to render pixels...');
 
       const bottom = this.get(['gradient', 0], defaultBottom).set('value', 0);
       const gradient = Immutable.List([bottom]).concat(this.get(['gradient']));
@@ -162,7 +163,7 @@ export default class Canvas extends React.Component {
   computeMatrix() {
     this.set(['status'], 'Computing...');
 
-    console.log('About to compute matrix...');
+    debug('About to compute matrix...');
 
     _.defer(() => {
       const matrix = computeMatrix(
@@ -173,7 +174,7 @@ export default class Canvas extends React.Component {
         this.get(['gradient']).last().get('value')
       );
 
-      console.log('Saving matrix', matrix);
+      debug('Saving matrix', matrix);
 
       this.update(state =>
         state.set('status', undefined)
@@ -183,7 +184,7 @@ export default class Canvas extends React.Component {
   }
 
   onClick(event) {
-    console.log('onClick', event, event.offsetX, event.offsetY);
+    debug('onClick', event, event.offsetX, event.offsetY);
     this.update(state =>
       state.set(
         'center',
@@ -205,7 +206,7 @@ export default class Canvas extends React.Component {
   }
 
   onWheel(event) {
-    console.log('onWheel', event);
+    debug('onWheel', event);
     if (event.deltaY > 0) {
       this.zoomOut();
     } else {
@@ -237,7 +238,7 @@ export default class Canvas extends React.Component {
   }
 
   render() {
-    console.log('render', this.state);
+    debug('render', this.state);
     return <div>
       <canvas
         width={ this.get(['dimensions', 'width']) }
