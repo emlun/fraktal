@@ -7,10 +7,6 @@ import { sprintf } from 'sprintf-js';
 import * as mandelbrot from 'fractals/mandelbrot';
 
 
-function range(length) {
-  return Array(...Array(length)).map((_, i) => i);
-}
-
 function getLimits({ center, scale, W, H }) {
   const aspectRatio = H / W;
   const w = scale;
@@ -48,9 +44,9 @@ function renderPixels(imageData, matrix, palette) {
       const iterations = matrix[x][y];
 
       if (iterations > 0) {
-        imageData.data[y * W * 4 + x * 4] = palette[iterations][0];
-        imageData.data[y * W * 4 + x * 4 + 1] = palette[iterations][1];
-        imageData.data[y * W * 4 + x * 4 + 2] = palette[iterations][2];
+        imageData.data[y * W * 4 + x * 4] = palette.getIn([iterations, 0], 0);
+        imageData.data[y * W * 4 + x * 4 + 1] = palette.getIn([iterations, 1], 0);
+        imageData.data[y * W * 4 + x * 4 + 2] = palette.getIn([iterations, 2], 0);
       } else {
         imageData.data[y * W * 4 + x * 4] = 0;
         imageData.data[y * W * 4 + x * 4 + 1] = 0;
@@ -128,12 +124,10 @@ export default class Canvas extends React.Component {
     if (this.canvas) {
       console.log('About to render pixels...');
 
-      const palette = range(256).map(i =>
-        [
-          (this.get(['gradient', 'top', 0]) - this.get(['gradient', 'bottom', 0])) * (i / 255.0) + this.get(['gradient', 'bottom', 0]),
-          (this.get(['gradient', 'top', 1]) - this.get(['gradient', 'bottom', 1])) * (i / 255.0) + this.get(['gradient', 'bottom', 1]),
-          (this.get(['gradient', 'top', 2]) - this.get(['gradient', 'bottom', 2])) * (i / 255.0) + this.get(['gradient', 'bottom', 2]),
-        ]
+      const palette = Immutable.Range(0, 256).map(i =>
+        Immutable.Range(0, 3).map(c =>
+          (this.get(['gradient', 'top', c]) - this.get(['gradient', 'bottom', c])) * (i / 255.0) + this.get(['gradient', 'bottom', c])
+        )
       );
 
       const ctx = this.canvas.getContext('2d');
