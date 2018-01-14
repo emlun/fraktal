@@ -6,6 +6,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const SRC_DIR = path.resolve(__dirname, 'src');
 const BUILD_DIR = path.resolve(__dirname, 'build');
 
+const context = SRC_DIR;
+
 const devConfig = {
   devtool: 'eval',
 
@@ -26,6 +28,7 @@ const prodPlugins = [
 ];
 
 module.exports = {
+  context,
 
   entry: {
     index: ['react-hot-loader/patch', path.resolve(SRC_DIR, 'index')],
@@ -61,9 +64,31 @@ module.exports = {
       {
         test: /\.jsx?$/,
         exclude: /node_modules/,
-        loader: 'babel-loader',
+        use: {
+          loader: 'babel-loader',
+          options: {
+            plugins: [
+              ["react-css-modules", {
+                context: 'src'
+              }],
+            ],
+          },
+        },
       },
 
+      {
+        test: /\.css$/,
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              modules: true,
+              localIdentName: '[path]___[name]__[local]___[hash:base64:5]',
+            },
+          },
+        ],
+      },
     ],
   },
 
