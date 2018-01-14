@@ -4,35 +4,10 @@ import Immutable from 'immutable';
 import _ from 'underscore';
 import { sprintf } from 'sprintf-js';
 
+import { getLimits } from 'fractals/common';
 import { debug } from 'logging';
-import * as mandelbrot from 'fractals/mandelbrot';
 
-
-function getLimits({ center, scale, W, H }) {
-  const aspectRatio = H / W;
-  const w = scale;
-  const h = scale * aspectRatio;
-  const topLeft = center.add(new Complex(-w/2, h/2));
-  const btmRight = center.add(new Complex(w/2, -h/2));
-  return { topLeft, btmRight };
-}
-
-function computeMatrix(W, H, center, scale, iterationLimit) {
-  debug('computeMatrix', W, H, center, scale, iterationLimit);
-
-  const { topLeft, btmRight } = getLimits({ center, scale, W, H });
-
-  return Immutable.Range(0, W).toJS().map(x =>
-    Immutable.Range(0, H).toJS().map(y => {
-      const c = new Complex(
-        (btmRight.re - topLeft.re) * (x / W) + topLeft.re,
-        (btmRight.im - topLeft.im) * (y / H) + topLeft.im
-      );
-
-      return mandelbrot.check(c, iterationLimit);
-    })
-  );
-}
+window.Complex = Complex;
 
 function renderPixels(imageData, matrix, palette) {
   debug('renderPixels', imageData, matrix, palette.toJS());
@@ -88,6 +63,33 @@ export default class Canvas extends React.Component {
 
   componentDidMount() {
     this.computeMatrix();
+  }
+
+  componentWillUnmount() {
+    if (this.worker) {
+      this.worker.terminate();
+    }
+  }
+
+  onWorkerMessage(message) {
+    debug('Message from worker:', message);
+    switch (message.data.type) {
+      case 'compute-matrix':
+        this.onComputationCompleted(message.data.data);
+        break;
+
+      default:
+        debug('Ignoring message from worker:', message);
+    }
+  }
+
+  onComputationCompleted(matrix) {
+    debug('Saving matrix', matrix);
+
+    this.update(state =>
+      state.set('status', undefined)
+        .set('matrix', matrix)
+    );
   }
 
   get(path, defaultValue) {
@@ -169,21 +171,21 @@ export default class Canvas extends React.Component {
 
     debug('About to compute matrix...');
 
-    _.defer(() => {
-      const matrix = computeMatrix(
-        this.get(['dimensions', 'width']),
-        this.get(['dimensions', 'height']),
-        this.get(['center']),
-        this.get(['scale']),
-        this.get(['gradient']).last().get('value')
-      );
+    if (this.worker) {
+      this.worker.terminate();
+    }
 
-      debug('Saving matrix', matrix);
-
-      this.update(state =>
-        state.set('status', undefined)
-          .set('matrix', matrix)
-      );
+    this.worker = new Worker('worker.js');
+    this.worker.onmessage = this.onWorkerMessage.bind(this);
+    this.worker.postMessage({
+      type: 'compute-matrix',
+      data: {
+        center: this.get(['center']),
+        dimensions: this.get(['dimensions']).toJS(),
+        fractal: 'mandelbrot',
+        iterationLimit: this.get(['gradient']).last().get('value'),
+        scale: this.get(['scale']),
+      },
     });
   }
 
