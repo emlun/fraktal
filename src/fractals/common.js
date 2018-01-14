@@ -4,6 +4,12 @@ import Immutable from 'immutable';
 import * as mandelbrot from 'fractals/mandelbrot';
 import { debug } from 'logging';
 
+function getFractal(fractal) {
+  switch (fractal) {
+    case 'mandelbrot':
+      return mandelbrot.check;
+  }
+}
 
 export function getLimits({ center, scale, W, H }) {
   const aspectRatio = H / W;
@@ -17,6 +23,7 @@ export function getLimits({ center, scale, W, H }) {
 export function computeMatrix({
   dimensions: { width: W, height: H },
   center: rawCenter,
+  fractal,
   scale,
   iterationLimit,
 }) {
@@ -24,6 +31,7 @@ export function computeMatrix({
   debug('computeMatrix', W, H, center, scale, iterationLimit);
 
   const { topLeft, btmRight } = getLimits({ center, scale, W, H });
+  const check = getFractal(fractal);
 
   return Immutable.Range(0, W).toJS().map(x =>
     Immutable.Range(0, H).toJS().map(y => {
@@ -32,7 +40,7 @@ export function computeMatrix({
         (btmRight.im - topLeft.im) * (y / H) + topLeft.im
       );
 
-      return mandelbrot.check(c, iterationLimit);
+      return check(c, iterationLimit);
     })
   );
 }
