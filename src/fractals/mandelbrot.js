@@ -1,5 +1,8 @@
 import Complex from 'complex.js';
 
+
+export const name = 'Mandelbrot set';
+
 function step(z, c) {
   return z.mul(z).add(c);
 }
@@ -14,6 +17,10 @@ function iterate(c, z, iterationLimit = 255, i = 0, escapeAbs = 2) {
   }
 }
 
-export function check(c, iterationLimit) {
+function check(c, iterationLimit) {
   return iterate(c, new Complex(0, 0), iterationLimit);
+}
+
+export function makeCheck() {
+  return check;
 }

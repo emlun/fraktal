@@ -4,6 +4,7 @@ import Immutable from 'immutable';
 import _ from 'underscore';
 import { sprintf } from 'sprintf-js';
 
+import * as fractals from 'fractals/common';
 import { computePalette, defaultGradientBottom, defaultGradientTop, getLimits } from 'fractals/common';
 import { debug } from 'logging';
 
@@ -47,6 +48,8 @@ export default class Canvas extends React.Component {
           height: 200,
           width: 300,
         }),
+        fractal: 'mandelbrot',
+        fractalParameters: Immutable.Map(),
         gradient: Immutable.fromJS([
           defaultGradientBottom,
           defaultGradientTop,
@@ -166,7 +169,8 @@ export default class Canvas extends React.Component {
       data: {
         center: this.get(['center']),
         dimensions: this.get(['dimensions']).toJS(),
-        fractal: 'mandelbrot',
+        fractal: this.get(['fractal']),
+        fractalParameters: this.get(['fractalParameters']).toJS(),
         iterationLimit: this.get(['gradient']).last().get('value'),
         scale: this.get(['scale']),
       },
@@ -213,7 +217,7 @@ export default class Canvas extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (_.any(['center', 'scale'], name => prevState.state.get(name) !== this.get([name]))) {
+    if (_.any(['center', 'fractal', 'scale'], name => prevState.state.get(name) !== this.get([name]))) {
       this.computeMatrix();
     }
     if (_.any(['matrix', 'gradient'], name => prevState.state.get(name) !== this.get([name]))) {
@@ -223,6 +227,9 @@ export default class Canvas extends React.Component {
 
   render() {
     debug('render', this.state);
+
+    const FractalParameters = fractals.getFractal(this.get(['fractal'])).ParameterControls;
+
     return <div>
       <canvas
         width={ this.get(['dimensions', 'width']) }
@@ -302,6 +309,30 @@ export default class Canvas extends React.Component {
               > - </button>
             </div>
           ) }
+
+          <div>
+            Fractal:
+            { ' ' }
+            <select
+              value={ this.get(['fractal']) }
+              onChange={ ({ target: { value } }) =>
+                this.update(state =>
+                  state
+                    .set('fractal', value)
+                    .set('fractalParameters', fractals.getFractal(value).defaultParameters)
+                )
+              }
+            >
+              { ['julia', 'mandelbrot'].map(fractal =>
+                <option key={ fractal } value={ fractal }>{ fractals.getFractal(fractal).name }</option>
+              ) }
+            </select>
+          </div>
+
+          <FractalParameters
+            parameters={ this.get(['fractalParameters']) }
+            onChange={ parameters => this.set(['fractalParameters'], parameters) }
+          />
         </div>
 
       </form>
