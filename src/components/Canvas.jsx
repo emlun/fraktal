@@ -8,7 +8,8 @@ import * as fractals from 'fractals/common';
 import { computePalette, defaultGradientBottom, defaultGradientTop, getLimits } from 'fractals/common';
 import { debug } from 'logging';
 
-window.Complex = Complex;
+import ComplexInput from 'components/ComplexInput';
+
 
 function renderPixels(imageData, matrix, palette) {
   debug('renderPixels', imageData, matrix, palette.toJS());
@@ -238,7 +239,7 @@ export default class Canvas extends React.Component {
       />
 
       <form onSubmit={ this.onSubmit.bind(this) }>
-        <p> Center: { this.get(['center']).toString() } </p>
+        <p> Center: <ComplexInput value={ this.get(['center']) } onChange={ newCenter => this.set(['center'], newCenter) }/> </p>
         <p> Scale: { this.get(['scale']) } </p>
         <p>
           <button type="button" onClick={ this.zoomOut.bind(this) }> Zoom out </button>
