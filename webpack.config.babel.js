@@ -1,7 +1,15 @@
+/* eslint no-console: 0 */
+
+const childProcess = require('child_process');
 const path = require('path');
 
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const projectName = 'Fraktal';
+
+const version = childProcess.execSync('git describe --always --tags --match=v*', { encoding: 'utf-8' }).replace('-', '.');
+console.log('Version of this build:', version);
 
 const SRC_DIR = path.resolve(__dirname, 'src');
 const BUILD_DIR = path.resolve(__dirname, 'build');
@@ -68,8 +76,8 @@ module.exports = {
           loader: 'babel-loader',
           options: {
             plugins: [
-              ["react-css-modules", {
-                context: 'src'
+              ['react-css-modules', {
+                context: 'src',
               }],
             ],
           },
@@ -93,8 +101,12 @@ module.exports = {
   },
 
   plugins: [
+    new webpack.DefinePlugin({
+      'PROJECT_NAME': JSON.stringify(projectName),
+      'VERSION': JSON.stringify(version),
+    }),
     new webpack.EnvironmentPlugin({ 'NODE_ENV': 'development' }),
-    new HtmlWebpackPlugin({ title: 'Fraktal' }),
+    new HtmlWebpackPlugin({ title: projectName }),
     ...(process.env.NODE_ENV === 'production'
       ? prodPlugins
       : devPlugins
