@@ -1,7 +1,9 @@
 fraktal
 ===
 
-Fractal rendering sandbox; work in progress, no particular plan.
+Fractal rendering sandbox, just for fun.
+
+Try it here: https://emlun.se/fraktal/
 
 
 Usage

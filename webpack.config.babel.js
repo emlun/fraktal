@@ -1,21 +1,51 @@
+/* eslint no-console: 0 */
+
+const childProcess = require('child_process');
 const path = require('path');
 
-const HotModuleReplacementPlugin = require('webpack').HotModuleReplacementPlugin;
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const projectName = 'Fraktal';
+
+const version = childProcess.execSync('git describe --always --tags --match=v*', { encoding: 'utf-8' }).replace('-', '.');
+console.log('Version of this build:', version);
 
 const SRC_DIR = path.resolve(__dirname, 'src');
 const BUILD_DIR = path.resolve(__dirname, 'build');
 
-module.exports = {
+const context = SRC_DIR;
 
-  entry: [
-    'react-hot-loader/patch',
-    path.resolve(SRC_DIR, 'index'),
-  ],
+const devConfig = {
+  devtool: 'eval',
+
+  devServer: {
+    hot: true,
+  },
+};
+
+const devPlugins = [
+  new webpack.HotModuleReplacementPlugin(),
+];
+
+const prodConfig = {
+  devtool: 'source-map',
+};
+
+const prodPlugins = [
+];
+
+module.exports = {
+  context,
+
+  entry: {
+    index: ['react-hot-loader/patch', path.resolve(SRC_DIR, 'index')],
+    worker: path.resolve(SRC_DIR, 'worker'),
+  },
 
   output: {
     path: BUILD_DIR,
-    filename: 'bundle.js',
+    filename: '[name].js',
   },
 
   resolve: {
@@ -42,21 +72,50 @@ module.exports = {
       {
         test: /\.jsx?$/,
         exclude: /node_modules/,
-        loader: 'babel-loader',
+        use: {
+          loader: 'babel-loader',
+          options: {
+            plugins: [
+              ['react-css-modules', {
+                context: 'src',
+              }],
+            ],
+          },
+        },
       },
 
+      {
+        test: /\.css$/,
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              modules: true,
+              localIdentName: '[path]___[name]__[local]___[hash:base64:5]',
+            },
+          },
+        ],
+      },
     ],
   },
 
   plugins: [
-    new HtmlWebpackPlugin({ title: 'Fraktal' }),
-    new HotModuleReplacementPlugin(),
+    new webpack.DefinePlugin({
+      'PROJECT_NAME': JSON.stringify(projectName),
+      'VERSION': JSON.stringify(version),
+    }),
+    new webpack.EnvironmentPlugin({ 'NODE_ENV': 'development' }),
+    new HtmlWebpackPlugin({ title: projectName }),
+    ...(process.env.NODE_ENV === 'production'
+      ? prodPlugins
+      : devPlugins
+    ),
   ],
 
-  devtool: 'eval',
-
-  devServer: {
-    hot: true,
-  },
+  ...(process.env.NODE_ENV === 'production'
+    ? prodConfig
+    : devConfig
+  ),
 
 };

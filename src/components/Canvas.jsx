@@ -4,44 +4,20 @@ import Immutable from 'immutable';
 import _ from 'underscore';
 import { sprintf } from 'sprintf-js';
 
-import * as mandelbrot from 'fractals/mandelbrot';
+import { computePalette, defaultGradientBottom, defaultGradientTop, getLimits } from 'fractals/common';
+import { debug } from 'logging';
 
-
-function getLimits({ center, scale, W, H }) {
-  const aspectRatio = H / W;
-  const w = scale;
-  const h = scale * aspectRatio;
-  const topLeft = center.add(new Complex(-w/2, h/2));
-  const btmRight = center.add(new Complex(w/2, -h/2));
-  return { topLeft, btmRight };
-}
-
-function computeMatrix(W, H, center, scale, iterationLimit) {
-  console.log('computeMatrix', W, H, center, scale, iterationLimit);
-
-  const { topLeft, btmRight } = getLimits({ center, scale, W, H });
-
-  return Immutable.Range(0, W).toJS().map(x =>
-    Immutable.Range(0, H).toJS().map(y => {
-      const c = new Complex(
-        (btmRight.re - topLeft.re) * (x / W) + topLeft.re,
-        (btmRight.im - topLeft.im) * (y / H) + topLeft.im
-      );
-
-      return mandelbrot.check(c, iterationLimit);
-    })
-  );
-}
+window.Complex = Complex;
 
 function renderPixels(imageData, matrix, palette) {
-  console.log('renderPixels', imageData, matrix, palette.toJS());
+  debug('renderPixels', imageData, matrix, palette.toJS());
 
-  const W = Math.min(imageData.width, matrix.length);
-  const H = Math.min(imageData.height, matrix[0] ? matrix[0].length : 0);
+  const W = imageData.width;
+  const H = imageData.height;
 
   for (let x = 0; x < W; x += 1) {
     for (let y = 0; y < H; y += 1) {
-      const iterations = matrix[x][y];
+      const iterations = (matrix[x] || [])[y] || 0;
 
       if (iterations > 0) {
         imageData.data[y * W * 4 + x * 4] = palette.getIn([0, iterations], 255);
@@ -60,9 +36,6 @@ function renderPixels(imageData, matrix, palette) {
 }
 
 
-const defaultBottom = Immutable.fromJS({ value: 0, color: [0, 0, 0] });
-const defaultTop = Immutable.fromJS({ value: 255, color: [255, 255, 255] });
-
 export default class Canvas extends React.Component {
 
   constructor(props) {
@@ -75,14 +48,45 @@ export default class Canvas extends React.Component {
           width: 300,
         }),
         gradient: Immutable.fromJS([
-          defaultBottom,
-          defaultTop,
+          defaultGradientBottom,
+          defaultGradientTop,
         ]),
         matrix: [[]],
         scale: 2.5,
         status: undefined,
       }),
     };
+  }
+
+  componentDidMount() {
+    this.computeMatrix();
+  }
+
+  componentWillUnmount() {
+    if (this.worker) {
+      this.worker.terminate();
+    }
+  }
+
+  onWorkerMessage(message) {
+    debug('Message from worker:', message);
+    switch (message.data.type) {
+      case 'compute-matrix':
+        this.onComputationCompleted(message.data.data);
+        break;
+
+      default:
+        debug('Ignoring message from worker:', message);
+    }
+  }
+
+  onComputationCompleted(matrix) {
+    debug('Saving matrix', matrix);
+
+    this.update(state =>
+      state.set('status', undefined)
+        .set('matrix', matrix)
+    );
   }
 
   get(path, defaultValue) {
@@ -122,27 +126,14 @@ export default class Canvas extends React.Component {
       this.canvas.addEventListener('mouseup', this.onClick.bind(this));
       this.canvas.addEventListener('wheel', this.onWheel.bind(this));
     }
+    this.renderPixels();
   }
 
   renderPixels() {
     if (this.canvas) {
-      console.log('About to render pixels...');
+      debug('About to render pixels...');
 
-      const bottom = this.get(['gradient', 0], defaultBottom).set('value', 0);
-      const gradient = Immutable.List([bottom]).concat(this.get(['gradient']));
-
-      const palette = Immutable.Range(0, 3).map(c => {
-        return Immutable.List([gradient.first().getIn(['color', c])]).concat(gradient.skip(1).flatMap((pivot, prevIndex) => {
-          const prev = gradient.get(prevIndex);
-          const start = prev.get('value');
-          const end = pivot.get('value');
-          const diff = end - start;
-
-          return Immutable.Range(1, diff + 1).map(segmentIndex =>
-            prev.getIn(['color', c]) + (segmentIndex * 1.0 / diff) * (pivot.getIn(['color', c]) - prev.getIn(['color', c]))
-          );
-        }));
-      });
+      const palette = computePalette(this.get(['gradient']));
 
       const ctx = this.canvas.getContext('2d');
 
@@ -162,28 +153,28 @@ export default class Canvas extends React.Component {
   computeMatrix() {
     this.set(['status'], 'Computing...');
 
-    console.log('About to compute matrix...');
+    debug('About to compute matrix...');
 
-    _.defer(() => {
-      const matrix = computeMatrix(
-        this.get(['dimensions', 'width']),
-        this.get(['dimensions', 'height']),
-        this.get(['center']),
-        this.get(['scale']),
-        this.get(['gradient']).last().get('value')
-      );
+    if (this.worker) {
+      this.worker.terminate();
+    }
 
-      console.log('Saving matrix', matrix);
-
-      this.update(state =>
-        state.set('status', undefined)
-          .set('matrix', matrix)
-      );
+    this.worker = new Worker('worker.js');
+    this.worker.onmessage = this.onWorkerMessage.bind(this);
+    this.worker.postMessage({
+      type: 'compute-matrix',
+      data: {
+        center: this.get(['center']),
+        dimensions: this.get(['dimensions']).toJS(),
+        fractal: 'mandelbrot',
+        iterationLimit: this.get(['gradient']).last().get('value'),
+        scale: this.get(['scale']),
+      },
     });
   }
 
   onClick(event) {
-    console.log('onClick', event, event.offsetX, event.offsetY);
+    debug('onClick', event, event.offsetX, event.offsetY);
     this.update(state =>
       state.set(
         'center',
@@ -205,7 +196,7 @@ export default class Canvas extends React.Component {
   }
 
   onWheel(event) {
-    console.log('onWheel', event);
+    debug('onWheel', event);
     if (event.deltaY > 0) {
       this.zoomOut();
     } else {
@@ -222,22 +213,16 @@ export default class Canvas extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.state.get('center') !== this.get(['center'])
-        || prevState.state.get('scale') !== this.get(['scale'])
-    ) {
+    if (_.any(['center', 'scale'], name => prevState.state.get(name) !== this.get([name]))) {
       this.computeMatrix();
     }
-    if (
-      prevState.state.get('matrix') !== this.get(['matrix'])
-        || prevState.state.get('gradient') !== this.get(['gradient'])
-    ) {
+    if (_.any(['matrix', 'gradient'], name => prevState.state.get(name) !== this.get([name]))) {
       this.renderPixels();
     }
   }
 
   render() {
-    console.log('render', this.state);
+    debug('render', this.state);
     return <div>
       <canvas
         width={ this.get(['dimensions', 'width']) }

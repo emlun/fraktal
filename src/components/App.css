@@ -1,0 +1,33 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+}
+
+.main {
+  flex-grow: 1;
+  padding: 1em;
+}
+
+.footer {
+  border-top: 1px solid #bbb;
+  color: #aaa;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  font-family: 'DejaVu';
+  font-size: 10pt;
+  padding: 1em;
+  white-space: nowrap;
+}
+
+.footer > * {
+  flex-basis: 0;
+  flex-grow: 1;
+}
+
+.footer .middle {
+  text-align: center;
+}
