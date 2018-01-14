@@ -4,6 +4,28 @@ import Immutable from 'immutable';
 import * as mandelbrot from 'fractals/mandelbrot';
 import { debug } from 'logging';
 
+
+export const defaultGradientBottom = Immutable.fromJS({ value: 0, color: [0, 0, 0] });
+export const defaultGradientTop = Immutable.fromJS({ value: 50, color: [255, 0, 255] });
+
+export function computePalette(rawGradient) {
+  const bottom = (rawGradient.first() || defaultGradientBottom).set('value', 0);
+  const gradient = Immutable.List([bottom]).concat(rawGradient);
+
+  return Immutable.Range(0, 3).map(c => {
+    return Immutable.List([gradient.first().getIn(['color', c])]).concat(gradient.skip(1).flatMap((pivot, prevIndex) => {
+      const prev = gradient.get(prevIndex);
+      const start = prev.get('value');
+      const end = pivot.get('value');
+      const diff = end - start;
+
+      return Immutable.Range(1, diff + 1).map(segmentIndex =>
+        prev.getIn(['color', c]) + (segmentIndex * 1.0 / diff) * (pivot.getIn(['color', c]) - prev.getIn(['color', c]))
+      );
+    }));
+  });
+}
+
 function getFractal(fractal) {
   switch (fractal) {
     case 'mandelbrot':

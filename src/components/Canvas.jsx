@@ -4,7 +4,7 @@ import Immutable from 'immutable';
 import _ from 'underscore';
 import { sprintf } from 'sprintf-js';
 
-import { getLimits } from 'fractals/common';
+import { computePalette, defaultGradientBottom, defaultGradientTop, getLimits } from 'fractals/common';
 import { debug } from 'logging';
 
 window.Complex = Complex;
@@ -36,9 +36,6 @@ function renderPixels(imageData, matrix, palette) {
 }
 
 
-const defaultBottom = Immutable.fromJS({ value: 0, color: [0, 0, 0] });
-const defaultTop = Immutable.fromJS({ value: 50, color: [255, 0, 255] });
-
 export default class Canvas extends React.Component {
 
   constructor(props) {
@@ -51,8 +48,8 @@ export default class Canvas extends React.Component {
           width: 300,
         }),
         gradient: Immutable.fromJS([
-          defaultBottom,
-          defaultTop,
+          defaultGradientBottom,
+          defaultGradientTop,
         ]),
         matrix: [[]],
         scale: 2.5,
@@ -136,21 +133,7 @@ export default class Canvas extends React.Component {
     if (this.canvas) {
       debug('About to render pixels...');
 
-      const bottom = this.get(['gradient', 0], defaultBottom).set('value', 0);
-      const gradient = Immutable.List([bottom]).concat(this.get(['gradient']));
-
-      const palette = Immutable.Range(0, 3).map(c => {
-        return Immutable.List([gradient.first().getIn(['color', c])]).concat(gradient.skip(1).flatMap((pivot, prevIndex) => {
-          const prev = gradient.get(prevIndex);
-          const start = prev.get('value');
-          const end = pivot.get('value');
-          const diff = end - start;
-
-          return Immutable.Range(1, diff + 1).map(segmentIndex =>
-            prev.getIn(['color', c]) + (segmentIndex * 1.0 / diff) * (pivot.getIn(['color', c]) - prev.getIn(['color', c]))
-          );
-        }));
-      });
+      const palette = computePalette(this.get(['gradient']));
 
       const ctx = this.canvas.getContext('2d');
 
