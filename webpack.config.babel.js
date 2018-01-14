@@ -8,7 +8,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const projectName = 'Fraktal';
 
-const version = childProcess.execSync('git describe --always --tags --match=v*', { encoding: 'utf-8' }).replace('-', '.');
+const version = childProcess.execSync('git describe --always --tags --match=v* --long', { encoding: 'utf-8' }).replace('-', '.');
 console.log('Version of this build:', version);
 
 const SRC_DIR = path.resolve(__dirname, 'src');

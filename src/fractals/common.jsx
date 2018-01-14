@@ -1,12 +1,19 @@
+import React from 'react';
 import Complex from 'complex.js';
 import Immutable from 'immutable';
 
+import * as julia from 'fractals/julia';
 import * as mandelbrot from 'fractals/mandelbrot';
 import { debug } from 'logging';
 
 
 export const defaultGradientBottom = Immutable.fromJS({ value: 0, color: [0, 0, 0] });
 export const defaultGradientTop = Immutable.fromJS({ value: 50, color: [255, 0, 255] });
+
+const fractals = {
+  julia,
+  mandelbrot,
+};
 
 export function computePalette(rawGradient) {
   const bottom = (rawGradient.first() || defaultGradientBottom).set('value', 0);
@@ -26,11 +33,13 @@ export function computePalette(rawGradient) {
   });
 }
 
-function getFractal(fractal) {
-  switch (fractal) {
-    case 'mandelbrot':
-      return mandelbrot.check;
-  }
+function NoParameterControls() { return <span/>; };
+
+export function getFractal(name) {
+  return {
+    ParameterControls: NoParameterControls,
+    ...(fractals[name]),
+  };
 }
 
 export function getLimits({ center, scale, W, H }) {
@@ -46,14 +55,15 @@ export function computeMatrix({
   dimensions: { width: W, height: H },
   center: rawCenter,
   fractal,
+  fractalParameters,
   scale,
   iterationLimit,
 }) {
   const center = new Complex(rawCenter);
-  debug('computeMatrix', W, H, center, scale, iterationLimit);
+  debug('computeMatrix', W, H, center, scale, iterationLimit, fractal, fractalParameters);
 
   const { topLeft, btmRight } = getLimits({ center, scale, W, H });
-  const check = getFractal(fractal);
+  const check = getFractal(fractal).makeCheck(fractalParameters);
 
   return Immutable.Range(0, W).toJS().map(x =>
     Immutable.Range(0, H).toJS().map(y => {
