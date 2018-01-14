@@ -52,7 +52,7 @@ export default class Canvas extends React.Component {
           defaultGradientTop,
         ]),
         matrix: [[]],
-        scale: 2.5,
+        scale: 3,
         status: undefined,
       }),
     };
