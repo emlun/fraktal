@@ -12,12 +12,12 @@ window.Complex = Complex;
 function renderPixels(imageData, matrix, palette) {
   debug('renderPixels', imageData, matrix, palette.toJS());
 
-  const W = Math.min(imageData.width, matrix.length);
-  const H = Math.min(imageData.height, matrix[0] ? matrix[0].length : 0);
+  const W = imageData.width;
+  const H = imageData.height;
 
   for (let x = 0; x < W; x += 1) {
     for (let y = 0; y < H; y += 1) {
-      const iterations = matrix[x][y];
+      const iterations = (matrix[x] || [])[y] || 0;
 
       if (iterations > 0) {
         imageData.data[y * W * 4 + x * 4] = palette.getIn([0, iterations], 255);
@@ -129,6 +129,7 @@ export default class Canvas extends React.Component {
       this.canvas.addEventListener('mouseup', this.onClick.bind(this));
       this.canvas.addEventListener('wheel', this.onWheel.bind(this));
     }
+    this.renderPixels();
   }
 
   renderPixels() {
