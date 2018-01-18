@@ -343,31 +343,31 @@ export default class Canvas extends React.Component {
               > - </button>
             </div>
           ) }
-
-          <div>
-            Fractal:
-            { ' ' }
-            <select
-              value={ this.get(['fractal']) }
-              onChange={ ({ target: { value } }) =>
-                this.update(state =>
-                  state
-                    .set('fractal', value)
-                    .set('fractalParameters', fractals.getFractal(value).defaultParameters)
-                )
-              }
-            >
-              { ['julia', 'mandelbrot'].map(fractal =>
-                <option key={ fractal } value={ fractal }>{ fractals.getFractal(fractal).name }</option>
-              ) }
-            </select>
-          </div>
-
-          <FractalParameters
-            parameters={ this.get(['fractalParameters']) }
-            onChange={ parameters => this.set(['fractalParameters'], parameters) }
-          />
         </div>
+
+        <div>
+          Fractal:
+          { ' ' }
+          <select
+            value={ this.get(['fractal']) }
+            onChange={ ({ target: { value } }) =>
+              this.update(state =>
+                state
+                  .set('fractal', value)
+                  .set('fractalParameters', fractals.getFractal(value).defaultParameters)
+              )
+            }
+          >
+            { ['julia', 'mandelbrot'].map(fractal =>
+              <option key={ fractal } value={ fractal }>{ fractals.getFractal(fractal).name }</option>
+            ) }
+          </select>
+        </div>
+
+        <FractalParameters
+          parameters={ this.get(['fractalParameters']) }
+          onChange={ parameters => this.set(['fractalParameters'], parameters) }
+        />
 
       </form>
 
