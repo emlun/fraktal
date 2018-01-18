@@ -12,7 +12,7 @@ import ComplexInput from 'components/ComplexInput';
 import ProgressBar from 'components/ProgressBar';
 
 
-function renderPixels(imageData, matrix, palette) {
+function renderPixels(imageData, matrix, palette, insideColor = [0, 0, 0]) {
   const W = imageData.width;
   const H = imageData.height;
 
@@ -25,9 +25,9 @@ function renderPixels(imageData, matrix, palette) {
         imageData.data[y * W * 4 + x * 4 + 1] = palette.getIn([1, iterations], 255);
         imageData.data[y * W * 4 + x * 4 + 2] = palette.getIn([2, iterations], 255);
       } else {
-        imageData.data[y * W * 4 + x * 4] = 0;
-        imageData.data[y * W * 4 + x * 4 + 1] = 0;
-        imageData.data[y * W * 4 + x * 4 + 2] = 0;
+        imageData.data[y * W * 4 + x * 4] = insideColor[0];
+        imageData.data[y * W * 4 + x * 4 + 1] = insideColor[1];
+        imageData.data[y * W * 4 + x * 4 + 2] = insideColor[2];
       }
       imageData.data[y * W * 4 + x * 4 + 3] = 255;
     }
@@ -36,6 +36,13 @@ function renderPixels(imageData, matrix, palette) {
   return imageData;
 }
 
+function parseColor(hexString) {
+  return Immutable.List([
+    parseInt(hexString.substring(1, 3), 16),
+    parseInt(hexString.substring(3, 5), 16),
+    parseInt(hexString.substring(5, 7), 16),
+  ]);
+}
 
 export default class Canvas extends React.Component {
 
@@ -56,6 +63,7 @@ export default class Canvas extends React.Component {
           defaultGradientBottom,
           defaultGradientTop,
         ]),
+        insideColor: Immutable.fromJS([0, 0, 0]),
         numColors: 50,
         matrix: [[]],
         scale: 3,
@@ -153,7 +161,8 @@ export default class Canvas extends React.Component {
         const imageData = renderPixels(
           ctx.getImageData(0, 0, this.get(['dimensions', 'width']), this.get(['dimensions', 'height'])),
           this.get(['matrix']),
-          Immutable.fromJS(palette.toJS())
+          Immutable.fromJS(palette.toJS()),
+          this.get(['insideColor']).toJS()
         );
 
         ctx.putImageData(imageData, 0, 0);
@@ -312,16 +321,7 @@ export default class Canvas extends React.Component {
               />
               <input type="color"
                 value={ '#' + pivot.get('color').map(d => sprintf('%02x', d)).join('') }
-                onChange={
-                  ({ target: { value } }) =>
-                    this.set(['gradient', index, 'color'],
-                      Immutable.List([
-                        parseInt(value.substring(1, 3), 16),
-                        parseInt(value.substring(3, 5), 16),
-                        parseInt(value.substring(5, 7), 16),
-                      ])
-                    )
-                }
+                onChange={ ({ target: { value } }) => this.set(['gradient', index, 'color'], parseColor(value)) }
               />
               <button type="button"
                 onClick={ () => {
@@ -343,6 +343,11 @@ export default class Canvas extends React.Component {
               > - </button>
             </div>
           ) }
+
+          <p>Color inside set: <input type="color"
+              value={ '#' + this.get(['insideColor']).map(d => sprintf('%02x', d)).join('') }
+              onChange={ ({ target: { value } }) => this.set(['insideColor'], parseColor(value)) }
+            /></p>
         </div>
 
         <div>
