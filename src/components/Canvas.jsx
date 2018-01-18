@@ -135,7 +135,8 @@ export default class Canvas extends React.Component {
   }
 
   renderPixels() {
-    if (this.canvas) {
+    if (this.canvas && !this.rendering) {
+      this.rendering = true;
       debug('About to render pixels...');
 
       const palette = computePalette(this.get(['gradient']), this.get(['numColors']));
@@ -151,6 +152,7 @@ export default class Canvas extends React.Component {
 
         ctx.putImageData(imageData, 0, 0);
         ctx.save();
+        this.rendering = false;
       });
     }
   }
