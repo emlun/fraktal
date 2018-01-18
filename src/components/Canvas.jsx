@@ -55,6 +55,7 @@ export default class Canvas extends React.Component {
           defaultGradientBottom,
           defaultGradientTop,
         ]),
+        numColors: 50,
         matrix: [[]],
         scale: 3,
         status: undefined,
@@ -137,7 +138,7 @@ export default class Canvas extends React.Component {
     if (this.canvas) {
       debug('About to render pixels...');
 
-      const palette = computePalette(this.get(['gradient']));
+      const palette = computePalette(this.get(['gradient']), this.get(['numColors']));
 
       const ctx = this.canvas.getContext('2d');
 
@@ -172,7 +173,7 @@ export default class Canvas extends React.Component {
         dimensions: this.get(['dimensions']).toJS(),
         fractal: this.get(['fractal']),
         fractalParameters: this.get(['fractalParameters']).toJS(),
-        iterationLimit: this.get(['gradient']).last().get('value'),
+        iterationLimit: this.get(['numColors']) - 1,
         scale: this.get(['scale']),
       },
     });
@@ -267,24 +268,38 @@ export default class Canvas extends React.Component {
         <p> { this.get(['status']) } </p>
 
         <div>
-          Gradient:
+          <p>Number of color values:</p>
+          <p>
+            <input type="range"
+              value={ this.get(['numColors']) }
+              onChange={ ({ target: { value } }) => this.set(['numColors'], parseInt(value)) }
+              min={ 10 }
+              max={ 1000 }
+              step={ 10 }
+            />
+            { this.get(['numColors']) }
+          </p>
+
+          <p>Gradient:</p>
           { this.get(['gradient']).map((pivot, index) =>
             <div key={ index }>
-              <input type="number"
+              <input type="range"
                 value={ pivot.get('value') }
                 onChange={
                   ({ target: { value } }) =>
                     this.set(
                       ['gradient', index, 'value'],
                       Math.max(
-                        0,
                         Math.min(
                           parseInt(value),
                           this.get(['gradient', index + 1, 'value'], Infinity)
-                        )
+                        ),
+                        this.get(['gradient', index === 0 ? undefined : index - 1, 'value'], 0)
                       )
                     )
                 }
+                min={ 0 }
+                max={ this.get(['numColors']) - 1 }
               />
               <input type="color"
                 value={ '#' + pivot.get('color').map(d => sprintf('%02x', d)).join('') }

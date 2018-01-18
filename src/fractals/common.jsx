@@ -15,9 +15,11 @@ const fractals = {
   mandelbrot,
 };
 
-export function computePalette(rawGradient) {
-  const bottom = (rawGradient.first() || defaultGradientBottom).set('value', 0);
-  const gradient = Immutable.List([bottom]).concat(rawGradient);
+export function computePalette(rawGradient, numValues) {
+  const sortedGradient = rawGradient.sortBy(item => item.get('value'));
+  const bottom = (sortedGradient.first() || defaultGradientBottom).set('value', 0);
+  const top = (sortedGradient.last() || defaultGradientTop).set('value', numValues - 1);
+  const gradient = Immutable.List([bottom]).concat(sortedGradient).push(top);
 
   return Immutable.Range(0, 3).map(c => {
     return Immutable.List([gradient.first().getIn(['color', c])]).concat(gradient.skip(1).flatMap((pivot, prevIndex) => {
