@@ -54,12 +54,12 @@ export function getLimits({ center, scale, W, H }) {
 }
 
 export function computeMatrix({
-  dimensions: { width: W, height: H },
   center: rawCenter,
+  dimensions: { width: W, height: H },
   fractal,
   fractalParameters,
-  scale,
   iterationLimit,
+  scale,
 }) {
   const center = new Complex(rawCenter);
   debug('computeMatrix', W, H, center, scale, iterationLimit, fractal, fractalParameters);
