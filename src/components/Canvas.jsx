@@ -274,7 +274,16 @@ export default class Canvas extends React.Component {
                 value={ pivot.get('value') }
                 onChange={
                   ({ target: { value } }) =>
-                    this.set(['gradient', index, 'value'], Math.max(0, Math.min(parseInt(value), this.get(['gradient', index + 1, 'value'], Infinity))))
+                    this.set(
+                      ['gradient', index, 'value'],
+                      Math.max(
+                        0,
+                        Math.min(
+                          parseInt(value),
+                          this.get(['gradient', index + 1, 'value'], Infinity)
+                        )
+                      )
+                    )
                 }
               />
               <input type="color"
