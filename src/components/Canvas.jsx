@@ -47,8 +47,8 @@ export default class Canvas extends React.Component {
         computing: false,
         computeProgress: 0,
         dimensions: Immutable.fromJS({
-          height: 200,
-          width: 300,
+          height: 400,
+          width: 400,
         }),
         fractal: 'mandelbrot',
         fractalParameters: Immutable.Map(),
