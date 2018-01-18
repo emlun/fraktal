@@ -74,7 +74,6 @@ export default class Canvas extends React.Component {
   }
 
   onWorkerMessage(message) {
-    debug('Message from worker:', message);
     switch (message.data.type) {
       case 'compute-matrix':
         this.onComputationCompleted(message.data.data);
