@@ -12,8 +12,6 @@ import ComplexInput from 'components/ComplexInput';
 
 
 function renderPixels(imageData, matrix, palette) {
-  debug('renderPixels', imageData, matrix, palette.toJS());
-
   const W = imageData.width;
   const H = imageData.height;
 
@@ -137,7 +135,6 @@ export default class Canvas extends React.Component {
   renderPixels() {
     if (this.canvas && !this.rendering) {
       this.rendering = true;
-      debug('About to render pixels...');
 
       const palette = computePalette(this.get(['gradient']), this.get(['numColors']));
 
@@ -230,8 +227,6 @@ export default class Canvas extends React.Component {
   }
 
   render() {
-    debug('render', this.state);
-
     const FractalParameters = fractals.getFractal(this.get(['fractal'])).ParameterControls;
 
     return <div>
