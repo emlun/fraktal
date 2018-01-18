@@ -1,6 +1,7 @@
 import React from 'react';
 import Complex from 'complex.js';
 import Immutable from 'immutable';
+import _ from 'underscore';
 
 import * as julia from 'fractals/julia';
 import * as mandelbrot from 'fractals/mandelbrot';
@@ -59,22 +60,26 @@ export function computeMatrix({
   fractal,
   fractalParameters,
   iterationLimit,
+  notifyProgress = () => {},
   scale,
 }) {
   const center = new Complex(rawCenter);
+  const notify = _.throttle(notifyProgress, 100);
+
   debug('computeMatrix', W, H, center, scale, iterationLimit, fractal, fractalParameters);
 
   const { topLeft, btmRight } = getLimits({ center, scale, W, H });
   const check = getFractal(fractal).makeCheck(fractalParameters);
 
-  return Immutable.Range(0, W).toJS().map(x =>
-    Immutable.Range(0, H).toJS().map(y => {
+  return Immutable.Range(0, W).toJS().map(x => {
+    notify(x, W);
+    return Immutable.Range(0, H).toJS().map(y => {
       const c = new Complex(
         (btmRight.re - topLeft.re) * (x / W) + topLeft.re,
         (btmRight.im - topLeft.im) * (y / H) + topLeft.im
       );
 
       return check(c, iterationLimit);
-    })
-  );
+    });
+  });
 }

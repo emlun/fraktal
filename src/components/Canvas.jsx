@@ -9,6 +9,7 @@ import { computePalette, defaultGradientBottom, defaultGradientTop, getLimits } 
 import { debug } from 'logging';
 
 import ComplexInput from 'components/ComplexInput';
+import ProgressBar from 'components/ProgressBar';
 
 
 function renderPixels(imageData, matrix, palette) {
@@ -43,6 +44,8 @@ export default class Canvas extends React.Component {
     this.state = {
       state: Immutable.Map({
         center: new Complex(-0.5, 0),
+        computing: false,
+        computeProgress: 0,
         dimensions: Immutable.fromJS({
           height: 200,
           width: 300,
@@ -56,7 +59,6 @@ export default class Canvas extends React.Component {
         numColors: 50,
         matrix: [[]],
         scale: 3,
-        status: undefined,
       }),
     };
   }
@@ -78,6 +80,12 @@ export default class Canvas extends React.Component {
         this.onComputationCompleted(message.data.data);
         break;
 
+      case 'compute-matrix-progress':
+        if (this.get(['computing'])) {
+          this.set(['computeProgress'], message.data.data.completed * 1.0 / message.data.data.total);
+        }
+        break;
+
       default:
         debug('Ignoring message from worker:', message);
     }
@@ -87,7 +95,9 @@ export default class Canvas extends React.Component {
     debug('Saving matrix', matrix);
 
     this.update(state =>
-      state.set('status', undefined)
+      state
+        .set('computing', false)
+        .set('computeProgress', 0)
         .set('matrix', matrix)
     );
   }
@@ -155,9 +165,8 @@ export default class Canvas extends React.Component {
   }
 
   computeMatrix() {
-    this.set(['status'], 'Computing...');
-
     debug('About to compute matrix...');
+    this.set(['computing'], true);
 
     if (this.worker) {
       this.worker.terminate();
@@ -235,6 +244,11 @@ export default class Canvas extends React.Component {
         height={ this.get(['dimensions', 'height']) }
         ref={ this.updateCanvas.bind(this) }
       />
+      <ProgressBar
+        value={ this.get(['computeProgress'], 0) }
+        max={ 1 }
+        width={ this.get(['dimensions', 'width']) + 'px' }
+      />
 
       <form onSubmit={ this.onSubmit.bind(this) }>
         <p> Center: <ComplexInput value={ this.get(['center']) } onChange={ newCenter => this.set(['center'], newCenter) }/> </p>
@@ -262,7 +276,6 @@ export default class Canvas extends React.Component {
             value={ this.get(['dimensions', 'height']) }
           />
         </p>
-        <p> { this.get(['status']) } </p>
 
         <div>
           <p>Number of color values:</p>
