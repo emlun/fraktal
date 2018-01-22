@@ -20,28 +20,32 @@ export function computePalette(rawGradient, numValues) {
   const sortedGradient = rawGradient.sortBy(item => item.get('value'));
   const bottom = (sortedGradient.first() || defaultGradientBottom).set('value', 0);
   const top = (sortedGradient.last() || defaultGradientTop).set('value', numValues - 1);
-  const gradient = Immutable.List([bottom]).concat(sortedGradient).push(top);
+  const gradient = Immutable.List([bottom])
+    .concat(sortedGradient)
+    .push(top);
 
-  return Immutable.Range(0, 3).map(c => {
-    return Immutable.List([gradient.first().getIn(['color', c])]).concat(gradient.skip(1).flatMap((pivot, prevIndex) => {
+  return Immutable.Range(0, 3).map(c =>
+    Immutable.List([gradient.first().getIn(['color', c])]).concat(gradient.skip(1).flatMap((pivot, prevIndex) => {
       const prev = gradient.get(prevIndex);
       const start = prev.get('value');
       const end = pivot.get('value');
       const diff = end - start;
 
       return Immutable.Range(1, diff + 1).map(segmentIndex =>
-        prev.getIn(['color', c]) + (segmentIndex * 1.0 / diff) * (pivot.getIn(['color', c]) - prev.getIn(['color', c]))
+        prev.getIn(['color', c]) + (segmentIndex / diff * (pivot.getIn(['color', c]) - prev.getIn(['color', c])))
       );
-    }));
-  });
+    }))
+  );
 }
 
-function NoParameterControls() { return <span/>; };
+function NoParameterControls() {
+  return <span/>;
+}
 
 export function getFractal(name) {
   return {
     ParameterControls: NoParameterControls,
-    ...(fractals[name]),
+    ...fractals[name],
   };
 }
 
@@ -49,8 +53,8 @@ export function getLimits({ center, scale, W, H }) {
   const aspectRatio = H / W;
   const w = scale;
   const h = scale * aspectRatio;
-  const topLeft = center.add(new Complex(-w/2, h/2));
-  const btmRight = center.add(new Complex(w/2, -h/2));
+  const topLeft = center.add(new Complex(-w / 2, h / 2));
+  const btmRight = center.add(new Complex(w / 2, -h / 2));
   return { topLeft, btmRight };
 }
 
@@ -60,7 +64,7 @@ export function computeMatrix({
   fractal,
   fractalParameters,
   iterationLimit,
-  notifyProgress = () => {},
+  notifyProgress,
   scale,
 }) {
   const center = new Complex(rawCenter);
@@ -71,15 +75,19 @@ export function computeMatrix({
   const { topLeft, btmRight } = getLimits({ center, scale, W, H });
   const check = getFractal(fractal).makeCheck(fractalParameters);
 
-  return Immutable.Range(0, W).toJS().map(x => {
-    notify(x, W);
-    return Immutable.Range(0, H).toJS().map(y => {
-      const c = new Complex(
-        (btmRight.re - topLeft.re) * (x / W) + topLeft.re,
-        (btmRight.im - topLeft.im) * (y / H) + topLeft.im
-      );
+  return Immutable.Range(0, W)
+    .toJS()
+    .map(x => {
+      notify(x, W);
+      return Immutable.Range(0, H)
+        .toJS()
+        .map(y => {
+          const c = new Complex(
+            ((btmRight.re - topLeft.re) * (x / W)) + topLeft.re,
+            ((btmRight.im - topLeft.im) * (y / H)) + topLeft.im
+          );
 
-      return check(c, iterationLimit);
+          return check(c, iterationLimit);
+        });
     });
-  });
 }

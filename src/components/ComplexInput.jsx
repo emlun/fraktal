@@ -8,17 +8,20 @@ export default function ComplexInput({
   onChange,
 }) {
   return <span>
-    <input type="text"
-      placeholder="Re"
-      value={ re }
+    <input
       onChange={ ({ target: { value } }) => onChange(new Complex(parseFloat(value), im)) }
+      placeholder="Re"
+      type="text"
+      value={ re }
     />
-    +
-    <input type="text"
-      placeholder="Im"
-      value={ im }
+    { ' + ' }
+    <input
       onChange={ ({ target: { value } }) => onChange(new Complex(re, parseFloat(value))) }
-    />i
+      placeholder="Im"
+      type="text"
+      value={ im }
+    />
+    { 'i' }
   </span>;
 }
 ComplexInput.propTypes = {

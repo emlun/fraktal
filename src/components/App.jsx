@@ -6,24 +6,26 @@ import GithubCorner from 'components/GithubCorner';
 import './App.css';
 
 
-export default class App extends React.Component {
+export default function App() {
+  return <div styleName="wrapper">
+    <div styleName="main">
+      <GithubCorner
+        fillColor="#626262"
+        repo="emlun/fraktal"
+      />
+      <Canvas/>
+    </div>
 
-  render() {
-    return <div styleName="wrapper">
-      <div styleName="main">
-        <GithubCorner repo="emlun/fraktal" fillColor="#626262" />
-        <Canvas/>
+    <footer styleName="footer">
+      <div>
+        <a href="https://emlun.se/">
+          { 'emlun.se' }
+        </a>
       </div>
-
-      <footer styleName="footer">
-        <div>
-          <a href="https://emlun.se/"> emlun.se </a>
-        </div>
-        <div styleName="middle"> { PROJECT_NAME } { VERSION } </div>
-        <div>
-        </div>
-      </footer>
-    </div>;
-  }
-
+      <div styleName="middle">
+        { `${PROJECT_NAME} ${VERSION}` }
+      </div>
+      <div/>
+    </footer>
+  </div>;
 }

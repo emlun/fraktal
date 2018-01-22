@@ -8,16 +8,24 @@ export default function ProgressBar({
   value,
   width,
 }) {
-  return <div styleName="ProgressBar"
+  return <div
     style={ { width } }
+    styleName="ProgressBar"
   >
-    <div styleName="bar filled" style={ { flexGrow: value } }></div>
-    <div styleName="bar empty" style={ { flexGrow: max - value } }></div>
+    <div
+      style={ { flexGrow: value } }
+      styleName="bar filled"
+    />
+    <div
+      style={ { flexGrow: max - value } }
+      styleName="bar empty"
+    />
   </div>;
 }
 
 ProgressBar.propTypes = {
-  max: PropTypes.number,
   value: PropTypes.number.isRequired,
+
+  max: PropTypes.number,
   width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
