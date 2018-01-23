@@ -8,8 +8,16 @@ import * as mandelbrot from 'fractals/mandelbrot';
 import { debug } from 'logging';
 
 
-export const defaultGradientBottom = Immutable.fromJS({ value: 0, color: [0, 0, 0] });
-export const defaultGradientTop = Immutable.fromJS({ value: 50, color: [255, 0, 255] });
+export const defaultGradientBottom = Immutable.fromJS({
+  color: [0, 0, 0],
+  id: _.uniqueId('gradient-pivot-'),
+  value: 0,
+});
+export const defaultGradientTop = Immutable.fromJS({
+  color: [255, 0, 255],
+  id: _.uniqueId('gradient-pivot-'),
+  value: 50,
+});
 
 const fractals = {
   julia,

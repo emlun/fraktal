@@ -334,7 +334,7 @@ export default class Canvas extends React.Component {
             { 'Gradient:' }
           </p>
           { this.get(['gradient']).map((pivot, index) =>
-            <div key={ index }>
+            <div key={ pivot.get('id') }>
               <input
                 max={ this.get(['numColors']) - 1 }
                 min={ 0 }
@@ -370,12 +370,18 @@ export default class Canvas extends React.Component {
                   const next = this.get(['gradient', index + 1]);
                   if (next) {
                     const middle = pivot
+                      .set('id', _.uniqueId('gradient-pivot-'))
                       .set('value', Math.round((pivot.get('value') + next.get('value')) / 2.0))
                       .set('color', pivot.get('color').zipWith((c1, c2) => Math.round((c1 + c2) / 2.0), next.get('color')));
 
                     this.update(['gradient'], gradient => gradient.insert(index + 1, middle));
                   } else {
-                    this.update(['gradient'], gradient => gradient.insert(index, gradient.get(index)));
+                    this.update(['gradient'], gradient =>
+                      gradient.insert(index,
+                        gradient.get(index)
+                          .set('id', _.uniqueId('gradient-pivot-'))
+                      )
+                    );
                   }
                 } }
                 type="button"
