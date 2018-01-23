@@ -78,7 +78,7 @@ rules:
   react/jsx-curly-spacing: [error, always]
   react/jsx-indent-props: [error, 2]
   react/jsx-indent: [error, 2]
-  react/jsx-no-bind: warn
+  react/jsx-no-bind: off
   react/jsx-sort-props:
     - error
     - callbacksLast: false
