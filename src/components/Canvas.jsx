@@ -2,12 +2,11 @@ import React from 'react';
 import Complex from 'complex.js';
 import Immutable from 'immutable';
 import _ from 'underscore';
-import { sprintf } from 'sprintf-js';
 
 import * as fractals from 'fractals/common';
 import { debug } from 'logging';
 
-import ComplexInput from 'components/ComplexInput';
+import Controls from 'components/Controls';
 import ProgressBar from 'components/ProgressBar';
 
 
@@ -35,14 +34,6 @@ function renderPixels(imageData, matrix, palette, insideColor = [0, 0, 0]) { // 
   }
 
   return imageData;
-}
-
-function parseColor(hexString) {
-  return Immutable.List([
-    parseInt(hexString.substring(1, 3), 16),
-    parseInt(hexString.substring(3, 5), 16),
-    parseInt(hexString.substring(5, 7), 16),
-  ]);
 }
 
 export default class Canvas extends React.Component {
@@ -245,8 +236,6 @@ export default class Canvas extends React.Component {
   }
 
   render() {
-    const FractalParameters = fractals.getFractal(this.get(['fractal'])).ParameterControls;
-
     return <div>
       <canvas
         ref={ this.updateCanvas.bind(this) }
@@ -259,190 +248,15 @@ export default class Canvas extends React.Component {
         width={ `${this.get(['dimensions', 'width'])}px` }
       />
 
-      <form onSubmit={ this.onSubmit.bind(this) }>
-        <p>
-          { 'Center: ' }
-          <ComplexInput
-            onChange={ newCenter => this.set(['center'], newCenter) }
-            value={ this.get(['center']) }
-          />
-        </p>
-        <p>
-          { `Scale: ${this.get(['scale'])}` }
-        </p>
-        <p>
-          <button
-            onClick={ this.zoomOut.bind(this) }
-            type="button"
-          >
-            { 'Zoom out' }
-          </button>
-          <button
-            onClick={ this.zoomIn.bind(this) }
-            type="button"
-          >
-            { 'Zoom in' }
-          </button>
-        </p>
-        <p>
-          { `Top left: ${this.getLimits().topLeft.toString()}` }
-        </p>
-        <p>
-          { `Bottom right: ${this.getLimits().btmRight.toString()}` }
-        </p>
-        <button type="submit" >
-          { 'Render' }
-        </button>
-        <p>
-          { 'Width: ' }
-          <input
-            onChange={
-              ({ target: { value } }) => this.set(['dimensions', 'width'], parseInt(value || 0, 10))
-            }
-            type="number"
-            value={ this.get(['dimensions', 'width']) }
-          />
-        </p>
-        <p>
-          { 'Height: ' }
-          <input
-            onChange={
-              ({ target: { value } }) => this.set(['dimensions', 'height'], parseInt(value || 0, 10))
-            }
-            type="number"
-            value={ this.get(['dimensions', 'height']) }
-          />
-        </p>
-
-        <div>
-          <p>
-            { 'Number of color values:' }
-          </p>
-          <p>
-            <input
-              max={ 1000 }
-              min={ 10 }
-              onChange={ ({ target: { value } }) => this.set(['numColors'], parseInt(value, 10)) }
-              step={ 10 }
-              type="range"
-              value={ this.get(['numColors']) }
-            />
-            { this.get(['numColors']) }
-          </p>
-
-          <p>
-            { 'Gradient:' }
-          </p>
-          { this.get(['gradient']).map((pivot, index) =>
-            <div key={ pivot.get('id') }>
-              <input
-                max={ this.get(['numColors']) - 1 }
-                min={ 0 }
-                onChange={
-                  ({ target: { value } }) =>
-                    this.set(
-                      ['gradient', index, 'value'],
-                      Math.max(
-                        Math.min(
-                          parseInt(value, 10),
-                          this.get(['gradient', index + 1, 'value'], Infinity)
-                        ),
-                        this.get(['gradient', Math.max(-Infinity, index - 1), 'value'], 0)
-                      )
-                    )
-                }
-                type="range"
-                value={ pivot.get('value') }
-              />
-              <input
-                onChange={ ({ target: { value } }) => this.set(['gradient', index, 'color'], parseColor(value)) }
-                type="color"
-                value={
-                  `#${
-                    pivot.get('color')
-                      .map(d => sprintf('%02x', d))
-                      .join('')
-                  }`
-                }
-              />
-              <button
-                onClick={ () => {
-                  const next = this.get(['gradient', index + 1]);
-                  if (next) {
-                    const middle = pivot
-                      .set('id', _.uniqueId('gradient-pivot-'))
-                      .set('value', Math.round((pivot.get('value') + next.get('value')) / 2.0))
-                      .set('color', pivot.get('color').zipWith((c1, c2) => Math.round((c1 + c2) / 2.0), next.get('color')));
-
-                    this.update(['gradient'], gradient => gradient.insert(index + 1, middle));
-                  } else {
-                    this.update(['gradient'], gradient =>
-                      gradient.insert(index,
-                        gradient.get(index)
-                          .set('id', _.uniqueId('gradient-pivot-'))
-                      )
-                    );
-                  }
-                } }
-                type="button"
-              >
-                { '+' }
-              </button>
-              <button
-                onClick={ () => this.update(['gradient'], gradient => gradient.delete(index)) }
-                type="button"
-              >
-                { '-' }
-              </button>
-            </div>
-          ) }
-
-          <p>
-            { 'Color inside set: ' }
-            <input
-              onChange={ ({ target: { value } }) => this.set(['insideColor'], parseColor(value)) }
-              type="color"
-              value={
-                `#${
-                  this.get(['insideColor'])
-                    .map(d => sprintf('%02x', d))
-                    .join('')
-                }`
-              }
-            />
-          </p>
-        </div>
-
-        <div>
-          { 'Fractal: ' }
-          <select
-            onChange={ ({ target: { value } }) =>
-              this.update(state =>
-                state
-                  .set('fractal', value)
-                  .set('fractalParameters', fractals.getFractal(value).defaultParameters)
-              )
-            }
-            value={ this.get(['fractal']) }
-          >
-            { ['julia', 'mandelbrot'].map(fractal =>
-              <option
-                key={ fractal }
-                value={ fractal }
-              >
-                { fractals.getFractal(fractal).name }
-              </option>
-            ) }
-          </select>
-        </div>
-
-        <FractalParameters
-          onChange={ parameters => this.set(['fractalParameters'], parameters) }
-          parameters={ this.get(['fractalParameters']) }
-        />
-
-      </form>
-
+      <Controls
+        fractalParametersControls={ fractals.getFractal(this.get(['fractal'])).ParameterControls }
+        limits={ this.getLimits() }
+        onChange={ newState => this.setState({ state: newState }) }
+        onSubmit={ this.computeMatrix.bind(this) }
+        onZoomIn={ this.zoomIn.bind(this) }
+        onZoomOut={ this.zoomOut.bind(this) }
+        state={ this.state.state }
+      />
     </div>;
   }
 
