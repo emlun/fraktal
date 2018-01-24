@@ -135,7 +135,7 @@ export default class Controls extends React.Component {
                           parseInt(value, 10),
                           this.get(['gradient', index + 1, 'value'], Infinity)
                         ),
-                        this.get(['gradient', Math.max(-Infinity, index - 1), 'value'], 0)
+                        this.get(['gradient', index < 1 ? 'foo' : index - 1, 'value'], 0)
                       )
                     )
                 }
