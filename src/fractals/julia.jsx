@@ -34,9 +34,10 @@ export function makeCheck({ c }) {
   };
 }
 
-export const defaultParameters = Immutable.Map({
+export const Parameters = Immutable.Record({
   c: new Complex(0.285, 0.01),
 });
+export const defaultParameters = new Parameters();
 
 export function ParameterControls({
   parameters = defaultParameters,
@@ -53,6 +54,6 @@ export function ParameterControls({
   </div>;
 }
 ParameterControls.propTypes = {
-  parameters: PropTypes.object.isRequired,
+  parameters: PropTypes.instanceOf(Parameters).isRequired,
   onChange: PropTypes.func.isRequired,
 };
