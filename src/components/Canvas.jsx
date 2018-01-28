@@ -44,7 +44,6 @@ class Canvas extends React.Component {
     this.onClick = this.onClick.bind(this);
     this.onSubmit = this.onSubmit.bind(this);
     this.onWheel = this.onWheel.bind(this);
-    this.renderPixels = _.debounce(this.renderPixels, 500);
     this.updateCanvas = this.updateCanvas.bind(this);
     this.zoomIn = this.zoomIn.bind(this);
     this.zoomOut = this.zoomOut.bind(this);
