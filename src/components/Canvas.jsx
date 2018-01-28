@@ -54,7 +54,9 @@ class Canvas extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (_.any(['insideColor', 'gradient', 'matrix'], name => prevProps.state.get(name) !== this.get([name]))) {
+    if (_.any(['insideColor', 'gradient', 'matrix'],
+      name => prevProps.state.get(name) !== this.props.state.get(name))
+    ) {
       this.renderPixels();
     }
   }
@@ -65,20 +67,12 @@ class Canvas extends React.Component {
     }
   }
 
-  get(path, defaultValue) {
-    return this.props.state.getIn(path, defaultValue);
-  }
-
-  set(path, value) {
-    return this.props.update(state => state.setIn(path, value));
-  }
-
   getLimits() {
     return fractals.getLimits({
-      center: this.get(['center']),
-      scale: this.get(['scale']),
-      W: this.get(['dimensions', 'width']),
-      H: this.get(['dimensions', 'height']),
+      center: this.props.state.get('center'),
+      scale: this.props.state.get('scale'),
+      W: this.props.state.getIn(['dimensions', 'width']),
+      H: this.props.state.getIn(['dimensions', 'height']),
     });
   }
 
@@ -134,16 +128,24 @@ class Canvas extends React.Component {
     if (this.canvas && !this.rendering) {
       this.rendering = true;
 
-      const palette = fractals.computePalette(this.get(['gradient']), this.get(['numColors']));
+      const palette = fractals.computePalette(
+        this.props.state.get('gradient'),
+        this.props.state.get('numColors')
+      );
 
       const ctx = this.canvas.getContext('2d');
 
       _.defer(() => {
         const imageData = renderPixels(
-          ctx.getImageData(0, 0, this.get(['dimensions', 'width']), this.get(['dimensions', 'height'])),
-          this.get(['matrix']),
+          ctx.getImageData(
+            0,
+            0,
+            this.props.state.getIn(['dimensions', 'width']),
+            this.props.state.getIn(['dimensions', 'height'])
+          ),
+          this.props.state.get('matrix'),
           Immutable.fromJS(palette.toJS()),
-          this.get(['insideColor']).toJS()
+          this.props.state.get('insideColor').toJS()
         );
 
         ctx.putImageData(imageData, 0, 0);
@@ -157,17 +159,19 @@ class Canvas extends React.Component {
     return <div>
       <canvas
         ref={ this.updateCanvas }
-        height={ this.get(['dimensions', 'height']) }
-        width={ this.get(['dimensions', 'width']) }
+        height={ this.props.state.getIn(['dimensions', 'height']) }
+        width={ this.props.state.getIn(['dimensions', 'width']) }
       />
       <ProgressBar
         max={ 1 }
-        value={ this.get(['computeProgress'], 0) }
-        width={ `${this.get(['dimensions', 'width'])}px` }
+        value={ this.props.state.get('computeProgress', 0) }
+        width={ `${this.props.state.getIn(['dimensions', 'width'])}px` }
       />
 
       <Controls
-        fractalParametersControls={ fractals.getFractal(this.get(['fractal'])).ParameterControls }
+        fractalParametersControls={
+          fractals.getFractal(this.props.state.get('fractal')).ParameterControls
+        }
         limits={ this.getLimits() }
         onChange={ newState => this.props.update(() => newState) }
         onSubmit={ this.onSubmit }
