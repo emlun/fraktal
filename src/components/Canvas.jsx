@@ -61,6 +61,9 @@ export default class Canvas extends React.Component {
         scale: 3,
       }),
     };
+
+    this.computeMatrix = _.debounce(this.computeMatrix, 500);
+    this.renderPixels = _.debounce(this.renderPixels, 500);
   }
 
   componentDidMount() {
