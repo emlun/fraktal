@@ -2,23 +2,22 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Complex from 'complex.js';
 
+import FloatInput from 'components/FloatInput';
 
 export default function ComplexInput({
   value: { im, re },
   onChange,
 }) {
   return <span>
-    <input
-      onChange={ ({ target: { value } }) => onChange(new Complex(parseFloat(value), im)) }
+    <FloatInput
+      onChange={ value => onChange(new Complex(value, im)) }
       placeholder="Re"
-      type="text"
       value={ re }
     />
     { ' + ' }
-    <input
-      onChange={ ({ target: { value } }) => onChange(new Complex(re, parseFloat(value))) }
+    <FloatInput
+      onChange={ value => onChange(new Complex(re, value)) }
       placeholder="Im"
-      type="text"
       value={ im }
     />
     { 'i' }
