@@ -54,7 +54,7 @@ class Canvas extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (_.any(['matrix', 'gradient'], name => prevProps.state.get(name) !== this.get([name]))) {
+    if (_.any(['insideColor', 'gradient', 'matrix'], name => prevProps.state.get(name) !== this.get([name]))) {
       this.renderPixels();
     }
   }
