@@ -57,12 +57,6 @@ class Canvas extends React.Component {
     }
   }
 
-  componentWillUnmount() {
-    if (this.worker) {
-      this.worker.terminate();
-    }
-  }
-
   updateCanvas(canvas) {
     if (canvas && canvas !== this.canvas) {
       this.canvas = canvas;
