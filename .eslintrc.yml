@@ -22,6 +22,7 @@ rules:
   arrow-parens: [error, as-needed]
   brace-style: [error, 1tbs, allowSingleLine: true]
   block-spacing: [error, always]
+  class-methods-use-this: off
   dot-location: [error, property]
   id-length: off
   indent:
