@@ -40,7 +40,6 @@ export default class Controls extends React.Component {
     if (event && event.preventDefault) {
       event.preventDefault();
     }
-    this.props.onSubmit();
   }
 
   render() {
@@ -78,9 +77,6 @@ export default class Controls extends React.Component {
         <p>
           { `Bottom right: ${this.props.limits.btmRight.toString()}` }
         </p>
-        <button type="submit" >
-          { 'Render' }
-        </button>
         <p>
           { 'Width: ' }
           <input
@@ -247,7 +243,6 @@ Controls.propTypes = {
   }).isRequired,
 
   onChange: PropTypes.func.isRequired,
-  onSubmit: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };

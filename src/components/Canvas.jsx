@@ -7,7 +7,6 @@ import _ from 'underscore';
 import * as fractals from 'fractals/common';
 import { debug } from 'logging';
 
-import Controls from 'components/Controls';
 import ProgressBar from 'components/ProgressBar';
 
 
@@ -42,18 +41,15 @@ class Canvas extends React.Component {
   constructor(props) {
     super(props);
     this.onClick = this.onClick.bind(this);
-    this.onSubmit = this.onSubmit.bind(this);
     this.onWheel = this.onWheel.bind(this);
     this.updateCanvas = this.updateCanvas.bind(this);
-    this.zoomIn = this.zoomIn.bind(this);
-    this.zoomOut = this.zoomOut.bind(this);
   }
 
   componentDidMount() {
     this.renderPixels();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (_.any(['insideColor', 'gradient', 'matrix'],
       name => prevProps.state.get(name) !== this.props.state.get(name))
     ) {
@@ -67,15 +63,6 @@ class Canvas extends React.Component {
     }
   }
 
-  getLimits() {
-    return fractals.getLimits({
-      center: this.props.state.get('center'),
-      scale: this.props.state.get('scale'),
-      W: this.props.state.getIn(['dimensions', 'width']),
-      H: this.props.state.getIn(['dimensions', 'height']),
-    });
-  }
-
   updateCanvas(canvas) {
     if (canvas && canvas !== this.canvas) {
       this.canvas = canvas;
@@ -83,14 +70,6 @@ class Canvas extends React.Component {
       this.canvas.addEventListener('wheel', this.onWheel);
     }
     this.renderPixels();
-  }
-
-  zoomIn() {
-    this.props.update(['scale'], scale => scale / 2);
-  }
-
-  zoomOut() {
-    this.props.update(['scale'], scale => scale * 2);
   }
 
   onClick(event) {
@@ -108,19 +87,12 @@ class Canvas extends React.Component {
     );
   }
 
-  onSubmit(event) {
-    if (event && event.preventDefault) {
-      event.preventDefault();
-    }
-    this.props.onRender();
-  }
-
   onWheel(event) {
     debug('onWheel', event);
     if (event.deltaY > 0) {
-      this.zoomOut();
+      this.props.onZoomOut();
     } else {
-      this.zoomIn();
+      this.props.onZoomIn();
     }
   }
 
@@ -167,18 +139,6 @@ class Canvas extends React.Component {
         value={ this.props.state.get('computeProgress', 0) }
         width={ `${this.props.state.getIn(['dimensions', 'width'])}px` }
       />
-
-      <Controls
-        fractalParametersControls={
-          fractals.getFractal(this.props.state.get('fractal')).ParameterControls
-        }
-        limits={ this.getLimits() }
-        onChange={ newState => this.props.update(() => newState) }
-        onSubmit={ this.onSubmit }
-        onZoomIn={ this.zoomIn }
-        onZoomOut={ this.zoomOut }
-        state={ this.props.state }
-      />
     </div>;
   }
 
@@ -186,37 +146,16 @@ class Canvas extends React.Component {
 Canvas.propTypes = {
   state: PropTypes.object.isRequired,
   update: PropTypes.func.isRequired,
-
-  onRender: PropTypes.func.isRequired,
+  onZoomIn: PropTypes.func.isRequired,
+  onZoomOut: PropTypes.func.isRequired,
 };
 
 export default class CanvasContainer extends React.Component {
 
   constructor(props) {
     super(props);
-    this.state = {
-      state: Immutable.Map({
-        center: new Complex(-0.5, 0),
-        computing: false,
-        computeProgress: 0,
-        dimensions: Immutable.fromJS({
-          height: 400,
-          width: 400,
-        }),
-        fractal: 'mandelbrot',
-        fractalParameters: Immutable.Map(),
-        gradient: Immutable.fromJS([
-          fractals.defaultGradientBottom,
-          fractals.defaultGradientTop,
-        ]),
-        insideColor: Immutable.fromJS([0, 0, 0]),
-        numColors: 50,
-        matrix: [[]],
-        scale: 3,
-      }),
-    };
 
-    this.computeMatrix = _.debounce(this.computeMatrix.bind(this), 500);
+    this.computeMatrix = _.throttle(this.computeMatrix.bind(this), 500);
     this.update = this.update.bind(this);
   }
 
@@ -224,8 +163,8 @@ export default class CanvasContainer extends React.Component {
     this.computeMatrix();
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (_.any(['center', 'fractal', 'scale'], name => prevState.state.get(name) !== this.get([name]))) {
+  componentDidUpdate(prevProps) {
+    if (_.any(['center', 'fractal', 'scale'], name => prevProps.state.get(name) !== this.get([name]))) {
       this.computeMatrix();
     }
   }
@@ -237,33 +176,26 @@ export default class CanvasContainer extends React.Component {
   }
 
   get(path, defaultValue) {
-    return this.state.state.getIn(path, defaultValue);
+    return this.props.state.getIn(path, defaultValue);
   }
 
   set(path, value) {
-    return this.setState(state => ({
-      state: state.state.setIn(path, value),
-    }));
+    return this.update(state => state.setIn(path, value));
   }
 
   update(pathOrUpdater, updater) {
-    if (updater) {
-      return this.setState(state => ({
-        state: state.state.updateIn(pathOrUpdater, updater),
-      }));
-    } else {
-      return this.setState(state => ({
-        state: pathOrUpdater(state.state),
-      }));
-    }
+    return this.props.update(pathOrUpdater, updater);
   }
 
   computeMatrix() {
     debug('About to compute matrix...');
     this.set(['computing'], true);
+    debug('Status set.');
 
     if (this.worker) {
+      debug('Killing worker...');
       this.worker.terminate();
+      debug('Worker killed.');
     }
 
     this.worker = new Worker('worker.js');
@@ -311,10 +243,17 @@ export default class CanvasContainer extends React.Component {
 
   render() {
     return <Canvas
-      onRender={ this.computeMatrix }
-      state={ this.state.state }
+      onZoomIn={ this.props.onZoomIn }
+      onZoomOut={ this.props.onZoomOut }
+      state={ this.props.state }
       update={ this.update }
     />;
   }
 
 }
+CanvasContainer.propTypes = {
+  state: PropTypes.object.isRequired,
+  update: PropTypes.func.isRequired,
+  onZoomIn: PropTypes.func.isRequired,
+  onZoomOut: PropTypes.func.isRequired,
+};
