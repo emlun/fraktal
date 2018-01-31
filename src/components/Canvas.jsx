@@ -187,9 +187,7 @@ export default class CanvasContainer extends React.Component {
     debug('Status set.');
 
     if (this.worker) {
-      debug('Killing worker...');
       this.worker.terminate();
-      debug('Worker killed.');
     }
 
     this.worker = new Worker('worker.js');
