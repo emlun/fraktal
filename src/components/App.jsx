@@ -1,8 +1,7 @@
 import React from 'react';
-import Complex from 'complex.js';
-import Immutable from 'immutable';
 
 import * as fractals from 'fractals/common';
+import AppState from 'data/AppState';
 
 import Canvas from 'components/Canvas';
 import Controls from 'components/Controls';
@@ -16,25 +15,7 @@ export default class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      state: Immutable.Map({
-        center: new Complex(-0.5, 0),
-        computing: false,
-        computeProgress: 0,
-        dimensions: Immutable.fromJS({
-          height: 400,
-          width: 400,
-        }),
-        fractal: 'mandelbrot',
-        fractalParameters: Immutable.Map(),
-        gradient: Immutable.fromJS([
-          fractals.defaultGradientBottom,
-          fractals.defaultGradientTop,
-        ]),
-        insideColor: Immutable.fromJS([0, 0, 0]),
-        numColors: 50,
-        matrix: [[]],
-        scale: 3,
-      }),
+      state: new AppState(),
     };
 
     this.update = this.update.bind(this);
