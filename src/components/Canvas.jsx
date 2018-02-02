@@ -167,7 +167,9 @@ export default class CanvasContainer extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (_.any(['center', 'fractal', 'scale'], name => prevProps.state.get(name) !== this.get([name]))) {
+    if (_.any(['center', 'dimensions', 'fractal', 'fractalParameters', 'numColors', 'scale'],
+      name => prevProps.state.get(name) !== this.get([name]))
+    ) {
       this.computeMatrix();
     }
   }
