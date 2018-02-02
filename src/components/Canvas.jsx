@@ -91,33 +91,42 @@ class Canvas extends React.Component {
   }
 
   renderPixels() {
-    if (this.canvas && !this.rendering) {
-      this.rendering = true;
+    if (this.canvas) {
+      if (this.rendering) {
+        this.renderPixelsQueued = true;
+      } else {
+        this.rendering = true;
 
-      const palette = fractals.computePalette(
-        this.props.state.get('gradient'),
-        this.props.state.get('numColors')
-      );
-
-      const ctx = this.canvas.getContext('2d');
-
-      _.defer(() => {
-        const imageData = renderPixels(
-          ctx.getImageData(
-            0,
-            0,
-            this.props.state.getIn(['dimensions', 'width']),
-            this.props.state.getIn(['dimensions', 'height'])
-          ),
-          this.props.state.get('matrix'),
-          Immutable.fromJS(palette.toJS()),
-          this.props.state.get('insideColor').toJS()
+        const palette = fractals.computePalette(
+          this.props.state.get('gradient'),
+          this.props.state.get('numColors')
         );
 
-        ctx.putImageData(imageData, 0, 0);
-        ctx.save();
-        this.rendering = false;
-      });
+        const ctx = this.canvas.getContext('2d');
+
+        _.defer(() => {
+          const imageData = renderPixels(
+            ctx.getImageData(
+              0,
+              0,
+              this.props.state.getIn(['dimensions', 'width']),
+              this.props.state.getIn(['dimensions', 'height'])
+            ),
+            this.props.state.get('matrix'),
+            Immutable.fromJS(palette.toJS()),
+            this.props.state.get('insideColor').toJS()
+          );
+
+          ctx.putImageData(imageData, 0, 0);
+          ctx.save();
+          this.rendering = false;
+
+          if (this.renderPixelsQueued) {
+            this.renderPixelsQueued = false;
+            this.renderPixels();
+          }
+        });
+      }
     }
   }
 
