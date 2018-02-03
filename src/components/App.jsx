@@ -1,7 +1,8 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
 
 import * as fractals from 'fractals/common';
-import AppState from 'data/AppState';
 
 import Canvas from 'components/Canvas';
 import Controls from 'components/Controls';
@@ -10,13 +11,10 @@ import GithubCorner from 'components/GithubCorner';
 import './App.css';
 
 
-export default class App extends React.Component {
+class App extends React.Component {
 
   constructor(props) {
     super(props);
-    this.state = {
-      state: new AppState(),
-    };
 
     this.update = this.update.bind(this);
     this.zoomIn = this.zoomIn.bind(this);
@@ -24,32 +22,26 @@ export default class App extends React.Component {
   }
 
   update(pathOrUpdater, updater) {
-    if (updater) {
-      return this.setState(state => ({
-        state: state.state.updateIn(pathOrUpdater, updater),
-      }));
-    } else {
-      return this.setState(state => ({
-        state: pathOrUpdater(state.state),
-      }));
-    }
+    this.props.onUpdateState(pathOrUpdater, updater);
   }
 
   getLimits() {
     return fractals.getLimits({
-      center: this.state.state.get('center'),
-      scale: this.state.state.get('scale'),
-      W: this.state.state.getIn(['dimensions', 'width']),
-      H: this.state.state.getIn(['dimensions', 'height']),
+      center: this.props.state.get('center'),
+      scale: this.props.state.get('scale'),
+      W: this.props.state.getIn(['dimensions', 'width']),
+      H: this.props.state.getIn(['dimensions', 'height']),
     });
   }
 
   zoomIn() {
     this.update(['scale'], scale => scale / 2);
+    this.props.onZoomIn();
   }
 
   zoomOut() {
     this.update(['scale'], scale => scale * 2);
+    this.props.onZoomOut();
   }
 
   render() {
@@ -62,18 +54,18 @@ export default class App extends React.Component {
         <Canvas
           onZoomIn={ this.zoomIn }
           onZoomOut={ this.zoomOut }
-          state={ this.state.state }
+          state={ this.props.state }
           update={ this.update }
         />
         <Controls
           fractalParametersControls={
-            fractals.getFractal(this.state.state.get('fractal')).ParameterControls
+            fractals.getFractal(this.props.state.get('fractal')).ParameterControls
           }
           limits={ this.getLimits() }
           onChange={ newState => this.update(() => newState) }
           onZoomIn={ this.zoomIn }
           onZoomOut={ this.zoomOut }
-          state={ this.state.state }
+          state={ this.props.state }
         />
       </div>
 
@@ -92,3 +84,34 @@ export default class App extends React.Component {
   }
 
 }
+App.propTypes = {
+  state: PropTypes.object.isRequired,
+  onUpdateState: PropTypes.func.isRequired,
+  onZoomIn: PropTypes.func.isRequired,
+  onZoomOut: PropTypes.func.isRequired,
+};
+
+const AppContainer = connect(
+  state => ({
+    state,
+  }),
+  dispatch => ({
+    onUpdateState: (pathOrUpdater, updater) => {
+      if (updater) {
+        return dispatch({
+          type: 'UPDATE_STATE',
+          path: pathOrUpdater,
+          updater,
+        });
+      } else {
+        return dispatch({
+          type: 'UPDATE_STATE',
+          updater: pathOrUpdater,
+        });
+      }
+    },
+    onZoomIn: () => dispatch({ type: 'ZOOM_IN' }),
+    onZoomOut: () => dispatch({ type: 'ZOOM_OUT' }),
+  })
+)(App);
+export default AppContainer;
