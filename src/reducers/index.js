@@ -4,6 +4,9 @@ export default function rootReducer(state = new AppState(), action) {
   console.log('action:', action);
 
   switch (action.type) {
+    case 'SET_STATE':
+      return action.state;
+
     case 'UPDATE_STATE':
       if (action.path) {
         return state.updateIn(action.path, action.updater);

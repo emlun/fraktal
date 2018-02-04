@@ -22,7 +22,11 @@ class App extends React.Component {
   }
 
   update(pathOrUpdater, updater) {
-    this.props.onUpdateState(pathOrUpdater, updater);
+    if (updater) {
+      this.props.onSetState(this.props.state.updateIn(pathOrUpdater, updater));
+    } else {
+      this.props.onSetState(this.props.state.update(pathOrUpdater));
+    }
   }
 
   getLimits() {
@@ -86,7 +90,7 @@ class App extends React.Component {
 }
 App.propTypes = {
   state: PropTypes.object.isRequired,
-  onUpdateState: PropTypes.func.isRequired,
+  onSetState: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };
@@ -96,20 +100,11 @@ const AppContainer = connect(
     state,
   }),
   dispatch => ({
-    onUpdateState: (pathOrUpdater, updater) => {
-      if (updater) {
-        return dispatch({
-          type: 'UPDATE_STATE',
-          path: pathOrUpdater,
-          updater,
-        });
-      } else {
-        return dispatch({
-          type: 'UPDATE_STATE',
-          updater: pathOrUpdater,
-        });
-      }
-    },
+    onSetState: state =>
+      dispatch({
+        type: 'SET_STATE',
+        state,
+      }),
     onZoomIn: () => dispatch({ type: 'ZOOM_IN' }),
     onZoomOut: () => dispatch({ type: 'ZOOM_OUT' }),
   })
