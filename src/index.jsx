@@ -1,11 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import { createStore } from 'redux';
-import { AppContainer } from 'react-hot-loader';
-import { Provider } from 'react-redux';
+import configureStore from 'configureStore';
 
-import App from 'components/App';
+import Root from 'components/Root';
 import rootReducer from 'reducers';
 
 import './index.css';
@@ -24,15 +22,10 @@ function getRoot() {
 }
 
 const root = getRoot();
-
-const store = createStore(rootReducer);
+const store = configureStore(rootReducer);
 
 ReactDOM.render(
-  <AppContainer>
-    <Provider store={ store }>
-      <App/>
-    </Provider>
-  </AppContainer>,
+  <Root store={ store }/>,
   root
 );
 
