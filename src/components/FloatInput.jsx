@@ -26,7 +26,6 @@ export default class FloatInput extends React.Component {
     const parsed = parseFloat(newValue);
     if (!_.isNaN(parsed)) {
       this.props.onChange(parsed);
-      console.log('onChange', parsed);
     }
   }
 
