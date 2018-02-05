@@ -21,6 +21,10 @@ export default class FloatInput extends React.Component {
     }
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return nextState.value !== this.state.value;
+  }
+
   update(newValue) {
     this.setState({ value: newValue });
     const parsed = parseFloat(newValue);
