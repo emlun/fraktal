@@ -1,6 +1,9 @@
-import AppState from 'data/AppState';
+import _ from 'underscore';
 
-export default function rootReducer(state = new AppState(), action) {
+import AppState from 'data/AppState';
+import viewpointReducer from './viewpoint';
+
+function rootReducer(state = new AppState(), action) {
   console.log('action:', action);
 
   switch (action.type) {
@@ -18,4 +21,10 @@ export default function rootReducer(state = new AppState(), action) {
       console.log('Unknown action type:', action.type);
       return state;
   }
+}
+
+export default function indexReducer(state = new AppState(), action) {
+  return rootReducer(state, action)
+    .update('viewpoint', _(viewpointReducer).partial(_, action))
+  ;
 }

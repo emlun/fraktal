@@ -1,11 +1,14 @@
 import React from 'react';
+import * as ReactRedux from 'react-redux';
 import PropTypes from 'prop-types';
-import Complex from 'complex.js';
 import Immutable from 'immutable';
 import _ from 'underscore';
 
 import * as fractals from 'fractals/common';
 import { debug } from 'logging';
+
+import * as viewpointActions from 'actions/viewpoint';
+import Viewpoint from 'data/Viewpoint';
 
 import ProgressBar from 'components/ProgressBar';
 
@@ -68,17 +71,7 @@ class Canvas extends React.Component {
 
   onClick(event) {
     debug('onClick', event, event.offsetX, event.offsetY);
-    this.props.update(state =>
-      state.set(
-        'center',
-        state.get('center').add(
-          new Complex(
-            ((event.offsetX / state.getIn(['dimensions', 'width'])) - 0.5) * state.get('scale'),
-            (0.5 - (event.offsetY / state.getIn(['dimensions', 'height']))) * state.get('scale') * (state.getIn(['dimensions', 'height']) / state.getIn(['dimensions', 'width']))
-          )
-        )
-      )
-    );
+    this.props.onCenterView(event.offsetX, event.offsetY);
   }
 
   onWheel(event) {
@@ -109,8 +102,8 @@ class Canvas extends React.Component {
             ctx.getImageData(
               0,
               0,
-              this.props.state.getIn(['dimensions', 'width']),
-              this.props.state.getIn(['dimensions', 'height'])
+              this.props.viewpoint.getIn(['dimensions', 'width']),
+              this.props.viewpoint.getIn(['dimensions', 'height'])
             ),
             this.props.state.get('matrix'),
             Immutable.fromJS(palette.toJS()),
@@ -134,13 +127,13 @@ class Canvas extends React.Component {
     return <div>
       <canvas
         ref={ this.updateCanvas }
-        height={ this.props.state.getIn(['dimensions', 'height']) }
-        width={ this.props.state.getIn(['dimensions', 'width']) }
+        height={ this.props.viewpoint.getIn(['dimensions', 'height']) }
+        width={ this.props.viewpoint.getIn(['dimensions', 'width']) }
       />
       <ProgressBar
         max={ 1 }
         value={ this.props.state.get('computeProgress', 0) }
-        width={ `${this.props.state.getIn(['dimensions', 'width'])}px` }
+        width={ `${this.props.viewpoint.getIn(['dimensions', 'width'])}px` }
       />
     </div>;
   }
@@ -148,12 +141,13 @@ class Canvas extends React.Component {
 }
 Canvas.propTypes = {
   state: PropTypes.object.isRequired,
-  update: PropTypes.func.isRequired,
+  viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
+  onCenterView: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };
 
-export default class CanvasContainer extends React.Component {
+class CanvasContainer extends React.Component {
 
   constructor(props) {
     super(props);
@@ -167,8 +161,10 @@ export default class CanvasContainer extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (_.any(['center', 'dimensions', 'fractal', 'fractalParameters', 'numColors', 'scale'],
-      name => prevProps.state.get(name) !== this.get([name]))
+    if (
+      _.any(['viewpoint', 'fractal', 'fractalParameters', 'numColors'],
+        name => prevProps.state.get(name) !== this.get([name]))
+      || prevProps.viewpoint !== this.props.viewpoint
     ) {
       this.computeMatrix();
     }
@@ -206,12 +202,12 @@ export default class CanvasContainer extends React.Component {
     this.worker.postMessage({
       type: 'compute-matrix',
       data: {
-        center: this.get(['center']),
-        dimensions: this.get(['dimensions']).toJS(),
+        center: this.props.viewpoint.get('center'),
+        dimensions: this.props.viewpoint.get('dimensions').toJS(),
         fractal: this.get(['fractal']),
         fractalParameters: this.get(['fractalParameters']).toJS(),
         iterationLimit: this.get(['numColors']) - 1,
-        scale: this.get(['scale']),
+        scale: this.props.viewpoint.get('scale'),
       },
     });
   }
@@ -246,10 +242,11 @@ export default class CanvasContainer extends React.Component {
 
   render() {
     return <Canvas
+      onCenterView={ this.props.onCenterView }
       onZoomIn={ this.props.onZoomIn }
       onZoomOut={ this.props.onZoomOut }
       state={ this.props.state }
-      update={ this.update }
+      viewpoint={ this.props.viewpoint }
     />;
   }
 
@@ -257,6 +254,19 @@ export default class CanvasContainer extends React.Component {
 CanvasContainer.propTypes = {
   state: PropTypes.object.isRequired,
   update: PropTypes.func.isRequired,
+  viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
+  onCenterView: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };
+
+export default ReactRedux.connect(
+  state => ({
+    viewpoint: state.get('viewpoint'),
+  }),
+  dispatch => ({
+    onCenterView: (x, y) => dispatch(viewpointActions.centerView(x, y)),
+    onZoomIn: () => dispatch(viewpointActions.zoomIn()),
+    onZoomOut: () => dispatch(viewpointActions.zoomOut()),
+  })
+)(CanvasContainer);

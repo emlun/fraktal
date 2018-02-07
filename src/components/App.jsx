@@ -17,8 +17,6 @@ class App extends React.Component {
     super(props);
 
     this.update = this.update.bind(this);
-    this.zoomIn = this.zoomIn.bind(this);
-    this.zoomOut = this.zoomOut.bind(this);
   }
 
   update(pathOrUpdater, updater) {
@@ -31,21 +29,11 @@ class App extends React.Component {
 
   getLimits() {
     return fractals.getLimits({
-      center: this.props.state.get('center'),
-      scale: this.props.state.get('scale'),
-      W: this.props.state.getIn(['dimensions', 'width']),
-      H: this.props.state.getIn(['dimensions', 'height']),
+      center: this.props.state.getIn(['viewpoint', 'center']),
+      scale: this.props.state.getIn(['viewpoint', 'scale']),
+      W: this.props.state.getIn(['viewpoint', 'dimensions', 'width']),
+      H: this.props.state.getIn(['viewpoint', 'dimensions', 'height']),
     });
-  }
-
-  zoomIn() {
-    this.update(['scale'], scale => scale / 2);
-    this.props.onZoomIn();
-  }
-
-  zoomOut() {
-    this.update(['scale'], scale => scale * 2);
-    this.props.onZoomOut();
   }
 
   render() {
@@ -56,8 +44,6 @@ class App extends React.Component {
           repo="emlun/fraktal"
         />
         <Canvas
-          onZoomIn={ this.zoomIn }
-          onZoomOut={ this.zoomOut }
           state={ this.props.state }
           update={ this.update }
         />
@@ -67,8 +53,6 @@ class App extends React.Component {
           }
           limits={ this.getLimits() }
           onChange={ newState => this.update(() => newState) }
-          onZoomIn={ this.zoomIn }
-          onZoomOut={ this.zoomOut }
           state={ this.props.state }
         />
       </div>
@@ -91,8 +75,6 @@ class App extends React.Component {
 App.propTypes = {
   state: PropTypes.object.isRequired,
   onSetState: PropTypes.func.isRequired,
-  onZoomIn: PropTypes.func.isRequired,
-  onZoomOut: PropTypes.func.isRequired,
 };
 
 const AppContainer = connect(
@@ -105,8 +87,6 @@ const AppContainer = connect(
         type: 'SET_STATE',
         state,
       }),
-    onZoomIn: () => dispatch({ type: 'ZOOM_IN' }),
-    onZoomOut: () => dispatch({ type: 'ZOOM_OUT' }),
   })
 )(App);
 export default AppContainer;

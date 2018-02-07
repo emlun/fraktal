@@ -1,4 +1,5 @@
 import React from 'react';
+import * as ReactRedux from 'react-redux';
 import PropTypes from 'prop-types';
 import Immutable from 'immutable';
 import _ from 'underscore';
@@ -6,6 +7,9 @@ import { sprintf } from 'sprintf-js';
 
 import * as fractals from 'fractals/common';
 import * as propTypes from 'util/prop-types';
+
+import * as viewpointActions from 'actions/viewpoint';
+import Viewpoint from 'data/Viewpoint';
 
 import ComplexInput from 'components/ComplexInput';
 
@@ -18,7 +22,7 @@ function parseColor(hexString) {
   ]);
 }
 
-export default class Controls extends React.Component {
+class Controls extends React.Component {
 
   get(path, defaultValue) {
     return this.props.state.getIn(path, defaultValue);
@@ -50,12 +54,12 @@ export default class Controls extends React.Component {
         <p>
           { 'Center: ' }
           <ComplexInput
-            onChange={ newCenter => this.set(['center'], newCenter) }
-            value={ this.get(['center']) }
+            onChange={ this.props.onSetCenter }
+            value={ this.props.viewpoint.get('center') }
           />
         </p>
         <p>
-          { `Scale: ${this.get(['scale'])}` }
+          { `Scale: ${this.props.viewpoint.get('scale')}` }
         </p>
         <p>
           <button
@@ -81,20 +85,20 @@ export default class Controls extends React.Component {
           { 'Width: ' }
           <input
             onChange={
-              ({ target: { value } }) => this.set(['dimensions', 'width'], parseInt(value || 0, 10))
+              ({ target: { value } }) => this.props.onSetWidth(parseInt(value || 0, 10))
             }
             type="number"
-            value={ this.get(['dimensions', 'width']) }
+            value={ this.props.viewpoint.getIn(['dimensions', 'width']) }
           />
         </p>
         <p>
           { 'Height: ' }
           <input
             onChange={
-              ({ target: { value } }) => this.set(['dimensions', 'height'], parseInt(value || 0, 10))
+              ({ target: { value } }) => this.props.onSetHeight(parseInt(value || 0, 10))
             }
             type="number"
-            value={ this.get(['dimensions', 'height']) }
+            value={ this.props.viewpoint.getIn(['dimensions', 'height']) }
           />
         </p>
 
@@ -241,8 +245,25 @@ Controls.propTypes = {
     update: PropTypes.func.isRequired,
     updateIn: PropTypes.func.isRequired,
   }).isRequired,
+  viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
   onChange: PropTypes.func.isRequired,
+  onSetCenter: PropTypes.func.isRequired,
+  onSetHeight: PropTypes.func.isRequired,
+  onSetWidth: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };
+
+export default ReactRedux.connect(
+  state => ({
+    viewpoint: state.get('viewpoint'),
+  }),
+  {
+    onSetCenter: viewpointActions.setCenter,
+    onSetHeight: viewpointActions.setHeight,
+    onSetWidth: viewpointActions.setWidth,
+    onZoomIn: viewpointActions.zoomIn,
+    onZoomOut: viewpointActions.zoomOut,
+  }
+)(Controls);
