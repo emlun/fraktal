@@ -54,7 +54,7 @@ class Canvas extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (_.any(['insideColor', 'gradient', 'matrix'],
+    if (_.any(['colors', 'matrix'],
       name => prevProps.state.get(name) !== this.props.state.get(name))
     ) {
       this.renderPixels();
@@ -92,7 +92,7 @@ class Canvas extends React.Component {
         this.rendering = true;
 
         const palette = fractals.computePalette(
-          this.props.state.get('gradient'),
+          this.props.state.getIn(['colors', 'gradient']),
           this.props.state.get('numColors')
         );
 
@@ -108,7 +108,7 @@ class Canvas extends React.Component {
             ),
             this.props.state.get('matrix'),
             Immutable.fromJS(palette.toJS()),
-            this.props.state.get('insideColor').toJS()
+            this.props.state.getIn(['colors', 'inside']).toJS()
           );
 
           ctx.putImageData(imageData, 0, 0);

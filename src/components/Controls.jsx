@@ -9,7 +9,7 @@ import * as fractals from 'fractals/common';
 import * as propTypes from 'util/prop-types';
 
 import * as rootActions from 'actions';
-import * as gradientActions from 'actions/gradient';
+import * as colorsActions from 'actions/colors';
 import * as viewpointActions from 'actions/viewpoint';
 import Viewpoint from 'data/Viewpoint';
 
@@ -163,11 +163,11 @@ class Controls extends React.Component {
           <p>
             { 'Color inside set: ' }
             <input
-              onChange={ ({ target: { value } }) => this.set(['insideColor'], parseColor(value)) }
+              onChange={ ({ target: { value } }) => this.set(['colors', 'inside'], parseColor(value)) }
               type="color"
               value={
                 `#${
-                  this.get(['insideColor'])
+                  this.get(['colors', 'inside'])
                     .map(d => sprintf('%02x', d))
                     .join('')
                 }`
@@ -243,16 +243,16 @@ Controls.propTypes = {
 
 export default ReactRedux.connect(
   state => ({
-    gradient: state.get('gradient'),
+    gradient: state.getIn(['colors', 'gradient']),
     viewpoint: state.get('viewpoint'),
   }),
   {
-    onAddGradientPivot: gradientActions.addPivot,
-    onDeleteGradientPivot: gradientActions.deletePivot,
+    onAddGradientPivot: colorsActions.addPivot,
+    onDeleteGradientPivot: colorsActions.deletePivot,
     onSetCenter: viewpointActions.setCenter,
     onSetHeight: viewpointActions.setHeight,
     onSetNumColors: rootActions.setNumColors,
-    onSetPivotValue: gradientActions.setPivotValue,
+    onSetPivotValue: colorsActions.setPivotValue,
     onSetWidth: viewpointActions.setWidth,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,

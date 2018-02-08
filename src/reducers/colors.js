@@ -1,10 +1,10 @@
 import _ from 'underscore';
 
-import * as actions from 'actions/gradient';
+import * as actions from 'actions/colors';
+import Colors from 'data/Colors';
 
 
-export default function gradientReducer(state, action) {
-
+function gradientReducer(state, action) {
   switch (action.type) {
 
     case actions.ADD_PIVOT: {
@@ -48,4 +48,10 @@ export default function gradientReducer(state, action) {
       return state;
   }
 
+}
+
+export default function colorsReducer(state = new Colors(), action) {
+  return state
+    .update('gradient', _(gradientReducer).partial(_, action))
+  ;
 }

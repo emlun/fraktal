@@ -2,7 +2,7 @@ import _ from 'underscore';
 
 import * as actions from 'actions';
 import AppState from 'data/AppState';
-import gradientReducer from './gradient';
+import colorsReducer from './colors';
 import viewpointReducer from './viewpoint';
 
 function rootReducer(state = new AppState(), action) {
@@ -27,7 +27,7 @@ function rootReducer(state = new AppState(), action) {
 
 export default function indexReducer(state = new AppState(), action) {
   return rootReducer(state, action)
-    .update('gradient', _(gradientReducer).partial(_, action))
+    .update('colors', _(colorsReducer).partial(_, action))
     .update('viewpoint', _(viewpointReducer).partial(_, action))
   ;
 }
