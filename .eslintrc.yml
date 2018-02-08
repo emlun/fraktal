@@ -47,6 +47,7 @@ rules:
     - nestedBinaryExpressions: false
   no-ternary: off
   operator-linebreak: [error, before]
+  semi-style: off
   sort-imports: off
   sort-keys: off
   max-len: off
