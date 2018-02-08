@@ -4,7 +4,6 @@ import ReactDOM from 'react-dom';
 import configureStore from 'configureStore';
 
 import Root from 'components/Root';
-import rootReducer from 'reducers';
 
 import './index.css';
 
@@ -22,7 +21,7 @@ function getRoot() {
 }
 
 const root = getRoot();
-const store = configureStore(rootReducer);
+const store = configureStore();
 
 ReactDOM.render(
   <Root store={ store }/>,
