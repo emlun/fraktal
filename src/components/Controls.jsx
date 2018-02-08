@@ -8,6 +8,7 @@ import { sprintf } from 'sprintf-js';
 import * as fractals from 'fractals/common';
 import * as propTypes from 'util/prop-types';
 
+import * as rootActions from 'actions';
 import * as gradientActions from 'actions/gradient';
 import * as viewpointActions from 'actions/viewpoint';
 import Viewpoint from 'data/Viewpoint';
@@ -111,7 +112,7 @@ class Controls extends React.Component {
             <input
               max={ 1000 }
               min={ 10 }
-              onChange={ ({ target: { value } }) => this.set(['numColors'], parseInt(value, 10)) }
+              onChange={ ({ target: { value } }) => this.props.onSetNumColors(parseInt(value, 10)) }
               step={ 10 }
               type="range"
               value={ this.get(['numColors']) }
@@ -243,6 +244,7 @@ Controls.propTypes = {
   onDeleteGradientPivot: PropTypes.func.isRequired,
   onSetCenter: PropTypes.func.isRequired,
   onSetHeight: PropTypes.func.isRequired,
+  onSetNumColors: PropTypes.func.isRequired,
   onSetWidth: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
@@ -258,6 +260,7 @@ export default ReactRedux.connect(
     onDeleteGradientPivot: gradientActions.deletePivot,
     onSetCenter: viewpointActions.setCenter,
     onSetHeight: viewpointActions.setHeight,
+    onSetNumColors: rootActions.setNumColors,
     onSetWidth: viewpointActions.setWidth,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,

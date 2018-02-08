@@ -1,5 +1,6 @@
 import _ from 'underscore';
 
+import * as actions from 'actions';
 import AppState from 'data/AppState';
 import gradientReducer from './gradient';
 import viewpointReducer from './viewpoint';
@@ -15,6 +16,9 @@ function rootReducer(state = new AppState(), action) {
       } else {
         return state.update(action.updater);
       }
+
+    case actions.SET_NUM_COLORS:
+      return state.set('numColors', action.numColors);
 
     default:
       return state;
