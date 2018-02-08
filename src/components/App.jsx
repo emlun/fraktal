@@ -81,12 +81,11 @@ const AppContainer = connect(
   state => ({
     state,
   }),
-  dispatch => ({
-    onSetState: state =>
-      dispatch({
-        type: 'SET_STATE',
-        state,
-      }),
-  })
+  {
+    onSetState: state => ({
+      type: 'SET_STATE',
+      state,
+    }),
+  }
 )(App);
 export default AppContainer;
