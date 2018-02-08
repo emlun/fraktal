@@ -1,7 +1,6 @@
 import React from 'react';
 import * as ReactRedux from 'react-redux';
 import PropTypes from 'prop-types';
-import Immutable from 'immutable';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import { sprintf } from 'sprintf-js';
 
@@ -15,14 +14,6 @@ import Viewpoint from 'data/Viewpoint';
 
 import ComplexInput from 'components/ComplexInput';
 
-
-function parseColor(hexString) {
-  return Immutable.List([
-    parseInt(hexString.substring(1, 3), 16),
-    parseInt(hexString.substring(3, 5), 16),
-    parseInt(hexString.substring(5, 7), 16),
-  ]);
-}
 
 class Controls extends React.Component {
 
@@ -135,7 +126,7 @@ class Controls extends React.Component {
                 value={ pivot.get('value') }
               />
               <input
-                onChange={ ({ target: { value } }) => this.set(['gradient', index, 'color'], parseColor(value)) }
+                onChange={ ({ target: { value } }) => this.props.onSetPivotColor(index, value) }
                 type="color"
                 value={
                   `#${
@@ -163,7 +154,7 @@ class Controls extends React.Component {
           <p>
             { 'Color inside set: ' }
             <input
-              onChange={ ({ target: { value } }) => this.set(['colors', 'inside'], parseColor(value)) }
+              onChange={ ({ target: { value } }) => this.props.onSetInsideColor(value) }
               type="color"
               value={
                 `#${
@@ -234,7 +225,9 @@ Controls.propTypes = {
   onDeleteGradientPivot: PropTypes.func.isRequired,
   onSetCenter: PropTypes.func.isRequired,
   onSetHeight: PropTypes.func.isRequired,
+  onSetInsideColor: PropTypes.func.isRequired,
   onSetNumColors: PropTypes.func.isRequired,
+  onSetPivotColor: PropTypes.func.isRequired,
   onSetPivotValue: PropTypes.func.isRequired,
   onSetWidth: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
@@ -251,7 +244,9 @@ export default ReactRedux.connect(
     onDeleteGradientPivot: colorsActions.deletePivot,
     onSetCenter: viewpointActions.setCenter,
     onSetHeight: viewpointActions.setHeight,
+    onSetInsideColor: colorsActions.setInsideColor,
     onSetNumColors: rootActions.setNumColors,
+    onSetPivotColor: colorsActions.setPivotColor,
     onSetPivotValue: colorsActions.setPivotValue,
     onSetWidth: viewpointActions.setWidth,
     onZoomIn: viewpointActions.zoomIn,
