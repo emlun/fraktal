@@ -2,12 +2,13 @@ import React from 'react';
 import * as ReactRedux from 'react-redux';
 import PropTypes from 'prop-types';
 import Immutable from 'immutable';
-import _ from 'underscore';
+import ImmutablePropTypes from 'react-immutable-proptypes';
 import { sprintf } from 'sprintf-js';
 
 import * as fractals from 'fractals/common';
 import * as propTypes from 'util/prop-types';
 
+import * as gradientActions from 'actions/gradient';
 import * as viewpointActions from 'actions/viewpoint';
 import Viewpoint from 'data/Viewpoint';
 
@@ -121,7 +122,7 @@ class Controls extends React.Component {
           <p>
             { 'Gradient:' }
           </p>
-          { this.get(['gradient']).map((pivot, index) =>
+          { this.props.gradient.map((pivot, index) =>
             <div key={ pivot.get('id') }>
               <input
                 max={ this.get(['numColors']) - 1 }
@@ -133,9 +134,9 @@ class Controls extends React.Component {
                       Math.max(
                         Math.min(
                           parseInt(value, 10),
-                          this.get(['gradient', index + 1, 'value'], Infinity)
+                          this.props.gradient.getIn([index + 1, 'value'], Infinity)
                         ),
-                        this.get(['gradient', index < 1 ? 'foo' : index - 1, 'value'], 0)
+                        this.props.gradient.getIn([index < 1 ? 'foo' : index - 1, 'value'], 0)
                       )
                     )
                 }
@@ -154,30 +155,13 @@ class Controls extends React.Component {
                 }
               />
               <button
-                onClick={ () => {
-                  const next = this.get(['gradient', index + 1]);
-                  if (next) {
-                    const middle = pivot
-                      .set('id', _.uniqueId('gradient-pivot-'))
-                      .set('value', Math.round((pivot.get('value') + next.get('value')) / 2.0))
-                      .set('color', pivot.get('color').zipWith((c1, c2) => Math.round((c1 + c2) / 2.0), next.get('color')));
-
-                    this.update(['gradient'], gradient => gradient.insert(index + 1, middle));
-                  } else {
-                    this.update(['gradient'], gradient =>
-                      gradient.insert(index,
-                        gradient.get(index)
-                          .set('id', _.uniqueId('gradient-pivot-'))
-                      )
-                    );
-                  }
-                } }
+                onClick={ () => this.props.onAddGradientPivot(index) }
                 type="button"
               >
                 { '+' }
               </button>
               <button
-                onClick={ () => this.update(['gradient'], gradient => gradient.delete(index)) }
+                onClick={ () => this.props.onDeleteGradientPivot(index) }
                 type="button"
               >
                 { '-' }
@@ -235,6 +219,13 @@ class Controls extends React.Component {
 }
 Controls.propTypes = {
   fractalParametersControls: PropTypes.oneOfType([PropTypes.element, PropTypes.func]).isRequired,
+  gradient: ImmutablePropTypes.listOf(
+    ImmutablePropTypes.contains({
+      color: ImmutablePropTypes.listOf(PropTypes.number).isRequired,
+      id: PropTypes.string.isRequired,
+      value: PropTypes.number.isRequired,
+    })
+  ).isRequired,
   limits: PropTypes.shape({
     btmRight: propTypes.complex.isRequired,
     topLeft: propTypes.complex.isRequired,
@@ -247,7 +238,9 @@ Controls.propTypes = {
   }).isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
+  onAddGradientPivot: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
+  onDeleteGradientPivot: PropTypes.func.isRequired,
   onSetCenter: PropTypes.func.isRequired,
   onSetHeight: PropTypes.func.isRequired,
   onSetWidth: PropTypes.func.isRequired,
@@ -257,9 +250,12 @@ Controls.propTypes = {
 
 export default ReactRedux.connect(
   state => ({
+    gradient: state.get('gradient'),
     viewpoint: state.get('viewpoint'),
   }),
   {
+    onAddGradientPivot: gradientActions.addPivot,
+    onDeleteGradientPivot: gradientActions.deletePivot,
     onSetCenter: viewpointActions.setCenter,
     onSetHeight: viewpointActions.setHeight,
     onSetWidth: viewpointActions.setWidth,
