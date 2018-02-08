@@ -22,6 +22,7 @@ rules:
   arrow-parens: [error, as-needed]
   brace-style: [error, 1tbs, allowSingleLine: true]
   block-spacing: [error, always]
+  capitalized-comments: warn
   class-methods-use-this: off
   dot-location: [error, property]
   id-length: off
@@ -52,6 +53,7 @@ rules:
   sort-keys: off
   max-len: off
   max-lines: warn
+  multiline-comment-style: warn
   new-cap:
     - error
     - capIsNewExceptions:
