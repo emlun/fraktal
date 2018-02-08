@@ -4,8 +4,6 @@ import AppState from 'data/AppState';
 import viewpointReducer from './viewpoint';
 
 function rootReducer(state = new AppState(), action) {
-  console.log('action:', action);
-
   switch (action.type) {
     case 'SET_STATE':
       return action.state;
@@ -18,7 +16,6 @@ function rootReducer(state = new AppState(), action) {
       }
 
     default:
-      console.log('Unknown action type:', action.type);
       return state;
   }
 }
