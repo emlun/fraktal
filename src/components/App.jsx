@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import * as fractals from 'fractals/common';
+import AppState from 'data/AppState';
 
 import Canvas from 'components/Canvas';
 import Controls from 'components/Controls';
@@ -73,7 +74,7 @@ class App extends React.Component {
 
 }
 App.propTypes = {
-  state: PropTypes.object.isRequired,
+  state: PropTypes.instanceOf(AppState).isRequired,
   onSetState: PropTypes.func.isRequired,
 };
 

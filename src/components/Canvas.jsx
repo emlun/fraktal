@@ -8,6 +8,7 @@ import * as fractals from 'fractals/common';
 import { debug } from 'logging';
 
 import * as viewpointActions from 'actions/viewpoint';
+import AppState from 'data/AppState';
 import Viewpoint from 'data/Viewpoint';
 
 import ProgressBar from 'components/ProgressBar';
@@ -140,7 +141,7 @@ class Canvas extends React.Component {
 
 }
 Canvas.propTypes = {
-  state: PropTypes.object.isRequired,
+  state: PropTypes.instanceOf(AppState).isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
   onCenterView: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
@@ -252,7 +253,7 @@ class CanvasContainer extends React.Component {
 
 }
 CanvasContainer.propTypes = {
-  state: PropTypes.object.isRequired,
+  state: PropTypes.instanceOf(AppState).isRequired,
   update: PropTypes.func.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
   onCenterView: PropTypes.func.isRequired,
