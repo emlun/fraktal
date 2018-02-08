@@ -30,6 +30,20 @@ export default function gradientReducer(state, action) {
     case actions.DELETE_PIVOT:
       return state.delete(action.index);
 
+    case actions.SET_PIVOT_VALUE: {
+      const { index, value } = action;
+      return state.setIn(
+        [index, 'value'],
+        Math.max(
+          Math.min(
+            value,
+            state.getIn([index + 1, 'value'], Infinity)
+          ),
+          index < 1 ? 0 : state.getIn([index - 1, 'value'], 0)
+        )
+      );
+    }
+
     default:
       return state;
   }

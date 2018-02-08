@@ -129,17 +129,7 @@ class Controls extends React.Component {
                 max={ this.get(['numColors']) - 1 }
                 min={ 0 }
                 onChange={
-                  ({ target: { value } }) =>
-                    this.set(
-                      ['gradient', index, 'value'],
-                      Math.max(
-                        Math.min(
-                          parseInt(value, 10),
-                          this.props.gradient.getIn([index + 1, 'value'], Infinity)
-                        ),
-                        this.props.gradient.getIn([index < 1 ? 'foo' : index - 1, 'value'], 0)
-                      )
-                    )
+                  ({ target: { value } }) => this.props.onSetPivotValue(index, parseInt(value, 10))
                 }
                 type="range"
                 value={ pivot.get('value') }
@@ -245,6 +235,7 @@ Controls.propTypes = {
   onSetCenter: PropTypes.func.isRequired,
   onSetHeight: PropTypes.func.isRequired,
   onSetNumColors: PropTypes.func.isRequired,
+  onSetPivotValue: PropTypes.func.isRequired,
   onSetWidth: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
@@ -261,6 +252,7 @@ export default ReactRedux.connect(
     onSetCenter: viewpointActions.setCenter,
     onSetHeight: viewpointActions.setHeight,
     onSetNumColors: rootActions.setNumColors,
+    onSetPivotValue: gradientActions.setPivotValue,
     onSetWidth: viewpointActions.setWidth,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,
