@@ -12,7 +12,6 @@ export default class FloatInput extends React.Component {
     };
 
     this.onChange = this.onChange.bind(this);
-    this.update = this.update.bind(this);
   }
 
   componentWillReceiveProps(newProps) {
