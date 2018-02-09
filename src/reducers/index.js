@@ -24,6 +24,9 @@ function rootReducer(state = new AppState(), action) {
         .set('fractalParameters', fractals.getFractal(action.fractal).defaultParameters)
       ;
 
+    case actions.SET_FRACTAL_PARAMETERS:
+      return state.set('fractalParameters', action.parameters);
+
     case actions.SET_NUM_COLORS:
       return state.set('numColors', action.numColors);
 

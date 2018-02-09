@@ -185,7 +185,7 @@ class Controls extends React.Component {
         </div>
 
         <FractalParameters
-          onChange={ parameters => this.set(['fractalParameters'], parameters) }
+          onChange={ this.props.onSetFractalParameters }
           parameters={ this.get(['fractalParameters']) }
         />
       </form>
@@ -219,6 +219,7 @@ Controls.propTypes = {
   onDeleteGradientPivot: PropTypes.func.isRequired,
   onSetCenter: PropTypes.func.isRequired,
   onSetFractal: PropTypes.func.isRequired,
+  onSetFractalParameters: PropTypes.func.isRequired,
   onSetHeight: PropTypes.func.isRequired,
   onSetInsideColor: PropTypes.func.isRequired,
   onSetNumColors: PropTypes.func.isRequired,
@@ -239,6 +240,7 @@ export default ReactRedux.connect(
     onDeleteGradientPivot: colorsActions.deletePivot,
     onSetCenter: viewpointActions.setCenter,
     onSetFractal: rootActions.setFractal,
+    onSetFractalParameters: rootActions.setFractalParameters,
     onSetHeight: viewpointActions.setHeight,
     onSetInsideColor: colorsActions.setInsideColor,
     onSetNumColors: rootActions.setNumColors,
