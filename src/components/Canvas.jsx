@@ -8,6 +8,7 @@ import * as fractals from 'fractals/common';
 import { debug } from 'logging';
 
 import * as viewpointActions from 'actions/viewpoint';
+import * as workerActions from 'actions/worker';
 import AppState from 'data/AppState';
 import Viewpoint from 'data/Viewpoint';
 
@@ -54,8 +55,8 @@ class Canvas extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (_.any(['colors', 'matrix'],
-      name => prevProps.state.get(name) !== this.props.state.get(name))
+    if (prevProps.state.get('colors') !== this.props.state.get('colors')
+      || prevProps.matrix !== this.props.matrix
     ) {
       this.renderPixels();
     }
@@ -106,7 +107,7 @@ class Canvas extends React.Component {
               this.props.viewpoint.getIn(['dimensions', 'width']),
               this.props.viewpoint.getIn(['dimensions', 'height'])
             ),
-            this.props.state.get('matrix'),
+            this.props.matrix,
             Immutable.fromJS(palette.toJS()),
             this.props.state.getIn(['colors', 'inside']).toJS()
           );
@@ -133,7 +134,7 @@ class Canvas extends React.Component {
       />
       <ProgressBar
         max={ 1 }
-        value={ this.props.state.get('computeProgress', 0) }
+        value={ this.props.computeProgress }
         width={ `${this.props.viewpoint.getIn(['dimensions', 'width'])}px` }
       />
     </div>;
@@ -141,6 +142,8 @@ class Canvas extends React.Component {
 
 }
 Canvas.propTypes = {
+  computeProgress: PropTypes.number.isRequired,
+  matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
   state: PropTypes.instanceOf(AppState).isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
   onCenterView: PropTypes.func.isRequired,
@@ -191,7 +194,7 @@ class CanvasContainer extends React.Component {
 
   computeMatrix() {
     debug('About to compute matrix...');
-    this.set(['computing'], true);
+    this.props.onSetComputing(true);
     debug('Status set.');
 
     if (this.worker) {
@@ -213,26 +216,15 @@ class CanvasContainer extends React.Component {
     });
   }
 
-  onComputationCompleted(matrix) {
-    debug('Saving matrix', matrix);
-
-    this.update(state =>
-      state
-        .set('computing', false)
-        .set('computeProgress', 0)
-        .set('matrix', matrix)
-    );
-  }
-
   onWorkerMessage(message) {
     switch (message.data.type) {
       case 'compute-matrix':
-        this.onComputationCompleted(message.data.data);
+        this.props.onComputationCompleted(message.data.data);
         break;
 
       case 'compute-matrix-progress':
-        if (this.get(['computing'])) {
-          this.set(['computeProgress'], message.data.data.completed / message.data.data.total);
+        if (this.props.computing) {
+          this.props.onSetComputeProgress(message.data.data.completed / message.data.data.total);
         }
         break;
 
@@ -243,6 +235,8 @@ class CanvasContainer extends React.Component {
 
   render() {
     return <Canvas
+      computeProgress={ this.props.computeProgress }
+      matrix={ this.props.matrix }
       onCenterView={ this.props.onCenterView }
       onZoomIn={ this.props.onZoomIn }
       onZoomOut={ this.props.onZoomOut }
@@ -253,24 +247,36 @@ class CanvasContainer extends React.Component {
 
 }
 CanvasContainer.propTypes = {
+  computeProgress: PropTypes.number.isRequired,
+  computing: PropTypes.bool.isRequired,
   fractal: PropTypes.string.isRequired,
   fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
+  matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
   state: PropTypes.instanceOf(AppState).isRequired,
   update: PropTypes.func.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
   onCenterView: PropTypes.func.isRequired,
+  onComputationCompleted: PropTypes.func.isRequired,
+  onSetComputeProgress: PropTypes.func.isRequired,
+  onSetComputing: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };
 
 export default ReactRedux.connect(
   state => ({
+    computeProgress: state.getIn(['worker', 'computeProgress']),
+    computing: state.getIn(['worker', 'computing']),
     fractal: state.get('fractal'),
     fractalParameters: state.get('fractalParameters'),
+    matrix: state.getIn(['worker', 'matrix']),
     viewpoint: state.get('viewpoint'),
   }),
   {
     onCenterView: viewpointActions.centerView,
+    onComputationCompleted: workerActions.computationCompleted,
+    onSetComputeProgress: workerActions.setComputeProgress,
+    onSetComputing: workerActions.setComputing,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,
   }

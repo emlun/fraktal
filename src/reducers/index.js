@@ -5,6 +5,7 @@ import * as fractals from 'fractals/common';
 import AppState from 'data/AppState';
 import colorsReducer from './colors';
 import viewpointReducer from './viewpoint';
+import workerReducer from './worker';
 
 function rootReducer(state = new AppState(), action) {
   switch (action.type) {
@@ -39,5 +40,6 @@ export default function indexReducer(state = new AppState(), action) {
   return rootReducer(state, action)
     .update('colors', _(colorsReducer).partial(_, action))
     .update('viewpoint', _(viewpointReducer).partial(_, action))
+    .update('worker', _(workerReducer).partial(_, action))
   ;
 }
