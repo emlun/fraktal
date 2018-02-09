@@ -16,167 +16,184 @@ import Viewpoint from 'data/Viewpoint';
 import ComplexInput from 'components/ComplexInput';
 
 
-class Controls extends React.Component {
-
-  onSubmit(event) {
-    if (event && event.preventDefault) {
-      event.preventDefault();
-    }
+function onSubmit(event) {
+  if (event && event.preventDefault) {
+    event.preventDefault();
   }
+}
 
-  render() {
-    const FractalParameters = this.props.fractalParametersControls;
+function Controls({
+  fractal,
+  fractalParameters,
+  fractalParametersControls: FractalParameters,
+  gradient,
+  insideColor,
+  limits,
+  numColors,
+  viewpoint,
 
-    return <div>
-      <form onSubmit={ this.onSubmit.bind(this) }>
+  onAddGradientPivot,
+  onDeleteGradientPivot,
+  onSetCenter,
+  onSetFractal,
+  onSetFractalParameters,
+  onSetHeight,
+  onSetInsideColor,
+  onSetNumColors,
+  onSetPivotColor,
+  onSetPivotValue,
+  onSetWidth,
+  onZoomIn,
+  onZoomOut,
+}) {
+  return <div>
+    <form onSubmit={ onSubmit }>
+      <p>
+        { 'Center: ' }
+        <ComplexInput
+          onChange={ onSetCenter }
+          value={ viewpoint.get('center') }
+        />
+      </p>
+      <p>
+        { `Scale: ${viewpoint.get('scale')}` }
+      </p>
+      <p>
+        <button
+          onClick={ onZoomOut }
+          type="button"
+        >
+          { 'Zoom out' }
+        </button>
+        <button
+          onClick={ onZoomIn }
+          type="button"
+        >
+          { 'Zoom in' }
+        </button>
+      </p>
+      <p>
+        { `Top left: ${limits.topLeft.toString()}` }
+      </p>
+      <p>
+        { `Bottom right: ${limits.btmRight.toString()}` }
+      </p>
+      <p>
+        { 'Width: ' }
+        <input
+          onChange={
+            ({ target: { value } }) => onSetWidth(parseInt(value || 0, 10))
+          }
+          type="number"
+          value={ viewpoint.getIn(['dimensions', 'width']) }
+        />
+      </p>
+      <p>
+        { 'Height: ' }
+        <input
+          onChange={
+            ({ target: { value } }) => onSetHeight(parseInt(value || 0, 10))
+          }
+          type="number"
+          value={ viewpoint.getIn(['dimensions', 'height']) }
+        />
+      </p>
+
+      <div>
         <p>
-          { 'Center: ' }
-          <ComplexInput
-            onChange={ this.props.onSetCenter }
-            value={ this.props.viewpoint.get('center') }
-          />
+          { 'Number of color values:' }
         </p>
         <p>
-          { `Scale: ${this.props.viewpoint.get('scale')}` }
-        </p>
-        <p>
-          <button
-            onClick={ this.props.onZoomOut }
-            type="button"
-          >
-            { 'Zoom out' }
-          </button>
-          <button
-            onClick={ this.props.onZoomIn }
-            type="button"
-          >
-            { 'Zoom in' }
-          </button>
-        </p>
-        <p>
-          { `Top left: ${this.props.limits.topLeft.toString()}` }
-        </p>
-        <p>
-          { `Bottom right: ${this.props.limits.btmRight.toString()}` }
-        </p>
-        <p>
-          { 'Width: ' }
           <input
-            onChange={
-              ({ target: { value } }) => this.props.onSetWidth(parseInt(value || 0, 10))
-            }
-            type="number"
-            value={ this.props.viewpoint.getIn(['dimensions', 'width']) }
+            max={ 1000 }
+            min={ 10 }
+            onChange={ ({ target: { value } }) => onSetNumColors(parseInt(value, 10)) }
+            step={ 10 }
+            type="range"
+            value={ numColors }
           />
-        </p>
-        <p>
-          { 'Height: ' }
-          <input
-            onChange={
-              ({ target: { value } }) => this.props.onSetHeight(parseInt(value || 0, 10))
-            }
-            type="number"
-            value={ this.props.viewpoint.getIn(['dimensions', 'height']) }
-          />
+          { numColors }
         </p>
 
-        <div>
-          <p>
-            { 'Number of color values:' }
-          </p>
-          <p>
+        <p>
+          { 'Gradient:' }
+        </p>
+        { gradient.map((pivot, index) =>
+          <div key={ pivot.get('id') }>
             <input
-              max={ 1000 }
-              min={ 10 }
-              onChange={ ({ target: { value } }) => this.props.onSetNumColors(parseInt(value, 10)) }
-              step={ 10 }
+              max={ numColors - 1 }
+              min={ 0 }
+              onChange={
+                ({ target: { value } }) => onSetPivotValue(index, parseInt(value, 10))
+              }
               type="range"
-              value={ this.props.numColors }
+              value={ pivot.get('value') }
             />
-            { this.props.numColors }
-          </p>
-
-          <p>
-            { 'Gradient:' }
-          </p>
-          { this.props.gradient.map((pivot, index) =>
-            <div key={ pivot.get('id') }>
-              <input
-                max={ this.props.numColors - 1 }
-                min={ 0 }
-                onChange={
-                  ({ target: { value } }) => this.props.onSetPivotValue(index, parseInt(value, 10))
-                }
-                type="range"
-                value={ pivot.get('value') }
-              />
-              <input
-                onChange={ ({ target: { value } }) => this.props.onSetPivotColor(index, value) }
-                type="color"
-                value={
-                  `#${
-                    pivot.get('color')
-                      .map(d => sprintf('%02x', d))
-                      .join('')
-                  }`
-                }
-              />
-              <button
-                onClick={ () => this.props.onAddGradientPivot(index) }
-                type="button"
-              >
-                { '+' }
-              </button>
-              <button
-                onClick={ () => this.props.onDeleteGradientPivot(index) }
-                type="button"
-              >
-                { '-' }
-              </button>
-            </div>
-          ) }
-
-          <p>
-            { 'Color inside set: ' }
             <input
-              onChange={ ({ target: { value } }) => this.props.onSetInsideColor(value) }
+              onChange={ ({ target: { value } }) => onSetPivotColor(index, value) }
               type="color"
               value={
                 `#${
-                  this.props.insideColor
+                  pivot.get('color')
                     .map(d => sprintf('%02x', d))
                     .join('')
                 }`
               }
             />
-          </p>
-        </div>
+            <button
+              onClick={ () => onAddGradientPivot(index) }
+              type="button"
+            >
+              { '+' }
+            </button>
+            <button
+              onClick={ () => onDeleteGradientPivot(index) }
+              type="button"
+            >
+              { '-' }
+            </button>
+          </div>
+        ) }
 
-        <div>
-          { 'Fractal: ' }
-          <select
-            onChange={ ({ target: { value } }) => this.props.onSetFractal(value) }
-            value={ this.props.fractal }
-          >
-            { ['julia', 'mandelbrot'].map(fractal =>
-              <option
-                key={ fractal }
-                value={ fractal }
-              >
-                { fractals.getFractal(fractal).name }
-              </option>
-            ) }
-          </select>
-        </div>
+        <p>
+          { 'Color inside set: ' }
+          <input
+            onChange={ ({ target: { value } }) => onSetInsideColor(value) }
+            type="color"
+            value={
+              `#${
+                insideColor
+                  .map(d => sprintf('%02x', d))
+                  .join('')
+              }`
+            }
+          />
+        </p>
+      </div>
 
-        <FractalParameters
-          onChange={ this.props.onSetFractalParameters }
-          parameters={ this.props.fractalParameters }
-        />
-      </form>
-    </div>;
-  }
+      <div>
+        { 'Fractal: ' }
+        <select
+          onChange={ ({ target: { value } }) => onSetFractal(value) }
+          value={ fractal }
+        >
+          { ['julia', 'mandelbrot'].map(fractalOption =>
+            <option
+              key={ fractalOption }
+              value={ fractalOption }
+            >
+              { fractals.getFractal(fractalOption).name }
+            </option>
+          ) }
+        </select>
+      </div>
 
+      <FractalParameters
+        onChange={ onSetFractalParameters }
+        parameters={ fractalParameters }
+      />
+    </form>
+  </div>;
 }
 Controls.propTypes = {
   fractal: PropTypes.string.isRequired,
