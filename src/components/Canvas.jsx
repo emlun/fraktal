@@ -156,6 +156,10 @@ class CanvasContainer extends React.Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      computeProgress: 0,
+    };
+
     this.computeMatrix = _.throttle(this.computeMatrix.bind(this), 500);
     this.update = this.update.bind(this);
   }
@@ -219,12 +223,13 @@ class CanvasContainer extends React.Component {
   onWorkerMessage(message) {
     switch (message.data.type) {
       case 'compute-matrix':
+        this.setState({ computeProgress: 0 });
         this.props.onComputationCompleted(message.data.data);
         break;
 
       case 'compute-matrix-progress':
         if (this.props.computing) {
-          this.props.onSetComputeProgress(message.data.data.completed / message.data.data.total);
+          this.setState({ computeProgress: message.data.data.completed / message.data.data.total });
         }
         break;
 
@@ -235,7 +240,7 @@ class CanvasContainer extends React.Component {
 
   render() {
     return <Canvas
-      computeProgress={ this.props.computeProgress }
+      computeProgress={ this.state.computeProgress }
       matrix={ this.props.matrix }
       onCenterView={ this.props.onCenterView }
       onZoomIn={ this.props.onZoomIn }
@@ -247,7 +252,6 @@ class CanvasContainer extends React.Component {
 
 }
 CanvasContainer.propTypes = {
-  computeProgress: PropTypes.number.isRequired,
   computing: PropTypes.bool.isRequired,
   fractal: PropTypes.string.isRequired,
   fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
@@ -257,7 +261,6 @@ CanvasContainer.propTypes = {
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
   onCenterView: PropTypes.func.isRequired,
   onComputationCompleted: PropTypes.func.isRequired,
-  onSetComputeProgress: PropTypes.func.isRequired,
   onSetComputing: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
@@ -265,7 +268,6 @@ CanvasContainer.propTypes = {
 
 export default ReactRedux.connect(
   state => ({
-    computeProgress: state.getIn(['worker', 'computeProgress']),
     computing: state.getIn(['worker', 'computing']),
     fractal: state.get('fractal'),
     fractalParameters: state.get('fractalParameters'),
@@ -275,7 +277,6 @@ export default ReactRedux.connect(
   {
     onCenterView: viewpointActions.centerView,
     onComputationCompleted: workerActions.computationCompleted,
-    onSetComputeProgress: workerActions.setComputeProgress,
     onSetComputing: workerActions.setComputing,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,
