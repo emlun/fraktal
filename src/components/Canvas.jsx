@@ -269,9 +269,9 @@ export default ReactRedux.connect(
     fractalParameters: state.get('fractalParameters'),
     viewpoint: state.get('viewpoint'),
   }),
-  dispatch => ({
-    onCenterView: (x, y) => dispatch(viewpointActions.centerView(x, y)),
-    onZoomIn: () => dispatch(viewpointActions.zoomIn()),
-    onZoomOut: () => dispatch(viewpointActions.zoomOut()),
-  })
+  {
+    onCenterView: viewpointActions.centerView,
+    onZoomIn: viewpointActions.zoomIn,
+    onZoomOut: viewpointActions.zoomOut,
+  }
 )(CanvasContainer);
