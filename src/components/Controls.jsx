@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRedux from 'react-redux';
 import PropTypes from 'prop-types';
+import Immutable from 'immutable';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import { sprintf } from 'sprintf-js';
 
@@ -16,10 +17,6 @@ import ComplexInput from 'components/ComplexInput';
 
 
 class Controls extends React.Component {
-
-  get(path, defaultValue) {
-    return this.props.state.getIn(path, defaultValue);
-  }
 
   onSubmit(event) {
     if (event && event.preventDefault) {
@@ -94,9 +91,9 @@ class Controls extends React.Component {
               onChange={ ({ target: { value } }) => this.props.onSetNumColors(parseInt(value, 10)) }
               step={ 10 }
               type="range"
-              value={ this.get(['numColors']) }
+              value={ this.props.numColors }
             />
-            { this.get(['numColors']) }
+            { this.props.numColors }
           </p>
 
           <p>
@@ -105,7 +102,7 @@ class Controls extends React.Component {
           { this.props.gradient.map((pivot, index) =>
             <div key={ pivot.get('id') }>
               <input
-                max={ this.get(['numColors']) - 1 }
+                max={ this.props.numColors - 1 }
                 min={ 0 }
                 onChange={
                   ({ target: { value } }) => this.props.onSetPivotValue(index, parseInt(value, 10))
@@ -146,7 +143,7 @@ class Controls extends React.Component {
               type="color"
               value={
                 `#${
-                  this.get(['colors', 'inside'])
+                  this.props.insideColor
                     .map(d => sprintf('%02x', d))
                     .join('')
                 }`
@@ -159,7 +156,7 @@ class Controls extends React.Component {
           { 'Fractal: ' }
           <select
             onChange={ ({ target: { value } }) => this.props.onSetFractal(value) }
-            value={ this.get(['fractal']) }
+            value={ this.props.fractal }
           >
             { ['julia', 'mandelbrot'].map(fractal =>
               <option
@@ -174,7 +171,7 @@ class Controls extends React.Component {
 
         <FractalParameters
           onChange={ this.props.onSetFractalParameters }
-          parameters={ this.get(['fractalParameters']) }
+          parameters={ this.props.fractalParameters }
         />
       </form>
     </div>;
@@ -182,6 +179,8 @@ class Controls extends React.Component {
 
 }
 Controls.propTypes = {
+  fractal: PropTypes.string.isRequired,
+  fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
   fractalParametersControls: PropTypes.oneOfType([PropTypes.element, PropTypes.func]).isRequired,
   gradient: ImmutablePropTypes.listOf(
     ImmutablePropTypes.contains({
@@ -190,16 +189,12 @@ Controls.propTypes = {
       value: PropTypes.number.isRequired,
     })
   ).isRequired,
+  insideColor: PropTypes.instanceOf(Immutable.List).isRequired,
   limits: PropTypes.shape({
     btmRight: propTypes.complex.isRequired,
     topLeft: propTypes.complex.isRequired,
   }).isRequired,
-  state: PropTypes.shape({
-    getIn: PropTypes.func.isRequired,
-    setIn: PropTypes.func.isRequired,
-    update: PropTypes.func.isRequired,
-    updateIn: PropTypes.func.isRequired,
-  }).isRequired,
+  numColors: PropTypes.number.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
   onAddGradientPivot: PropTypes.func.isRequired,
@@ -219,7 +214,11 @@ Controls.propTypes = {
 
 export default ReactRedux.connect(
   state => ({
+    fractal: state.get('fractal'),
+    fractalParameters: state.get('fractalParameters'),
     gradient: state.getIn(['colors', 'gradient']),
+    insideColor: state.getIn(['colors', 'inside']),
+    numColors: state.get('numColors'),
     viewpoint: state.get('viewpoint'),
   }),
   {

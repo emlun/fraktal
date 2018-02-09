@@ -53,7 +53,6 @@ class App extends React.Component {
             fractals.getFractal(this.props.state.get('fractal')).ParameterControls
           }
           limits={ this.getLimits() }
-          state={ this.props.state }
         />
       </div>
 
