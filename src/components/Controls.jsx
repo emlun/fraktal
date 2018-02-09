@@ -21,18 +21,6 @@ class Controls extends React.Component {
     return this.props.state.getIn(path, defaultValue);
   }
 
-  set(path, value) {
-    this.props.onChange(this.props.state.setIn(path, value));
-  }
-
-  update(pathOrUpdater, updater) {
-    if (updater) {
-      this.props.onChange(this.props.state.updateIn(pathOrUpdater, updater));
-    } else {
-      this.props.onChange(this.props.state.update(pathOrUpdater));
-    }
-  }
-
   onSubmit(event) {
     if (event && event.preventDefault) {
       event.preventDefault();
@@ -215,7 +203,6 @@ Controls.propTypes = {
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
   onAddGradientPivot: PropTypes.func.isRequired,
-  onChange: PropTypes.func.isRequired,
   onDeleteGradientPivot: PropTypes.func.isRequired,
   onSetCenter: PropTypes.func.isRequired,
   onSetFractal: PropTypes.func.isRequired,
