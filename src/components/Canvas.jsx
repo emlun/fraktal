@@ -205,8 +205,8 @@ class CanvasContainer extends React.Component {
       data: {
         center: this.props.viewpoint.get('center'),
         dimensions: this.props.viewpoint.get('dimensions').toJS(),
-        fractal: this.get(['fractal']),
-        fractalParameters: this.get(['fractalParameters']).toJS(),
+        fractal: this.props.fractal,
+        fractalParameters: this.props.fractalParameters.toJS(),
         iterationLimit: this.get(['numColors']) - 1,
         scale: this.props.viewpoint.get('scale'),
       },
@@ -253,6 +253,8 @@ class CanvasContainer extends React.Component {
 
 }
 CanvasContainer.propTypes = {
+  fractal: PropTypes.string.isRequired,
+  fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
   state: PropTypes.instanceOf(AppState).isRequired,
   update: PropTypes.func.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
@@ -263,6 +265,8 @@ CanvasContainer.propTypes = {
 
 export default ReactRedux.connect(
   state => ({
+    fractal: state.get('fractal'),
+    fractalParameters: state.get('fractalParameters'),
     viewpoint: state.get('viewpoint'),
   }),
   dispatch => ({

@@ -1,6 +1,7 @@
 import _ from 'underscore';
 
 import * as actions from 'actions';
+import * as fractals from 'fractals/common';
 import AppState from 'data/AppState';
 import colorsReducer from './colors';
 import viewpointReducer from './viewpoint';
@@ -16,6 +17,12 @@ function rootReducer(state = new AppState(), action) {
       } else {
         return state.update(action.updater);
       }
+
+    case actions.SET_FRACTAL:
+      return state
+        .set('fractal', action.fractal)
+        .set('fractalParameters', fractals.getFractal(action.fractal).defaultParameters)
+      ;
 
     case actions.SET_NUM_COLORS:
       return state.set('numColors', action.numColors);
