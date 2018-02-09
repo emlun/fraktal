@@ -1,4 +1,5 @@
 import Complex from 'complex.js';
+import Immutable from 'immutable';
 
 import { contained } from './constants';
 
@@ -29,3 +30,7 @@ function check(c, iterationLimit) {
 export function makeCheck() {
   return check;
 }
+
+export const Parameters = Immutable.Record({
+});
+export const defaultParameters = new Parameters();
