@@ -9,7 +9,7 @@ import { debug } from 'logging';
 
 import * as viewpointActions from 'actions/viewpoint';
 import * as workerActions from 'actions/worker';
-import AppState from 'data/AppState';
+import Colors from 'data/Colors';
 import Viewpoint from 'data/Viewpoint';
 
 import ProgressBar from 'components/ProgressBar';
@@ -55,7 +55,7 @@ class Canvas extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.state.get('colors') !== this.props.state.get('colors')
+    if (prevProps.colors !== this.props.colors
       || prevProps.matrix !== this.props.matrix
     ) {
       this.renderPixels();
@@ -93,8 +93,8 @@ class Canvas extends React.Component {
         this.rendering = true;
 
         const palette = fractals.computePalette(
-          this.props.state.getIn(['colors', 'gradient']),
-          this.props.state.get('numColors')
+          this.props.colors.get('gradient'),
+          this.props.numColors
         );
 
         const ctx = this.canvas.getContext('2d');
@@ -109,7 +109,7 @@ class Canvas extends React.Component {
             ),
             this.props.matrix,
             Immutable.fromJS(palette.toJS()),
-            this.props.state.getIn(['colors', 'inside']).toJS()
+            this.props.colors.get('inside').toJS()
           );
 
           ctx.putImageData(imageData, 0, 0);
@@ -142,10 +142,12 @@ class Canvas extends React.Component {
 
 }
 Canvas.propTypes = {
+  colors: PropTypes.instanceOf(Colors).isRequired,
   computeProgress: PropTypes.number.isRequired,
   matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
-  state: PropTypes.instanceOf(AppState).isRequired,
+  numColors: PropTypes.number.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
+
   onCenterView: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
@@ -169,8 +171,9 @@ class CanvasContainer extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (
-      _.any(['viewpoint', 'fractal', 'fractalParameters', 'numColors'],
-        name => prevProps.state.get(name) !== this.get([name]))
+      prevProps.fractal !== this.props.fractal
+      || prevProps.fractalParameters !== this.props.fractalParameters
+      || prevProps.numColors !== this.props.numColors
       || prevProps.viewpoint !== this.props.viewpoint
     ) {
       this.computeMatrix();
@@ -181,10 +184,6 @@ class CanvasContainer extends React.Component {
     if (this.worker) {
       this.worker.terminate();
     }
-  }
-
-  get(path, defaultValue) {
-    return this.props.state.getIn(path, defaultValue);
   }
 
   computeMatrix() {
@@ -205,7 +204,7 @@ class CanvasContainer extends React.Component {
         dimensions: this.props.viewpoint.get('dimensions').toJS(),
         fractal: this.props.fractal,
         fractalParameters: this.props.fractalParameters.toJS(),
-        iterationLimit: this.get(['numColors']) - 1,
+        iterationLimit: this.props.numColors - 1,
         scale: this.props.viewpoint.get('scale'),
       },
     });
@@ -231,24 +230,27 @@ class CanvasContainer extends React.Component {
 
   render() {
     return <Canvas
+      colors={ this.props.colors }
       computeProgress={ this.state.computeProgress }
       matrix={ this.props.matrix }
+      numColors={ this.props.numColors }
       onCenterView={ this.props.onCenterView }
       onZoomIn={ this.props.onZoomIn }
       onZoomOut={ this.props.onZoomOut }
-      state={ this.props.state }
       viewpoint={ this.props.viewpoint }
     />;
   }
 
 }
 CanvasContainer.propTypes = {
+  colors: PropTypes.instanceOf(Colors).isRequired,
   computing: PropTypes.bool.isRequired,
   fractal: PropTypes.string.isRequired,
   fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
   matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
-  state: PropTypes.instanceOf(AppState).isRequired,
+  numColors: PropTypes.number.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
+
   onCenterView: PropTypes.func.isRequired,
   onComputationCompleted: PropTypes.func.isRequired,
   onSetComputing: PropTypes.func.isRequired,
@@ -258,10 +260,12 @@ CanvasContainer.propTypes = {
 
 export default ReactRedux.connect(
   state => ({
+    colors: state.get('colors'),
     computing: state.getIn(['worker', 'computing']),
     fractal: state.get('fractal'),
     fractalParameters: state.get('fractalParameters'),
     matrix: state.getIn(['worker', 'matrix']),
+    numColors: state.get('numColors'),
     viewpoint: state.get('viewpoint'),
   }),
   {
