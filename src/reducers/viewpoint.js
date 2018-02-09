@@ -8,7 +8,7 @@ function computeNumberAt({ center, dimensions, scale, x, y }) {
   return center.add(
     new Complex(
       ((x / dimensions.get('width')) - 0.5) * scale,
-      (0.5 - (x / dimensions.get('height'))) * scale * (dimensions.get('height') / dimensions.get('width'))
+      (0.5 - (y / dimensions.get('height'))) * scale * (dimensions.get('height') / dimensions.get('width'))
     )
   );
 }
