@@ -161,7 +161,6 @@ class CanvasContainer extends React.Component {
     };
 
     this.computeMatrix = _.throttle(this.computeMatrix.bind(this), 500);
-    this.update = this.update.bind(this);
   }
 
   componentDidMount() {
@@ -186,14 +185,6 @@ class CanvasContainer extends React.Component {
 
   get(path, defaultValue) {
     return this.props.state.getIn(path, defaultValue);
-  }
-
-  set(path, value) {
-    return this.update(state => state.setIn(path, value));
-  }
-
-  update(pathOrUpdater, updater) {
-    return this.props.update(pathOrUpdater, updater);
   }
 
   computeMatrix() {
@@ -257,7 +248,6 @@ CanvasContainer.propTypes = {
   fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
   matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
   state: PropTypes.instanceOf(AppState).isRequired,
-  update: PropTypes.func.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
   onCenterView: PropTypes.func.isRequired,
   onComputationCompleted: PropTypes.func.isRequired,
