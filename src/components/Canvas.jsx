@@ -161,6 +161,7 @@ class CanvasContainer extends React.Component {
     this.state = {
       computeProgress: 0,
     };
+    this.computing = false;
 
     this.computeMatrix = _.throttle(this.computeMatrix.bind(this), 500);
   }
@@ -188,26 +189,28 @@ class CanvasContainer extends React.Component {
 
   computeMatrix() {
     debug('About to compute matrix...');
-    this.props.onSetComputing(true);
-    debug('Status set.');
+    if (this.computing === false) {
+      this.computing = true;
+      debug('Status set.');
 
-    if (this.worker) {
-      this.worker.terminate();
+      if (this.worker) {
+        this.worker.terminate();
+      }
+
+      this.worker = new Worker('worker.js');
+      this.worker.onmessage = this.onWorkerMessage.bind(this);
+      this.worker.postMessage({
+        type: 'compute-matrix',
+        data: {
+          center: this.props.viewpoint.get('center'),
+          dimensions: this.props.viewpoint.get('dimensions').toJS(),
+          fractal: this.props.fractal,
+          fractalParameters: this.props.fractalParameters.toJS(),
+          iterationLimit: this.props.numColors - 1,
+          scale: this.props.viewpoint.get('scale'),
+        },
+      });
     }
-
-    this.worker = new Worker('worker.js');
-    this.worker.onmessage = this.onWorkerMessage.bind(this);
-    this.worker.postMessage({
-      type: 'compute-matrix',
-      data: {
-        center: this.props.viewpoint.get('center'),
-        dimensions: this.props.viewpoint.get('dimensions').toJS(),
-        fractal: this.props.fractal,
-        fractalParameters: this.props.fractalParameters.toJS(),
-        iterationLimit: this.props.numColors - 1,
-        scale: this.props.viewpoint.get('scale'),
-      },
-    });
   }
 
   onWorkerMessage(message) {
@@ -215,10 +218,11 @@ class CanvasContainer extends React.Component {
       case 'compute-matrix':
         this.setState({ computeProgress: 0 });
         this.props.onComputationCompleted(message.data.data);
+        this.computing = false;
         break;
 
       case 'compute-matrix-progress':
-        if (this.props.computing) {
+        if (this.computing) {
           this.setState({ computeProgress: message.data.data.completed / message.data.data.total });
         }
         break;
@@ -244,7 +248,6 @@ class CanvasContainer extends React.Component {
 }
 CanvasContainer.propTypes = {
   colors: PropTypes.instanceOf(Colors).isRequired,
-  computing: PropTypes.bool.isRequired,
   fractal: PropTypes.string.isRequired,
   fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
   matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
@@ -253,7 +256,6 @@ CanvasContainer.propTypes = {
 
   onCenterView: PropTypes.func.isRequired,
   onComputationCompleted: PropTypes.func.isRequired,
-  onSetComputing: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };
@@ -261,7 +263,6 @@ CanvasContainer.propTypes = {
 export default ReactRedux.connect(
   state => ({
     colors: state.get('colors'),
-    computing: state.getIn(['worker', 'computing']),
     fractal: state.get('fractal'),
     fractalParameters: state.get('fractalParameters'),
     matrix: state.getIn(['worker', 'matrix']),
@@ -271,7 +272,6 @@ export default ReactRedux.connect(
   {
     onCenterView: viewpointActions.centerView,
     onComputationCompleted: workerActions.computationCompleted,
-    onSetComputing: workerActions.setComputing,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,
   }
