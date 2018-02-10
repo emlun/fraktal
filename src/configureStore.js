@@ -1,7 +1,11 @@
 /* eslint no-process-env: off, global-require: off */
 
-if (process.env.NODE_ENV === 'production') {
-  module.exports = require('./configureStore.prod');
-} else {
-  module.exports = require('./configureStore.dev');
+function createStore() {
+  if (process.env.NODE_ENV === 'production') {
+    return require('./configureStore.prod');
+  } else {
+    return require('./configureStore.dev');
+  }
 }
+
+module.exports = createStore();
