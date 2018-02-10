@@ -191,7 +191,6 @@ class CanvasContainer extends React.Component {
     debug('About to compute matrix...');
     if (this.computing === false) {
       this.computing = true;
-      debug('Status set.');
 
       if (this.worker) {
         this.worker.terminate();
