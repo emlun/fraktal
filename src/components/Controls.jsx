@@ -235,6 +235,12 @@ export default ReactRedux.connect(
     fractalParameters: state.get('fractalParameters'),
     gradient: state.getIn(['colors', 'gradient']),
     insideColor: state.getIn(['colors', 'inside']),
+    limits: fractals.getLimits({
+      center: state.getIn(['viewpoint', 'center']),
+      scale: state.getIn(['viewpoint', 'scale']),
+      W: state.getIn(['viewpoint', 'dimensions', 'width']),
+      H: state.getIn(['viewpoint', 'dimensions', 'height']),
+    }),
     numColors: state.get('numColors'),
     viewpoint: state.get('viewpoint'),
   }),

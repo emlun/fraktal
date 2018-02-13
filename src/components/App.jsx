@@ -38,15 +38,6 @@ class App extends React.Component {
     }
   }
 
-  getLimits() {
-    return fractals.getLimits({
-      center: this.props.state.getIn(['viewpoint', 'center']),
-      scale: this.props.state.getIn(['viewpoint', 'scale']),
-      W: this.props.state.getIn(['viewpoint', 'dimensions', 'width']),
-      H: this.props.state.getIn(['viewpoint', 'dimensions', 'height']),
-    });
-  }
-
   render() {
     return <div styleName="wrapper">
       <div styleName="main">
@@ -62,7 +53,6 @@ class App extends React.Component {
           fractalParametersControls={
             fractals.getFractal(this.props.state.get('fractal')).ParameterControls
           }
-          limits={ this.getLimits() }
         />
       </div>
 
