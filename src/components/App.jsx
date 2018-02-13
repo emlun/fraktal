@@ -12,12 +12,12 @@ import GithubCorner from 'components/GithubCorner';
 import './App.css';
 
 
-function computeCommitRef() {
+function computeTreeRef() {
   if (VERSION.includes('-g')) {
     const [, commit] = VERSION.split('-g');
-    return `commit/${commit}`;
+    return commit;
   } else {
-    return `tree/${VERSION}`;
+    return VERSION;
   }
 }
 
@@ -75,7 +75,7 @@ class App extends React.Component {
         <div styleName="middle">
           { PROJECT_NAME }
           { ' ' }
-          <a href={ `https://github.com/emlun/fraktal/${computeCommitRef()}` }>
+          <a href={ `https://github.com/emlun/fraktal/tree/${computeTreeRef()}` }>
             { VERSION }
           </a>
         </div>
