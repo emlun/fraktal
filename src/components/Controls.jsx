@@ -233,6 +233,7 @@ export default ReactRedux.connect(
   state => ({
     fractal: state.get('fractal'),
     fractalParameters: state.get('fractalParameters'),
+    fractalParametersControls: fractals.getFractal(state.get('fractal')).ParameterControls,
     gradient: state.getIn(['colors', 'gradient']),
     insideColor: state.getIn(['colors', 'inside']),
     limits: fractals.getLimits({

@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
-import * as fractals from 'fractals/common';
 import AppState from 'data/AppState';
 
 import Canvas from 'components/Canvas';
@@ -49,11 +48,7 @@ class App extends React.Component {
           state={ this.props.state }
           update={ this.update }
         />
-        <Controls
-          fractalParametersControls={
-            fractals.getFractal(this.props.state.get('fractal')).ParameterControls
-          }
-        />
+        <Controls/>
       </div>
 
       <footer styleName="footer">
