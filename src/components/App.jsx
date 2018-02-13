@@ -12,6 +12,16 @@ import GithubCorner from 'components/GithubCorner';
 import './App.css';
 
 
+function computeCommitRef() {
+  if (VERSION.includes('-g')) {
+    const [, commit] = VERSION.split('-g');
+    return `commit/${commit}`;
+  } else {
+    return `tree/${VERSION}`;
+  }
+}
+
+
 class App extends React.Component {
 
   constructor(props) {
@@ -63,7 +73,11 @@ class App extends React.Component {
           </a>
         </div>
         <div styleName="middle">
-          { `${PROJECT_NAME} ${VERSION}` }
+          { PROJECT_NAME }
+          { ' ' }
+          <a href={ `https://github.com/emlun/fraktal/${computeCommitRef()}` }>
+            { VERSION }
+          </a>
         </div>
         <div/>
       </footer>
