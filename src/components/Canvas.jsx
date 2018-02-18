@@ -6,6 +6,7 @@ import _ from 'underscore';
 
 import * as fractals from 'fractals/common';
 import { debug } from 'logging';
+import { computeNumberAt } from 'util/view';
 
 import * as viewpointActions from 'actions/viewpoint';
 import * as workerActions from 'actions/worker';
@@ -15,13 +16,19 @@ import Viewpoint from 'data/Viewpoint';
 import ProgressBar from 'components/ProgressBar';
 
 
-function renderPixels(imageData, matrix, palette, insideColor = [0, 0, 0]) { // eslint-disable-line max-params, max-statements
+function renderPixels( // eslint-disable-line max-params, max-statements
+    imageData,
+    matrix,
+    palette,
+    insideColor = [0, 0, 0],
+    offset = { x: 0, y: 0 }
+) {
   const W = imageData.width;
   const H = imageData.height;
 
   for (let x = 0; x < W; x += 1) {
     for (let y = 0; y < H; y += 1) {
-      const iterations = (matrix[x] || [])[y] || 0;
+      const iterations = (matrix[x - offset.x] || [])[y - offset.y] || 0;
 
       if (iterations > 0) {
         imageData.data[(y * W * 4) + (x * 4)] = palette.getIn([0, iterations], 255);
@@ -45,7 +52,17 @@ class Canvas extends React.Component {
 
   constructor(props) {
     super(props);
-    this.onClick = this.onClick.bind(this);
+
+    this.state = {
+      lastComputedViewpoint: props.viewpoint,
+      mousePos: null,
+      savedOffset: null,
+      scrollStartPos: null,
+    };
+
+    this.onMouseDown = this.onMouseDown.bind(this);
+    this.onMouseMove = this.onMouseMove.bind(this);
+    this.onMouseUp = this.onMouseUp.bind(this);
     this.onWheel = this.onWheel.bind(this);
     this.updateCanvas = this.updateCanvas.bind(this);
   }
@@ -54,26 +71,87 @@ class Canvas extends React.Component {
     this.renderPixels();
   }
 
-  componentDidUpdate(prevProps) {
+  componentWillReceiveProps(newProps) {
+    if (newProps.matrix !== this.props.matrix) {
+      this.setState({
+        lastComputedViewpoint: newProps.viewpoint,
+        savedOffset: null,
+      });
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
     if (prevProps.colors !== this.props.colors
       || prevProps.matrix !== this.props.matrix
+      || prevState.mousePos !== this.state.mousePos
+      || prevState.scrollStartPos !== this.state.scrollStartPos
     ) {
       this.renderPixels();
     }
   }
 
+  getScrollOffset() {
+    if (this.state.scrollStartPos && this.state.mousePos) {
+      return {
+        x: this.state.mousePos.x - this.state.scrollStartPos.x,
+        y: this.state.mousePos.y - this.state.scrollStartPos.y,
+      };
+    } else {
+      return { x: 0, y: 0 };
+    }
+  }
+
+  getRenderOffset() {
+    const savedOffset = this.state.savedOffset || { x: 0, y: 0 };
+    const scrollOffset = this.getScrollOffset();
+    return {
+      x: savedOffset.x + scrollOffset.x,
+      y: savedOffset.y + scrollOffset.y,
+    };
+  }
+
   updateCanvas(canvas) {
     if (canvas && canvas !== this.canvas) {
       this.canvas = canvas;
-      this.canvas.addEventListener('mouseup', this.onClick);
+      this.canvas.addEventListener('mousedown', this.onMouseDown);
+      this.canvas.addEventListener('mousemove', this.onMouseMove);
+      this.canvas.addEventListener('mouseup', this.onMouseUp);
       this.canvas.addEventListener('wheel', this.onWheel);
     }
     this.renderPixels();
   }
 
-  onClick(event) {
-    debug('onClick', event, event.offsetX, event.offsetY);
-    this.props.onCenterView(event.offsetX, event.offsetY);
+  onMouseDown(event) {
+    const pos = { x: event.offsetX, y: event.offsetY };
+    this.setState({
+      scrollStartPos: pos,
+      mousePos: pos,
+    });
+  }
+
+  onMouseMove(event) {
+    if (this.state.scrollStartPos) {
+      this.setState({ mousePos: { x: event.offsetX, y: event.offsetY } });
+    }
+  }
+
+  onMouseUp(event) {
+    const offset = this.getRenderOffset();
+
+    const viewpoint = this.state.lastComputedViewpoint; // eslint-disable-line react/no-access-state-in-setstate
+    const center = computeNumberAt({
+      center: viewpoint.get('center'),
+      dimensions: viewpoint.get('dimensions'),
+      scale: viewpoint.get('scale'),
+      x: (viewpoint.getIn(['dimensions', 'width']) / 2) - offset.x,
+      y: (viewpoint.getIn(['dimensions', 'height']) / 2) - offset.y,
+    });
+    this.props.onSetCenter(center);
+
+    this.setState({
+      scrollStartPos: null,
+      savedOffset: offset,
+    });
   }
 
   onWheel(event) {
@@ -109,7 +187,8 @@ class Canvas extends React.Component {
             ),
             this.props.matrix,
             Immutable.fromJS(palette.toJS()),
-            this.props.colors.get('inside').toJS()
+            this.props.colors.get('inside').toJS(),
+            this.getRenderOffset()
           );
 
           ctx.putImageData(imageData, 0, 0);
@@ -129,13 +208,13 @@ class Canvas extends React.Component {
     return <div>
       <canvas
         ref={ this.updateCanvas }
-        height={ this.props.viewpoint.getIn(['dimensions', 'height']) }
-        width={ this.props.viewpoint.getIn(['dimensions', 'width']) }
+        height={ this.state.lastComputedViewpoint.getIn(['dimensions', 'height']) }
+        width={ this.state.lastComputedViewpoint.getIn(['dimensions', 'width']) }
       />
       <ProgressBar
         max={ 1 }
         value={ this.props.computeProgress }
-        width={ `${this.props.viewpoint.getIn(['dimensions', 'width'])}px` }
+        width={ `${this.state.lastComputedViewpoint.getIn(['dimensions', 'width'])}px` }
       />
     </div>;
   }
@@ -148,7 +227,7 @@ Canvas.propTypes = {
   numColors: PropTypes.number.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
-  onCenterView: PropTypes.func.isRequired,
+  onSetCenter: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };
@@ -163,7 +242,7 @@ class CanvasContainer extends React.Component {
     };
     this.computing = false;
 
-    this.computeMatrix = _.throttle(this.computeMatrix.bind(this), 500);
+    this.computeMatrix = this.computeMatrix.bind(this);
   }
 
   componentDidMount() {
@@ -189,27 +268,25 @@ class CanvasContainer extends React.Component {
 
   computeMatrix() {
     debug('About to compute matrix...');
-    if (this.computing === false) {
-      this.computing = true;
+    this.computing = true;
 
-      if (this.worker) {
-        this.worker.terminate();
-      }
-
-      this.worker = new Worker('worker.js');
-      this.worker.onmessage = this.onWorkerMessage.bind(this);
-      this.worker.postMessage({
-        type: 'compute-matrix',
-        data: {
-          center: this.props.viewpoint.get('center'),
-          dimensions: this.props.viewpoint.get('dimensions').toJS(),
-          fractal: this.props.fractal,
-          fractalParameters: this.props.fractalParameters.toJS(),
-          iterationLimit: this.props.numColors - 1,
-          scale: this.props.viewpoint.get('scale'),
-        },
-      });
+    if (this.worker) {
+      this.worker.terminate();
     }
+
+    this.worker = new Worker('worker.js');
+    this.worker.onmessage = this.onWorkerMessage.bind(this);
+    this.worker.postMessage({
+      type: 'compute-matrix',
+      data: {
+        center: this.props.viewpoint.get('center'),
+        dimensions: this.props.viewpoint.get('dimensions').toJS(),
+        fractal: this.props.fractal,
+        fractalParameters: this.props.fractalParameters.toJS(),
+        iterationLimit: this.props.numColors - 1,
+        scale: this.props.viewpoint.get('scale'),
+      },
+    });
   }
 
   onWorkerMessage(message) {
@@ -237,7 +314,7 @@ class CanvasContainer extends React.Component {
       computeProgress={ this.state.computeProgress }
       matrix={ this.props.matrix }
       numColors={ this.props.numColors }
-      onCenterView={ this.props.onCenterView }
+      onSetCenter={ this.props.onSetCenter }
       onZoomIn={ this.props.onZoomIn }
       onZoomOut={ this.props.onZoomOut }
       viewpoint={ this.props.viewpoint }
@@ -253,8 +330,8 @@ CanvasContainer.propTypes = {
   numColors: PropTypes.number.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
-  onCenterView: PropTypes.func.isRequired,
   onComputationCompleted: PropTypes.func.isRequired,
+  onSetCenter: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
 };
@@ -269,7 +346,7 @@ export default ReactRedux.connect(
     viewpoint: state.get('viewpoint'),
   }),
   {
-    onCenterView: viewpointActions.centerView,
+    onSetCenter: viewpointActions.setCenter,
     onComputationCompleted: workerActions.computationCompleted,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,
