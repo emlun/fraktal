@@ -136,22 +136,29 @@ class Canvas extends React.Component {
   }
 
   onMouseUp(event) {
-    const offset = this.getRenderOffset();
+    const scrollOffset = this.getScrollOffset();
 
-    const viewpoint = this.state.lastComputedViewpoint; // eslint-disable-line react/no-access-state-in-setstate
-    const center = computeNumberAt({
-      center: viewpoint.get('center'),
-      dimensions: viewpoint.get('dimensions'),
-      scale: viewpoint.get('scale'),
-      x: (viewpoint.getIn(['dimensions', 'width']) / 2) - offset.x,
-      y: (viewpoint.getIn(['dimensions', 'height']) / 2) - offset.y,
-    });
-    this.props.onSetCenter(center);
+    if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= this.props.panTriggerThreshold) {
+      const offset = this.getRenderOffset();
 
-    this.setState({
-      scrollStartPos: null,
-      savedOffset: offset,
-    });
+      const viewpoint = this.state.lastComputedViewpoint; // eslint-disable-line react/no-access-state-in-setstate
+      const center = computeNumberAt({
+        center: viewpoint.get('center'),
+        dimensions: viewpoint.get('dimensions'),
+        scale: viewpoint.get('scale'),
+        x: (viewpoint.getIn(['dimensions', 'width']) / 2) - offset.x,
+        y: (viewpoint.getIn(['dimensions', 'height']) / 2) - offset.y,
+      });
+
+      this.props.onSetCenter(center);
+
+      this.setState({
+        scrollStartPos: null,
+        savedOffset: offset,
+      });
+    } else {
+      this.setState({ scrollStartPos: null });
+    }
   }
 
   onWheel(event) {
@@ -225,6 +232,7 @@ Canvas.propTypes = {
   computeProgress: PropTypes.number.isRequired,
   matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
   numColors: PropTypes.number.isRequired,
+  panTriggerThreshold: PropTypes.number.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
   onSetCenter: PropTypes.func.isRequired,
@@ -317,6 +325,7 @@ class CanvasContainer extends React.Component {
       onSetCenter={ this.props.onSetCenter }
       onZoomIn={ this.props.onZoomIn }
       onZoomOut={ this.props.onZoomOut }
+      panTriggerThreshold={ 10 }
       viewpoint={ this.props.viewpoint }
     />;
   }
