@@ -15,6 +15,8 @@ import Viewpoint from 'data/Viewpoint';
 
 import ComplexInput from 'components/ComplexInput';
 
+import './Controls.css';
+
 
 function onSubmit(event) {
   if (event && event.preventDefault) {
@@ -118,8 +120,17 @@ function Controls({
         <p>
           { 'Gradient:' }
         </p>
-        { gradient.map((pivot, index) =>
-          <div key={ pivot.get('id') }>
+        { gradient.map((pivot, index) => {
+          const colorHex = `#${
+            pivot.get('color')
+              .map(d => sprintf('%02x', d))
+              .join('')
+          }`;
+
+          return <div
+            key={ pivot.get('id') }
+            styleName="Gradient-Row"
+          >
             <input
               max={ numColors - 1 }
               min={ 0 }
@@ -132,13 +143,7 @@ function Controls({
             <input
               onChange={ ({ target: { value } }) => onSetPivotColor(index, value) }
               type="color"
-              value={
-                `#${
-                  pivot.get('color')
-                    .map(d => sprintf('%02x', d))
-                    .join('')
-                }`
-              }
+              value={ colorHex }
             />
             <button
               onClick={ () => onAddGradientPivot(index) }
@@ -152,8 +157,8 @@ function Controls({
             >
               { '-' }
             </button>
-          </div>
-        ) }
+          </div>;
+        }) }
 
         <p>
           { 'Color inside set: ' }

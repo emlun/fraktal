@@ -31,6 +31,9 @@ function rootReducer(state = new AppState(), action) {
     case actions.SET_NUM_COLORS:
       return state.set('numColors', action.numColors);
 
+    case actions.TOGGLE_SIDEBAR:
+      return state.setIn(['sidebar', 'expanded'], !state.getIn(['sidebar', 'expanded'], false));
+
     default:
       return state;
   }

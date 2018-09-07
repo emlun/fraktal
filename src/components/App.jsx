@@ -1,7 +1,12 @@
 import React from 'react';
+import * as ReactRedux from 'react-redux';
+import PropTypes from 'prop-types';
+
+import * as actions from 'actions/index';
 
 import Canvas from 'components/Canvas';
 import Controls from 'components/Controls';
+import Sidebar from 'components/Sidebar';
 import GithubCorner from 'components/GithubCorner';
 
 import './App.css';
@@ -17,7 +22,10 @@ function computeTreeRef() {
 }
 
 
-export default function App() {
+function App({
+  sidebarExpanded,
+  onToggleSidebar,
+}) {
   return <div styleName="wrapper">
     <div styleName="main">
       <GithubCorner
@@ -25,7 +33,13 @@ export default function App() {
         repo="emlun/fraktal"
       />
       <Canvas/>
-      <Controls/>
+      <Sidebar
+        expanded={ sidebarExpanded }
+        onToggle={ onToggleSidebar }
+        title="Settings"
+      >
+        <Controls/>
+      </Sidebar>
     </div>
 
     <footer styleName="footer">
@@ -45,3 +59,16 @@ export default function App() {
     </footer>
   </div>;
 }
+App.propTypes = {
+  sidebarExpanded: PropTypes.bool.isRequired,
+  onToggleSidebar: PropTypes.func.isRequired,
+};
+
+export default ReactRedux.connect(
+  state => ({
+    sidebarExpanded: state.getIn(['sidebar', 'expanded'], false),
+  }),
+  {
+    onToggleSidebar: actions.toggleSidebar,
+  }
+)(App);
