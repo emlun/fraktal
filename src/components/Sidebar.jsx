@@ -14,20 +14,17 @@ export default function Sidebar({
   return <div
     styleName={ `Sidebar ${expanded ? ' expanded' : ''}` }
   >
-
-    <div styleName="Title">
-      <button
-        onClick={ onToggle }
-        styleName="toggle"
-        type="button"
-      >
-        <span styleName="toggle-icon"/>
-        { expanded && <span styleName="toggle-text">
-          { title }
-        </span> }
-        { expanded && <span styleName="toggle-icon"/> }
-      </button>
-    </div>
+    <button
+      onClick={ onToggle }
+      styleName="toggle"
+      type="button"
+    >
+      <span styleName="toggle-icon"/>
+      { expanded && <span styleName="toggle-text">
+        { title }
+      </span> }
+      { expanded && <span styleName="toggle-icon"/> }
+    </button>
     { expanded && <div styleName="Content">
       { children }
     </div> }
