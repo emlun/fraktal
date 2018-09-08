@@ -19,6 +19,6 @@ Controls
 
 The following is subject to change.
 
-- Mouse click: Center view
+- Mouse drag: Pan view
 - Mouse wheel up: Zoom in
 - Mouse wheel down: Zoom out
