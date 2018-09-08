@@ -11,23 +11,12 @@
 }
 
 .footer {
-  border-top: 1px solid #bbb;
+  border-top: 1px solid rgba(128, 128, 128, 0.5);
   color: #aaa;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
   font-family: 'DejaVu';
+  text-align: center;
   font-size: 10pt;
-  margin: 0 1em;
+  margin: 1em 0 0;
   padding: 1em 0;
   white-space: nowrap;
-}
-
-.footer > * {
-  flex-basis: 0;
-  flex-grow: 1;
-}
-
-.footer .middle {
-  text-align: center;
 }

@@ -39,24 +39,23 @@ function App({
         title="Settings"
       >
         <Controls/>
+
+        <footer styleName="footer">
+          <div>
+            { PROJECT_NAME }
+            { ' ' }
+            <a href={ `https://github.com/emlun/fraktal/tree/${computeTreeRef()}` }>
+              { VERSION }
+            </a>
+          </div>
+          <div>
+            <a href="https://emlun.se/">
+              { 'emlun.se' }
+            </a>
+          </div>
+        </footer>
       </Sidebar>
     </div>
-
-    <footer styleName="footer">
-      <div>
-        <a href="https://emlun.se/">
-          { 'emlun.se' }
-        </a>
-      </div>
-      <div styleName="middle">
-        { PROJECT_NAME }
-        { ' ' }
-        <a href={ `https://github.com/emlun/fraktal/tree/${computeTreeRef()}` }>
-          { VERSION }
-        </a>
-      </div>
-      <div/>
-    </footer>
   </div>;
 }
 App.propTypes = {
