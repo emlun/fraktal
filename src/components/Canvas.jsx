@@ -31,19 +31,21 @@ function renderPixels( // eslint-disable-line max-params, max-statements
   for (let x = 0; x < W; x += 1) {
     for (let y = 0; y < H; y += 1) {
       const iterations = (matrix[x - offset.x] || [])[y - offset.y] || 0;
+      const X = x * 4;
+      const Y = y * W * 4;
 
       if (iterations > 0) {
-        imageData.data[(y * W * 4) + (x * 4)] = palette.getIn([0, iterations], 255);
-        imageData.data[(y * W * 4) + (x * 4) + 1] = palette.getIn([1, iterations], 255);
-        imageData.data[(y * W * 4) + (x * 4) + 2] = palette.getIn([2, iterations], 255);
+        imageData.data[Y + X] = palette.getIn([0, iterations], 255);
+        imageData.data[Y + X + 1] = palette.getIn([1, iterations], 255);
+        imageData.data[Y + X + 2] = palette.getIn([2, iterations], 255);
       } else {
         [
-          imageData.data[(y * W * 4) + (x * 4)],
-          imageData.data[(y * W * 4) + (x * 4) + 1],
-          imageData.data[(y * W * 4) + (x * 4) + 2],
+          imageData.data[Y + X],
+          imageData.data[Y + X + 1],
+          imageData.data[Y + X + 2],
         ] = insideColor;
       }
-      imageData.data[(y * W * 4) + (x * 4) + 3] = 255;
+      imageData.data[Y + X + 3] = 255;
     }
   }
 
