@@ -1,10 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { AppContainer } from 'react-hot-loader';
 
-import App from 'components/App';
+import configureStore from 'configureStore';
+
+import Root from 'components/Root';
 
 import './index.css';
+
 
 function getRoot() {
   const root = document.getElementById('app');
@@ -19,11 +21,10 @@ function getRoot() {
 }
 
 const root = getRoot();
+const store = configureStore();
 
 ReactDOM.render(
-  <AppContainer>
-    <App/>
-  </AppContainer>,
+  <Root store={ store }/>,
   root
 );
 

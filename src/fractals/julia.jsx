@@ -3,35 +3,41 @@ import PropTypes from 'prop-types';
 import Immutable from 'immutable';
 import Complex from 'complex.js';
 
+import { contained } from './constants';
+
 import ComplexInput from 'components/ComplexInput';
 
 
 export const name = 'Julia set';
+const defaultEscapeAbs = 2;
 
 function step(z, c) {
   return z.mul(z).add(c);
 }
 
-function iterate(c, z, iterationLimit = 255, i = 0, escapeAbs = 2) {
-  const next = step(z, c);
-  if (next.abs() >= escapeAbs) {
-    return i;
-  } else if (i >= iterationLimit) {
-    return -1;
-  } else {
-    return iterate(c, next, iterationLimit, i + 1, escapeAbs);
-  }
-}
-
-export function makeCheck({ c }) {
-  return function(z, iterationLimit) {
-    return iterate(c, z, iterationLimit);
+function iterate(c, iterationLimit, escapeAbs = defaultEscapeAbs) {
+  return function recur(z, i = 0) {
+    const next = step(z, c);
+    if (next.abs() >= escapeAbs) {
+      return i;
+    } else if (i >= iterationLimit) {
+      return contained;
+    } else {
+      return recur(next, i + 1);
+    }
   };
 }
 
-export const defaultParameters = Immutable.Map({
+export function makeCheck({ c }) {
+  return function check(z, iterationLimit) {
+    return iterate(c, iterationLimit)(z);
+  };
+}
+
+export const Parameters = Immutable.Record({
   c: new Complex(0.285, 0.01),
 });
+export const defaultParameters = new Parameters();
 
 export function ParameterControls({
   parameters = defaultParameters,
@@ -39,11 +45,15 @@ export function ParameterControls({
 }) {
   return <div>
     <p>
-      c: <ComplexInput value={ parameters.get('c') } onChange={ newValue => onChange(parameters.set('c', newValue)) } />
+      { 'c: ' }
+      <ComplexInput
+        onChange={ newValue => onChange(parameters.set('c', newValue)) }
+        value={ parameters.get('c') }
+      />
     </p>
   </div>;
 }
 ParameterControls.propTypes = {
-  parameters: PropTypes.object.isRequired,
+  parameters: PropTypes.instanceOf(Parameters).isRequired,
   onChange: PropTypes.func.isRequired,
 };

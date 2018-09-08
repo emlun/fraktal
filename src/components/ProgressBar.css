@@ -1,0 +1,21 @@
+.ProgressBar {
+  align-items: stretch;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.bar {
+  flex-shrink: 1;
+  min-height: 1em;
+  transition: flex-grow 0.1s;
+}
+
+.filled {
+  background-color: #008000;
+}
+
+.empty {
+  background-color: transparent;
+}

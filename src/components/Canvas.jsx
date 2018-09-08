@@ -1,69 +1,308 @@
 import React from 'react';
-import Complex from 'complex.js';
+import * as ReactRedux from 'react-redux';
+import PropTypes from 'prop-types';
 import Immutable from 'immutable';
 import _ from 'underscore';
-import { sprintf } from 'sprintf-js';
 
 import * as fractals from 'fractals/common';
-import { computePalette, defaultGradientBottom, defaultGradientTop, getLimits } from 'fractals/common';
 import { debug } from 'logging';
+import { computeNumberAt } from 'util/view';
 
-import ComplexInput from 'components/ComplexInput';
+import * as viewpointActions from 'actions/viewpoint';
+import * as workerActions from 'actions/worker';
+import Colors from 'data/Colors';
+import Viewpoint from 'data/Viewpoint';
+
+import ProgressBar from 'components/ProgressBar';
+
+import './Canvas.css';
 
 
-function renderPixels(imageData, matrix, palette) {
-  debug('renderPixels', imageData, matrix, palette.toJS());
-
+function renderPixels( // eslint-disable-line max-params, max-statements
+    imageData,
+    matrix,
+    palette,
+    insideColor = [0, 0, 0],
+    offset = { x: 0, y: 0 }
+) {
   const W = imageData.width;
   const H = imageData.height;
 
   for (let x = 0; x < W; x += 1) {
     for (let y = 0; y < H; y += 1) {
-      const iterations = (matrix[x] || [])[y] || 0;
+      const iterations = (matrix[x - offset.x] || [])[y - offset.y] || 0;
+      const X = x * 4;
+      const Y = y * W * 4;
 
       if (iterations > 0) {
-        imageData.data[y * W * 4 + x * 4] = palette.getIn([0, iterations], 255);
-        imageData.data[y * W * 4 + x * 4 + 1] = palette.getIn([1, iterations], 255);
-        imageData.data[y * W * 4 + x * 4 + 2] = palette.getIn([2, iterations], 255);
+        imageData.data[Y + X] = palette.getIn([0, iterations], 255);
+        imageData.data[Y + X + 1] = palette.getIn([1, iterations], 255);
+        imageData.data[Y + X + 2] = palette.getIn([2, iterations], 255);
       } else {
-        imageData.data[y * W * 4 + x * 4] = 0;
-        imageData.data[y * W * 4 + x * 4 + 1] = 0;
-        imageData.data[y * W * 4 + x * 4 + 2] = 0;
+        [
+          imageData.data[Y + X],
+          imageData.data[Y + X + 1],
+          imageData.data[Y + X + 2],
+        ] = insideColor;
       }
-      imageData.data[y * W * 4 + x * 4 + 3] = 255;
+      imageData.data[Y + X + 3] = 255;
     }
   }
 
   return imageData;
 }
 
+class Canvas extends React.Component {
 
-export default class Canvas extends React.Component {
+  constructor(props) { // eslint-disable-line max-statements
+    super(props);
+
+    this.state = {
+      lastComputedViewpoint: props.viewpoint,
+      mousePos: null,
+      savedOffset: null,
+      scrollStartPos: null,
+    };
+
+    this.getDimensions = this.getDimensions.bind(this);
+    this.onMouseDown = this.onMouseDown.bind(this);
+    this.onMouseMove = this.onMouseMove.bind(this);
+    this.onMouseUp = this.onMouseUp.bind(this);
+    this.onWheel = this.onWheel.bind(this);
+    this.onWindowResize = this.onWindowResize.bind(this);
+    this.updateCanvas = this.updateCanvas.bind(this);
+    this.updateCanvasSize = this.updateCanvasSize.bind(this);
+    this.updateWrapper = this.updateWrapper.bind(this);
+  }
+
+  componentDidMount() {
+    this.renderPixels();
+  }
+
+  componentWillReceiveProps(newProps) {
+    if (newProps.matrix !== this.props.matrix) {
+      this.setState({
+        lastComputedViewpoint: newProps.viewpoint,
+        savedOffset: null,
+      });
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.colors !== this.props.colors
+      || prevProps.matrix !== this.props.matrix
+      || prevState.mousePos !== this.state.mousePos
+      || prevState.scrollStartPos !== this.state.scrollStartPos
+    ) {
+      this.renderPixels();
+    }
+  }
+
+  getScrollOffset() {
+    if (this.state.scrollStartPos && this.state.mousePos) {
+      return {
+        x: this.state.mousePos.x - this.state.scrollStartPos.x,
+        y: this.state.mousePos.y - this.state.scrollStartPos.y,
+      };
+    } else {
+      return { x: 0, y: 0 };
+    }
+  }
+
+  getRenderOffset() {
+    const savedOffset = this.state.savedOffset || { x: 0, y: 0 };
+    const scrollOffset = this.getScrollOffset();
+    return {
+      x: savedOffset.x + scrollOffset.x,
+      y: savedOffset.y + scrollOffset.y,
+    };
+  }
+
+  getDimensions() {
+    return {
+      height: this.canvas.height,
+      width: this.canvas.width,
+    };
+  }
+
+  updateCanvas(canvas) {
+    if (canvas && canvas !== this.canvas) {
+      this.canvas = canvas;
+      this.updateCanvasSize();
+    }
+    this.renderPixels();
+  }
+
+  updateCanvasSize() {
+    debug('updateCanvasSize', this.canvas.height, this.canvas.width, this.canvas.offsetHeight, this.canvas.offsetWidth);
+    this.canvas.height = this.canvas.offsetHeight;
+    this.canvas.width = this.canvas.offsetWidth;
+    this.props.onChangeSize({
+      height: this.canvas.height,
+      width: this.canvas.width,
+    });
+  }
+
+  updateWrapper(wrapper) {
+    if (wrapper && wrapper !== this.wrapper) {
+      this.wrapper = wrapper;
+      this.wrapper.addEventListener('mousedown', this.onMouseDown);
+      this.wrapper.addEventListener('mousemove', this.onMouseMove);
+      this.wrapper.addEventListener('mouseup', this.onMouseUp);
+      this.wrapper.addEventListener('wheel', this.onWheel);
+      window.addEventListener('resize', this.onWindowResize);
+    }
+  }
+
+  onMouseDown(event) {
+    const pos = { x: event.offsetX, y: event.offsetY };
+    this.setState({
+      scrollStartPos: pos,
+      mousePos: pos,
+    });
+  }
+
+  onMouseMove(event) {
+    if (this.state.scrollStartPos) {
+      this.setState({ mousePos: { x: event.offsetX, y: event.offsetY } });
+    }
+  }
+
+  onMouseUp(event) {
+    const scrollOffset = this.getScrollOffset();
+
+    if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= this.props.panTriggerThreshold) {
+      const offset = this.getRenderOffset();
+
+      const dimensions = this.getDimensions();
+
+      const viewpoint = this.state.lastComputedViewpoint; // eslint-disable-line react/no-access-state-in-setstate
+      const center = computeNumberAt({
+        center: viewpoint.get('center'),
+        dimensions,
+        scale: viewpoint.get('scale'),
+        x: (dimensions.width / 2) - offset.x,
+        y: (dimensions.height / 2) - offset.y,
+      });
+
+      this.props.onSetCenter(center);
+
+      this.setState({
+        scrollStartPos: null,
+        savedOffset: offset,
+      });
+    } else {
+      this.setState({ scrollStartPos: null });
+    }
+  }
+
+  onWheel(event) {
+    debug('onWheel', event);
+    if (event.deltaY > 0) {
+      this.props.onZoomOut();
+    } else {
+      this.props.onZoomIn();
+    }
+  }
+
+  onWindowResize(event) {
+    debug('onWindowResize', event, this.canvas.offsetWidth, this.canvas.offsetHeight);
+    this.updateCanvasSize();
+  }
+
+  renderPixels() {
+    if (this.canvas) {
+      if (this.rendering) {
+        this.renderPixelsQueued = true;
+      } else {
+        this.rendering = true;
+
+        const palette = fractals.computePalette(
+          this.props.colors.get('gradient'),
+          this.props.numColors
+        );
+
+        const ctx = this.canvas.getContext('2d');
+
+        _.defer(() => {
+          const imageData = renderPixels(
+            ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height),
+            this.props.matrix,
+            Immutable.fromJS(palette.toJS()),
+            this.props.colors.get('inside').toJS(),
+            this.getRenderOffset()
+          );
+
+          ctx.putImageData(imageData, 0, 0);
+          ctx.save();
+          this.rendering = false;
+
+          if (this.renderPixelsQueued) {
+            this.renderPixelsQueued = false;
+            this.renderPixels();
+          }
+        });
+      }
+    }
+  }
+
+  render() {
+    return <div
+      ref={ this.updateWrapper }
+      styleName="Canvas-Container"
+    >
+      <canvas
+        ref={ this.updateCanvas }
+        styleName="main-canvas"
+      />
+      <ProgressBar
+        max={ 1 }
+        value={ this.props.computeProgress }
+      />
+    </div>;
+  }
+
+}
+Canvas.propTypes = {
+  colors: PropTypes.instanceOf(Colors).isRequired,
+  computeProgress: PropTypes.number.isRequired,
+  matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
+  numColors: PropTypes.number.isRequired,
+  panTriggerThreshold: PropTypes.number.isRequired,
+  viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
+
+  onChangeSize: PropTypes.func.isRequired,
+  onSetCenter: PropTypes.func.isRequired,
+  onZoomIn: PropTypes.func.isRequired,
+  onZoomOut: PropTypes.func.isRequired,
+};
+
+class CanvasContainer extends React.Component {
 
   constructor(props) {
     super(props);
+
     this.state = {
-      state: Immutable.Map({
-        center: new Complex(-0.5, 0),
-        dimensions: Immutable.fromJS({
-          height: 200,
-          width: 300,
-        }),
-        fractal: 'mandelbrot',
-        fractalParameters: Immutable.Map(),
-        gradient: Immutable.fromJS([
-          defaultGradientBottom,
-          defaultGradientTop,
-        ]),
-        matrix: [[]],
-        scale: 3,
-        status: undefined,
-      }),
+      computeProgress: 0,
     };
+    this.computing = false;
+
+    this.computeMatrix = this.computeMatrix.bind(this);
   }
 
   componentDidMount() {
     this.computeMatrix();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.fractal !== this.props.fractal
+      || prevProps.fractalParameters !== this.props.fractalParameters
+      || prevProps.numColors !== this.props.numColors
+      || prevProps.viewpoint !== this.props.viewpoint
+    ) {
+      this.computeMatrix();
+    }
   }
 
   componentWillUnmount() {
@@ -72,92 +311,9 @@ export default class Canvas extends React.Component {
     }
   }
 
-  onWorkerMessage(message) {
-    debug('Message from worker:', message);
-    switch (message.data.type) {
-      case 'compute-matrix':
-        this.onComputationCompleted(message.data.data);
-        break;
-
-      default:
-        debug('Ignoring message from worker:', message);
-    }
-  }
-
-  onComputationCompleted(matrix) {
-    debug('Saving matrix', matrix);
-
-    this.update(state =>
-      state.set('status', undefined)
-        .set('matrix', matrix)
-    );
-  }
-
-  get(path, defaultValue) {
-    return this.state.state.getIn(path, defaultValue);
-  }
-
-  set(path, value) {
-    return this.setState(state => ({
-      state: state.state.setIn(path, value),
-    }));
-  }
-
-  update(pathOrUpdater, updater) {
-    if (updater) {
-      return this.setState(state => ({
-        state: state.state.updateIn(pathOrUpdater, updater),
-      }));
-    } else {
-      return this.setState(state => ({
-        state: pathOrUpdater(state.state),
-      }));
-    }
-  }
-
-  getLimits() {
-    return getLimits({
-      center: this.get(['center']),
-      scale: this.get(['scale']),
-      W: this.get(['dimensions', 'width']),
-      H: this.get(['dimensions', 'height']),
-    });
-  }
-
-  updateCanvas(canvas) {
-    if (canvas && canvas !== this.canvas) {
-      this.canvas = canvas;
-      this.canvas.addEventListener('mouseup', this.onClick.bind(this));
-      this.canvas.addEventListener('wheel', this.onWheel.bind(this));
-    }
-    this.renderPixels();
-  }
-
-  renderPixels() {
-    if (this.canvas) {
-      debug('About to render pixels...');
-
-      const palette = computePalette(this.get(['gradient']));
-
-      const ctx = this.canvas.getContext('2d');
-
-      _.defer(() => {
-        const imageData = renderPixels(
-          ctx.getImageData(0, 0, this.get(['dimensions', 'width']), this.get(['dimensions', 'height'])),
-          this.get(['matrix']),
-          Immutable.fromJS(palette.toJS())
-        );
-
-        ctx.putImageData(imageData, 0, 0);
-        ctx.save();
-      });
-    }
-  }
-
   computeMatrix() {
-    this.set(['status'], 'Computing...');
-
     debug('About to compute matrix...');
+    this.computing = true;
 
     if (this.worker) {
       this.worker.terminate();
@@ -168,177 +324,80 @@ export default class Canvas extends React.Component {
     this.worker.postMessage({
       type: 'compute-matrix',
       data: {
-        center: this.get(['center']),
-        dimensions: this.get(['dimensions']).toJS(),
-        fractal: this.get(['fractal']),
-        fractalParameters: this.get(['fractalParameters']).toJS(),
-        iterationLimit: this.get(['gradient']).last().get('value'),
-        scale: this.get(['scale']),
+        center: this.props.viewpoint.get('center'),
+        dimensions: this.props.viewpoint.get('dimensions').toJS(),
+        fractal: this.props.fractal,
+        fractalParameters: this.props.fractalParameters.toJS(),
+        iterationLimit: this.props.numColors - 1,
+        scale: this.props.viewpoint.get('scale'),
       },
     });
   }
 
-  onClick(event) {
-    debug('onClick', event, event.offsetX, event.offsetY);
-    this.update(state =>
-      state.set(
-        'center',
-        state.get('center').add(
-          new Complex(
-            (event.offsetX / state.getIn(['dimensions', 'width']) - 0.5) * state.get('scale'),
-            (0.5 - event.offsetY / state.getIn(['dimensions', 'height'])) * state.get('scale') * (state.getIn(['dimensions', 'height']) / state.getIn(['dimensions', 'width']))
-          )
-        )
-      )
-    );
-  }
+  onWorkerMessage(message) {
+    switch (message.data.type) {
+      case 'compute-matrix':
+        this.setState({ computeProgress: 0 });
+        this.props.onComputationCompleted(message.data.data);
+        this.computing = false;
+        break;
 
-  onSubmit(event) {
-    if (event && event.preventDefault) {
-      event.preventDefault();
-    }
-    this.computeMatrix();
-  }
+      case 'compute-matrix-progress':
+        if (this.computing) {
+          this.setState({ computeProgress: message.data.data.completed / message.data.data.total });
+        }
+        break;
 
-  onWheel(event) {
-    debug('onWheel', event);
-    if (event.deltaY > 0) {
-      this.zoomOut();
-    } else {
-      this.zoomIn();
-    }
-  }
-
-  zoomIn() {
-    this.update(['scale'], scale => scale / 2);
-  }
-
-  zoomOut() {
-    this.update(['scale'], scale => scale * 2);
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (_.any(['center', 'fractal', 'scale'], name => prevState.state.get(name) !== this.get([name]))) {
-      this.computeMatrix();
-    }
-    if (_.any(['matrix', 'gradient'], name => prevState.state.get(name) !== this.get([name]))) {
-      this.renderPixels();
+      default:
+        debug('Ignoring message from worker:', message);
     }
   }
 
   render() {
-    debug('render', this.state);
-
-    const FractalParameters = fractals.getFractal(this.get(['fractal'])).ParameterControls;
-
-    return <div>
-      <canvas
-        width={ this.get(['dimensions', 'width']) }
-        height={ this.get(['dimensions', 'height']) }
-        ref={ this.updateCanvas.bind(this) }
-      />
-
-      <form onSubmit={ this.onSubmit.bind(this) }>
-        <p> Center: <ComplexInput value={ this.get(['center']) } onChange={ newCenter => this.set(['center'], newCenter) }/> </p>
-        <p> Scale: { this.get(['scale']) } </p>
-        <p>
-          <button type="button" onClick={ this.zoomOut.bind(this) }> Zoom out </button>
-          <button type="button" onClick={ this.zoomIn.bind(this) }> Zoom in </button>
-        </p>
-        <p> Top left: { this.getLimits().topLeft.toString() } </p>
-        <p> Bottom right: { this.getLimits().btmRight.toString() } </p>
-        <button type="submit" > Render </button>
-        <p>
-          Width: <input type="number"
-            onChange={
-              ({ target: { value } }) => this.set(['dimensions', 'width'], parseInt(value || 0))
-            }
-            value={ this.get(['dimensions', 'width']) }
-          />
-        </p>
-        <p>
-          Height: <input type="number"
-            onChange={
-              ({ target: { value } }) => this.set(['dimensions', 'height'], parseInt(value || 0))
-            }
-            value={ this.get(['dimensions', 'height']) }
-          />
-        </p>
-        <p> { this.get(['status']) } </p>
-
-        <div>
-          Gradient:
-          { this.get(['gradient']).map((pivot, index) =>
-            <div key={ index }>
-              <input type="number"
-                value={ pivot.get('value') }
-                onChange={
-                  ({ target: { value } }) =>
-                    this.set(['gradient', index, 'value'], Math.max(0, Math.min(parseInt(value), this.get(['gradient', index + 1, 'value'], Infinity))))
-                }
-              />
-              <input type="color"
-                value={ '#' + pivot.get('color').map(d => sprintf('%02x', d)).join('') }
-                onChange={
-                  ({ target: { value } }) =>
-                    this.set(['gradient', index, 'color'],
-                      Immutable.List([
-                        parseInt(value.substring(1, 3), 16),
-                        parseInt(value.substring(3, 5), 16),
-                        parseInt(value.substring(5, 7), 16),
-                      ])
-                    )
-                }
-              />
-              <button type="button"
-                onClick={ () => {
-                  const next = this.get(['gradient', index + 1]);
-                  if (next) {
-                    const middle = pivot
-                      .set('value', Math.round((pivot.get('value') + next.get('value')) / 2.0))
-                      .set('color', pivot.get('color').zipWith((c1, c2) => Math.round((c1 + c2) / 2.0), next.get('color')))
-                    ;
-
-                    this.update(['gradient'], gradient => gradient.insert(index + 1, middle));
-                  } else {
-                    this.update(['gradient'], gradient => gradient.insert(index, gradient.get(index)));
-                  }
-                } }
-              > + </button>
-              <button type="button"
-                onClick={ () => this.update(['gradient'], gradient => gradient.delete(index)) }
-              > - </button>
-            </div>
-          ) }
-
-          <div>
-            Fractal:
-            { ' ' }
-            <select
-              value={ this.get(['fractal']) }
-              onChange={ ({ target: { value } }) =>
-                this.update(state =>
-                  state
-                    .set('fractal', value)
-                    .set('fractalParameters', fractals.getFractal(value).defaultParameters)
-                )
-              }
-            >
-              { ['julia', 'mandelbrot'].map(fractal =>
-                <option key={ fractal } value={ fractal }>{ fractals.getFractal(fractal).name }</option>
-              ) }
-            </select>
-          </div>
-
-          <FractalParameters
-            parameters={ this.get(['fractalParameters']) }
-            onChange={ parameters => this.set(['fractalParameters'], parameters) }
-          />
-        </div>
-
-      </form>
-
-    </div>;
+    return <Canvas
+      colors={ this.props.colors }
+      computeProgress={ this.state.computeProgress }
+      matrix={ this.props.matrix }
+      numColors={ this.props.numColors }
+      onChangeSize={ this.props.onCanvasChangeSize }
+      onSetCenter={ this.props.onSetCenter }
+      onZoomIn={ this.props.onZoomIn }
+      onZoomOut={ this.props.onZoomOut }
+      panTriggerThreshold={ 10 }
+      viewpoint={ this.props.viewpoint }
+    />;
   }
 
 }
+CanvasContainer.propTypes = {
+  colors: PropTypes.instanceOf(Colors).isRequired,
+  fractal: PropTypes.string.isRequired,
+  fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
+  matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
+  numColors: PropTypes.number.isRequired,
+  viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
+
+  onCanvasChangeSize: PropTypes.func.isRequired,
+  onComputationCompleted: PropTypes.func.isRequired,
+  onSetCenter: PropTypes.func.isRequired,
+  onZoomIn: PropTypes.func.isRequired,
+  onZoomOut: PropTypes.func.isRequired,
+};
+
+export default ReactRedux.connect(
+  state => ({
+    colors: state.get('colors'),
+    fractal: state.get('fractal'),
+    fractalParameters: state.get('fractalParameters'),
+    matrix: state.getIn(['worker', 'matrix']),
+    numColors: state.get('numColors'),
+    viewpoint: state.get('viewpoint'),
+  }),
+  {
+    onSetCenter: viewpointActions.setCenter,
+    onCanvasChangeSize: viewpointActions.setDimensions,
+    onComputationCompleted: workerActions.computationCompleted,
+    onZoomIn: viewpointActions.zoomIn,
+    onZoomOut: viewpointActions.zoomOut,
+  }
+)(CanvasContainer);

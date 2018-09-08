@@ -1,16 +1,25 @@
+/* eslint-env worker */
 import { computeMatrix } from 'fractals/common';
 import { debug } from 'logging';
 
 onmessage = function(e) {
-  debug('Got message:', e, e.data);
   switch (e.data.type) {
-    case 'compute-matrix':
-      const result = computeMatrix(e.data.data);
+    case 'compute-matrix': {
+      const result = computeMatrix({
+        ...e.data.data,
+        notifyProgress: (completed, total) =>
+          postMessage({
+            data: { completed, total },
+            type: 'compute-matrix-progress',
+          })
+        ,
+      });
       postMessage({
-        type: 'compute-matrix',
         data: result,
+        type: 'compute-matrix',
       });
       break;
+    }
 
     default:
       debug('Ignoring message:', e);

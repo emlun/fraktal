@@ -17,6 +17,7 @@ const BUILD_DIR = path.resolve(__dirname, 'build');
 const context = SRC_DIR;
 
 const devConfig = {
+  bail: false,
   devtool: 'eval',
 
   devServer: {
