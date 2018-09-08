@@ -20,14 +20,14 @@ export default function Sidebar({
       type="button"
     >
       <span styleName="toggle-icon"/>
-      { expanded && <span styleName="toggle-text">
+      <span styleName="toggle-text">
         { title }
-      </span> }
-      { expanded && <span styleName="toggle-icon"/> }
+      </span>
+      <span styleName="toggle-icon"/>
     </button>
-    { expanded && <div styleName="Content">
+    <div styleName="Content">
       { children }
-    </div> }
+    </div>
   </div>;
 }
 Sidebar.propTypes = {

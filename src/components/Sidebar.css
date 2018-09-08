@@ -6,8 +6,14 @@
   flex-wrap: nowrap;
   left: 0;
   max-width: 20em;
+  opacity: 0;
   position: absolute;
   top: 0;
+  transition: opacity 0.2s;
+}
+
+.Sidebar:hover, .Sidebar.expanded {
+  opacity: 1;
 }
 
 .toggle {
@@ -24,21 +30,33 @@
 
 .toggle-icon {
   flex-grow: 0;
+  transform: rotate(90deg);
+  transition: transform 0.2s;
 }
 
-.toggle-icon::before {
+.expanded .toggle-icon {
+  transform: rotate(90deg) scaleX(-1);
+}
+
+.toggle-icon:first-child::before {
+  content: "»"
+}
+.toggle-icon:last-child::after {
   content: "»"
 }
 
-.expanded .toggle-icon::before {
-  content: "«";
+.Content {
+  max-height: 0;
+  overflow: hidden;
+  padding: 0 1em;
+  transition: max-height 0.2s;
 }
 
-.Content {
+.expanded .Content {
   border-bottom-right-radius: 0.5em;
   border-bottom: 1px solid rgba(128, 128, 128, 0.5);
   border-right: 1px solid rgba(128, 128, 128, 0.5);
-  padding: 0 1em;
+  max-height: 40em;
 }
 
 .toggle {
