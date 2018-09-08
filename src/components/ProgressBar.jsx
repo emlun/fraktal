@@ -6,10 +6,8 @@ import './ProgressBar.css';
 export default function ProgressBar({
   max = 100,
   value,
-  width,
 }) {
   return <div
-    style={ { width } }
     styleName="ProgressBar"
   >
     <div
@@ -27,5 +25,4 @@ ProgressBar.propTypes = {
   value: PropTypes.number.isRequired,
 
   max: PropTypes.number,
-  width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };

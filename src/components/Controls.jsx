@@ -80,26 +80,6 @@ function Controls({
       <p>
         { `Bottom right: ${limits.btmRight.toString()}` }
       </p>
-      <p>
-        { 'Width: ' }
-        <input
-          onChange={
-            ({ target: { value } }) => onSetWidth(parseInt(value || 0, 10))
-          }
-          type="number"
-          value={ viewpoint.getIn(['dimensions', 'width']) }
-        />
-      </p>
-      <p>
-        { 'Height: ' }
-        <input
-          onChange={
-            ({ target: { value } }) => onSetHeight(parseInt(value || 0, 10))
-          }
-          type="number"
-          value={ viewpoint.getIn(['dimensions', 'height']) }
-        />
-      </p>
 
       <div>
         <p>
@@ -244,8 +224,6 @@ export default ReactRedux.connect(
     limits: fractals.getLimits({
       center: state.getIn(['viewpoint', 'center']),
       scale: state.getIn(['viewpoint', 'scale']),
-      W: state.getIn(['viewpoint', 'dimensions', 'width']),
-      H: state.getIn(['viewpoint', 'dimensions', 'height']),
     }),
     numColors: state.get('numColors'),
     viewpoint: state.get('viewpoint'),

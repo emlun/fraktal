@@ -15,6 +15,8 @@ import Viewpoint from 'data/Viewpoint';
 
 import ProgressBar from 'components/ProgressBar';
 
+import './Canvas.css';
+
 
 function renderPixels( // eslint-disable-line max-params, max-statements
     imageData,
@@ -50,7 +52,7 @@ function renderPixels( // eslint-disable-line max-params, max-statements
 
 class Canvas extends React.Component {
 
-  constructor(props) {
+  constructor(props) { // eslint-disable-line max-statements
     super(props);
 
     this.state = {
@@ -60,11 +62,15 @@ class Canvas extends React.Component {
       scrollStartPos: null,
     };
 
+    this.getDimensions = this.getDimensions.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onWheel = this.onWheel.bind(this);
+    this.onWindowResize = this.onWindowResize.bind(this);
     this.updateCanvas = this.updateCanvas.bind(this);
+    this.updateCanvasSize = this.updateCanvasSize.bind(this);
+    this.updateWrapper = this.updateWrapper.bind(this);
   }
 
   componentDidMount() {
@@ -110,15 +116,40 @@ class Canvas extends React.Component {
     };
   }
 
+  getDimensions() {
+    return {
+      height: this.canvas.height,
+      width: this.canvas.width,
+    };
+  }
+
   updateCanvas(canvas) {
     if (canvas && canvas !== this.canvas) {
       this.canvas = canvas;
-      this.canvas.addEventListener('mousedown', this.onMouseDown);
-      this.canvas.addEventListener('mousemove', this.onMouseMove);
-      this.canvas.addEventListener('mouseup', this.onMouseUp);
-      this.canvas.addEventListener('wheel', this.onWheel);
+      this.updateCanvasSize();
     }
     this.renderPixels();
+  }
+
+  updateCanvasSize() {
+    debug('updateCanvasSize', this.canvas.height, this.canvas.width, this.canvas.offsetHeight, this.canvas.offsetWidth);
+    this.canvas.height = this.canvas.offsetHeight;
+    this.canvas.width = this.canvas.offsetWidth;
+    this.props.onChangeSize({
+      height: this.canvas.height,
+      width: this.canvas.width,
+    });
+  }
+
+  updateWrapper(wrapper) {
+    if (wrapper && wrapper !== this.wrapper) {
+      this.wrapper = wrapper;
+      this.wrapper.addEventListener('mousedown', this.onMouseDown);
+      this.wrapper.addEventListener('mousemove', this.onMouseMove);
+      this.wrapper.addEventListener('mouseup', this.onMouseUp);
+      this.wrapper.addEventListener('wheel', this.onWheel);
+      window.addEventListener('resize', this.onWindowResize);
+    }
   }
 
   onMouseDown(event) {
@@ -141,13 +172,15 @@ class Canvas extends React.Component {
     if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= this.props.panTriggerThreshold) {
       const offset = this.getRenderOffset();
 
+      const dimensions = this.getDimensions();
+
       const viewpoint = this.state.lastComputedViewpoint; // eslint-disable-line react/no-access-state-in-setstate
       const center = computeNumberAt({
         center: viewpoint.get('center'),
-        dimensions: viewpoint.get('dimensions'),
+        dimensions,
         scale: viewpoint.get('scale'),
-        x: (viewpoint.getIn(['dimensions', 'width']) / 2) - offset.x,
-        y: (viewpoint.getIn(['dimensions', 'height']) / 2) - offset.y,
+        x: (dimensions.width / 2) - offset.x,
+        y: (dimensions.height / 2) - offset.y,
       });
 
       this.props.onSetCenter(center);
@@ -170,6 +203,11 @@ class Canvas extends React.Component {
     }
   }
 
+  onWindowResize(event) {
+    debug('onWindowResize', event, this.canvas.offsetWidth, this.canvas.offsetHeight);
+    this.updateCanvasSize();
+  }
+
   renderPixels() {
     if (this.canvas) {
       if (this.rendering) {
@@ -186,12 +224,7 @@ class Canvas extends React.Component {
 
         _.defer(() => {
           const imageData = renderPixels(
-            ctx.getImageData(
-              0,
-              0,
-              this.props.viewpoint.getIn(['dimensions', 'width']),
-              this.props.viewpoint.getIn(['dimensions', 'height'])
-            ),
+            ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height),
             this.props.matrix,
             Immutable.fromJS(palette.toJS()),
             this.props.colors.get('inside').toJS(),
@@ -212,16 +245,17 @@ class Canvas extends React.Component {
   }
 
   render() {
-    return <div>
+    return <div
+      ref={ this.updateWrapper }
+      styleName="Canvas-Container"
+    >
       <canvas
         ref={ this.updateCanvas }
-        height={ this.state.lastComputedViewpoint.getIn(['dimensions', 'height']) }
-        width={ this.state.lastComputedViewpoint.getIn(['dimensions', 'width']) }
+        styleName="main-canvas"
       />
       <ProgressBar
         max={ 1 }
         value={ this.props.computeProgress }
-        width={ `${this.state.lastComputedViewpoint.getIn(['dimensions', 'width'])}px` }
       />
     </div>;
   }
@@ -235,6 +269,7 @@ Canvas.propTypes = {
   panTriggerThreshold: PropTypes.number.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
+  onChangeSize: PropTypes.func.isRequired,
   onSetCenter: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,
@@ -246,11 +281,13 @@ class CanvasContainer extends React.Component {
     super(props);
 
     this.state = {
+      canvasDimensions: { height: 100, width: 100 },
       computeProgress: 0,
     };
     this.computing = false;
 
     this.computeMatrix = this.computeMatrix.bind(this);
+    this.onCanvasChangeSize = this.onCanvasChangeSize.bind(this);
   }
 
   componentDidMount() {
@@ -274,7 +311,7 @@ class CanvasContainer extends React.Component {
     }
   }
 
-  computeMatrix() {
+  computeMatrix(state) {
     debug('About to compute matrix...');
     this.computing = true;
 
@@ -288,12 +325,23 @@ class CanvasContainer extends React.Component {
       type: 'compute-matrix',
       data: {
         center: this.props.viewpoint.get('center'),
-        dimensions: this.props.viewpoint.get('dimensions').toJS(),
+        dimensions: state ? state.canvasDimensions : this.state.canvasDimensions,
         fractal: this.props.fractal,
         fractalParameters: this.props.fractalParameters.toJS(),
         iterationLimit: this.props.numColors - 1,
         scale: this.props.viewpoint.get('scale'),
       },
+    });
+  }
+
+  onCanvasChangeSize(dimensions) {
+    debug('onCanvasChangeSize', dimensions);
+    this.setState(state => {
+      const stateUpdate = { canvasDimensions: dimensions };
+      if (dimensions.width !== state.canvasDimensions.width || dimensions.height !== state.canvasDimensions.height) {
+        this.computeMatrix({ ...state, ...stateUpdate });
+      }
+      return stateUpdate;
     });
   }
 
@@ -322,6 +370,7 @@ class CanvasContainer extends React.Component {
       computeProgress={ this.state.computeProgress }
       matrix={ this.props.matrix }
       numColors={ this.props.numColors }
+      onChangeSize={ this.onCanvasChangeSize }
       onSetCenter={ this.props.onSetCenter }
       onZoomIn={ this.props.onZoomIn }
       onZoomOut={ this.props.onZoomOut }
