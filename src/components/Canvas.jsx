@@ -283,13 +283,11 @@ class CanvasContainer extends React.Component {
     super(props);
 
     this.state = {
-      canvasDimensions: { height: 100, width: 100 },
       computeProgress: 0,
     };
     this.computing = false;
 
     this.computeMatrix = this.computeMatrix.bind(this);
-    this.onCanvasChangeSize = this.onCanvasChangeSize.bind(this);
   }
 
   componentDidMount() {
@@ -313,7 +311,7 @@ class CanvasContainer extends React.Component {
     }
   }
 
-  computeMatrix(state) {
+  computeMatrix() {
     debug('About to compute matrix...');
     this.computing = true;
 
@@ -327,23 +325,12 @@ class CanvasContainer extends React.Component {
       type: 'compute-matrix',
       data: {
         center: this.props.viewpoint.get('center'),
-        dimensions: state ? state.canvasDimensions : this.state.canvasDimensions,
+        dimensions: this.props.viewpoint.get('dimensions').toJS(),
         fractal: this.props.fractal,
         fractalParameters: this.props.fractalParameters.toJS(),
         iterationLimit: this.props.numColors - 1,
         scale: this.props.viewpoint.get('scale'),
       },
-    });
-  }
-
-  onCanvasChangeSize(dimensions) {
-    debug('onCanvasChangeSize', dimensions);
-    this.setState(state => {
-      const stateUpdate = { canvasDimensions: dimensions };
-      if (dimensions.width !== state.canvasDimensions.width || dimensions.height !== state.canvasDimensions.height) {
-        this.computeMatrix({ ...state, ...stateUpdate });
-      }
-      return stateUpdate;
     });
   }
 
@@ -372,7 +359,7 @@ class CanvasContainer extends React.Component {
       computeProgress={ this.state.computeProgress }
       matrix={ this.props.matrix }
       numColors={ this.props.numColors }
-      onChangeSize={ this.onCanvasChangeSize }
+      onChangeSize={ this.props.onCanvasChangeSize }
       onSetCenter={ this.props.onSetCenter }
       onZoomIn={ this.props.onZoomIn }
       onZoomOut={ this.props.onZoomOut }
@@ -390,6 +377,7 @@ CanvasContainer.propTypes = {
   numColors: PropTypes.number.isRequired,
   viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
+  onCanvasChangeSize: PropTypes.func.isRequired,
   onComputationCompleted: PropTypes.func.isRequired,
   onSetCenter: PropTypes.func.isRequired,
   onZoomIn: PropTypes.func.isRequired,
@@ -407,6 +395,7 @@ export default ReactRedux.connect(
   }),
   {
     onSetCenter: viewpointActions.setCenter,
+    onCanvasChangeSize: viewpointActions.setDimensions,
     onComputationCompleted: workerActions.computationCompleted,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,
