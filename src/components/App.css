@@ -6,10 +6,6 @@
   position: absolute;
 }
 
-.main {
-  flex-grow: 1;
-}
-
 .footer {
   border-top: 1px solid rgba(128, 128, 128, 0.5);
   color: #aaa;

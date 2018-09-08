@@ -27,35 +27,33 @@ function App({
   onToggleSidebar,
 }) {
   return <div styleName="wrapper">
-    <div styleName="main">
-      <GithubCorner
-        fillColor="#626262"
-        repo="emlun/fraktal"
-      />
-      <Canvas/>
-      <Sidebar
-        expanded={ sidebarExpanded }
-        onToggle={ onToggleSidebar }
-        title="Settings"
-      >
-        <Controls/>
+    <GithubCorner
+      fillColor="#626262"
+      repo="emlun/fraktal"
+    />
+    <Canvas/>
+    <Sidebar
+      expanded={ sidebarExpanded }
+      onToggle={ onToggleSidebar }
+      title="Settings"
+    >
+      <Controls/>
 
-        <footer styleName="footer">
-          <div>
-            { PROJECT_NAME }
-            { ' ' }
-            <a href={ `https://github.com/emlun/fraktal/tree/${computeTreeRef()}` }>
-              { VERSION }
-            </a>
-          </div>
-          <div>
-            <a href="https://emlun.se/">
-              { 'emlun.se' }
-            </a>
-          </div>
-        </footer>
-      </Sidebar>
-    </div>
+      <footer styleName="footer">
+        <div>
+          { PROJECT_NAME }
+          { ' ' }
+          <a href={ `https://github.com/emlun/fraktal/tree/${computeTreeRef()}` }>
+            { VERSION }
+          </a>
+        </div>
+        <div>
+          <a href="https://emlun.se/">
+            { 'emlun.se' }
+          </a>
+        </div>
+      </footer>
+    </Sidebar>
   </div>;
 }
 App.propTypes = {
