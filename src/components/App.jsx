@@ -30,6 +30,7 @@ function App({
     <GithubCorner
       fillColor="#626262"
       repo="emlun/fraktal"
+      visible={ sidebarExpanded }
     />
     <Canvas/>
     <Sidebar

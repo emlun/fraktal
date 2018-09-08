@@ -1,12 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import './GithubCorner.css';
+
+
 // Source: http://tholman.com/github-corners/
 export default function GithubCorner({
   fillColor = '#151513',
   repo,
+  visible = true,
 }) {
-  return <div>
+  return <div styleName={ `GithubCorner ${visible ? '' : 'hidden'}` }>
     <a
       aria-label="View source on Github"
       className="github-corner"
@@ -42,4 +46,5 @@ GithubCorner.propTypes = {
   repo: PropTypes.string.isRequired,
 
   fillColor: PropTypes.string,
+  visible: PropTypes.bool,
 };
