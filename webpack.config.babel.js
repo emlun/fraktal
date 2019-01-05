@@ -47,6 +47,7 @@ module.exports = {
   output: {
     path: BUILD_DIR,
     filename: '[name].js',
+    globalObject: 'this', // Workaround for a bug in Webpack https://github.com/webpack/webpack/issues/6642
   },
 
   resolve: {
