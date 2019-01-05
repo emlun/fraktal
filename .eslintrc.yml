@@ -99,6 +99,7 @@ rules:
       beforeSelfClosing: never
       closingSlash: never
   react/jsx-wrap-multilines: off
+  react/no-deprecated: warn
   react/no-did-mount-set-state: [error, disallow-in-func]
   react/no-did-update-set-state: [error, disallow-in-func]
   react/no-multi-comp: off
