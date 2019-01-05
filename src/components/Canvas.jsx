@@ -58,9 +58,8 @@ class Canvas extends React.Component {
     super(props);
 
     this.state = {
-      lastComputedViewpoint: props.viewpoint,
       mousePos: null,
-      savedOffset: null,
+      scrollStartMatrix: null,
       scrollStartPos: null,
     };
 
@@ -79,15 +78,6 @@ class Canvas extends React.Component {
     this.renderPixels();
   }
 
-  componentWillReceiveProps(newProps) {
-    if (newProps.matrix !== this.props.matrix) {
-      this.setState({
-        lastComputedViewpoint: newProps.viewpoint,
-        savedOffset: null,
-      });
-    }
-  }
-
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.colors !== this.props.colors
       || prevProps.matrix !== this.props.matrix
@@ -99,7 +89,7 @@ class Canvas extends React.Component {
   }
 
   getScrollOffset() {
-    if (this.state.scrollStartPos && this.state.mousePos) {
+    if (this.isKeepingScrollOffset() || (this.state.scrollStartPos && this.state.mousePos)) {
       return {
         x: this.state.mousePos.x - this.state.scrollStartPos.x,
         y: this.state.mousePos.y - this.state.scrollStartPos.y,
@@ -109,13 +99,12 @@ class Canvas extends React.Component {
     }
   }
 
+  isKeepingScrollOffset() {
+    return this.state.scrollStartMatrix === this.props.matrix;
+  }
+
   getRenderOffset() {
-    const savedOffset = this.state.savedOffset || { x: 0, y: 0 };
-    const scrollOffset = this.getScrollOffset();
-    return {
-      x: savedOffset.x + scrollOffset.x,
-      y: savedOffset.y + scrollOffset.y,
-    };
+    return this.getScrollOffset();
   }
 
   getDimensions() {
@@ -173,10 +162,9 @@ class Canvas extends React.Component {
 
     if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= this.props.panTriggerThreshold) {
       const offset = this.getRenderOffset();
-
       const dimensions = this.getDimensions();
+      const { viewpoint } = this.props;
 
-      const viewpoint = this.state.lastComputedViewpoint; // eslint-disable-line react/no-access-state-in-setstate
       const center = computeNumberAt({
         center: viewpoint.get('center'),
         dimensions,
@@ -185,15 +173,11 @@ class Canvas extends React.Component {
         y: (dimensions.height / 2) - offset.y,
       });
 
+      this.setState({ scrollStartMatrix: this.props.matrix });
       this.props.onSetCenter(center);
-
-      this.setState({
-        scrollStartPos: null,
-        savedOffset: offset,
-      });
-    } else {
-      this.setState({ scrollStartPos: null });
     }
+
+    this.setState({ scrollStartPos: null });
   }
 
   onWheel(event) {
