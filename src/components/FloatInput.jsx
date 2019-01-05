@@ -8,26 +8,23 @@ export default class FloatInput extends React.Component {
     super(props);
 
     this.state = {
-      value: props.value,
+      volatileValue: false,
     };
 
     this.onChange = this.onChange.bind(this);
   }
 
-  componentWillReceiveProps(newProps) {
-    if (newProps.value !== this.props.value) {
-      this.setState({ value: newProps.value });
-    }
-  }
-
   shouldComponentUpdate(nextProps, nextState) {
-    return nextState.value !== this.state.value;
+    return nextState.volatileValue !== this.state.volatileValue
+      || (nextState.volatileValue === false && nextProps.value !== this.props.value);
   }
 
   update(newValue) {
-    this.setState({ value: newValue });
     const parsed = parseFloat(newValue);
-    if (!_.isNaN(parsed)) {
+    if (_.isNaN(parsed)) {
+      this.setState({ volatileValue: newValue });
+    } else {
+      this.setState({ volatileValue: false });
       this.props.onChange(parsed);
     }
   }
@@ -41,7 +38,7 @@ export default class FloatInput extends React.Component {
       onChange={ this.onChange }
       placeholder={ this.props.placeholder }
       type="text"
-      value={ this.state.value }
+      value={ this.state.volatileValue === false ? this.props.value : this.state.volatileValue }
     />;
   }
 
