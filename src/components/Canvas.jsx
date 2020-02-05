@@ -15,7 +15,7 @@ import Viewpoint from 'data/Viewpoint';
 
 import ProgressBar from 'components/ProgressBar';
 
-import './Canvas.css';
+import styles from './Canvas.css';
 
 
 function renderPixels( // eslint-disable-line max-params, max-statements
@@ -233,11 +233,11 @@ class Canvas extends React.Component {
   render() {
     return <div
       ref={ this.updateWrapper }
-      styleName="Canvas-Container"
+      className={ styles['Canvas-Container'] }
     >
       <canvas
         ref={ this.updateCanvas }
-        styleName="main-canvas"
+        className={ styles['main-canvas'] }
       />
       <ProgressBar
         max={ 1 }

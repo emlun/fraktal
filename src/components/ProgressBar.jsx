@@ -1,22 +1,22 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import './ProgressBar.css';
+import styles from './ProgressBar.css';
 
 export default function ProgressBar({
   max = 100,
   value,
 }) {
   return <div
-    styleName="ProgressBar"
+    className={ styles.ProgressBar }
   >
     <div
+      className={ `${styles.bar} ${styles.filled}` }
       style={ { flexGrow: value } }
-      styleName="bar filled"
     />
     <div
+      className={ `${styles.bar} ${styles.empty}` }
       style={ { flexGrow: max - value } }
-      styleName="bar empty"
     />
   </div>;
 }

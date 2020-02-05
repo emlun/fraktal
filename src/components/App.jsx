@@ -9,7 +9,7 @@ import Controls from 'components/Controls';
 import Sidebar from 'components/Sidebar';
 import GithubCorner from 'components/GithubCorner';
 
-import './App.css';
+import styles from './App.css';
 
 
 function computeTreeRef() {
@@ -26,7 +26,7 @@ function App({
   sidebarExpanded,
   onToggleSidebar,
 }) {
-  return <div styleName="wrapper">
+  return <div className={ styles.wrapper }>
     <GithubCorner
       fillColor="#626262"
       repo="emlun/fraktal"
@@ -40,7 +40,7 @@ function App({
     >
       <Controls/>
 
-      <footer styleName="footer">
+      <footer className={ styles.footer }>
         <div>
           { PROJECT_NAME }
           { ' ' }

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import './Sidebar.css';
+import styles from './Sidebar.css';
 
 
 export default function Sidebar({
@@ -12,20 +12,20 @@ export default function Sidebar({
   onToggle,
 }) {
   return <div
-    styleName={ `Sidebar ${expanded ? ' expanded' : ''}` }
+    className={ `${styles.Sidebar} ${expanded ? styles.expanded : ''}` }
   >
     <button
+      className={ styles.toggle }
       onClick={ onToggle }
-      styleName="toggle"
       type="button"
     >
-      <span styleName="toggle-icon"/>
-      <span styleName="toggle-text">
+      <span className={ styles['toggle-icon'] }/>
+      <span className={ styles['toggle-text'] }>
         { title }
       </span>
-      <span styleName="toggle-icon"/>
+      <span className={ styles['toggle-icon'] }/>
     </button>
-    <div styleName="Content">
+    <div className={ styles.Content }>
       { children }
     </div>
   </div>;

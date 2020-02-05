@@ -15,7 +15,7 @@ import Viewpoint from 'data/Viewpoint';
 
 import ComplexInput from 'components/ComplexInput';
 
-import './Controls.css';
+import styles from './Controls.css';
 
 
 function onSubmit(event) {
@@ -107,7 +107,7 @@ function Controls({
 
           return <div
             key={ pivot.get('id') }
-            styleName="Gradient-Row"
+            className={ styles['Gradient-Row'] }
           >
             <input
               max={ numColors - 1 }

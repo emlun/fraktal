@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <script>
+
+     window.onload = function() {
+       const canvas = document.getElementById("canvas");
+       const W = canvas.width;
+       const H = canvas.height;
+       console.log(canvas, W, H);
+
+       const offscreen = canvas.transferControlToOffscreen();
+       console.log(offscreen);
+
+       const ctx = offscreen.getContext("bitmaprenderer");
+       /* const ctx = canvas.getContext("bitmaprenderer"); */
+       console.log(ctx);
+
+       let imageData = new ImageData(W, H);
+
+       for (let x = 0; x < W; x += 1) {
+         const X = x * 4;
+         for (let y = 0; y < H; y += 1) {
+           const Y = y * W * 4;
+
+           imageData.data[Y + X] = ((x + y) * 3) % 256;
+           imageData.data[Y + X + 1] = ((x + y) * 2) % 256;
+           imageData.data[Y + X + 2] = (x + y) % 256;
+           imageData.data[Y + X + 3] = 255;
+         }
+       }
+
+       createImageBitmap(imageData)
+         .then(imageBitmap => {
+           console.log('render bitmap', imageData, imageBitmap, imageData.data);
+           ctx.transferFromImageBitmap(imageBitmap);
+           /* ctx.putImageData(imageData, 0, 0); */
+         })
+         .catch(e => {
+           console.log('Failed to render bitmap', e);
+         });
+     }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas" width="400" height="400">
+    </canvas>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import './GithubCorner.css';
+import styles from './GithubCorner.css';
 
 
 // Source: http://tholman.com/github-corners/
@@ -10,7 +10,7 @@ export default function GithubCorner({
   repo,
   visible = true,
 }) {
-  return <div styleName={ `GithubCorner ${visible ? '' : 'hidden'}` }>
+  return <div className={ `${styles.GithubCorner} ${visible ? '' : styles.hidden}` }>
     <a
       aria-label="View source on Github"
       className="github-corner"
