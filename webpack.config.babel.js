@@ -17,6 +17,7 @@ const BUILD_DIR = path.resolve(__dirname, 'build');
 const context = SRC_DIR;
 
 const devConfig = {
+  mode: 'development',
   bail: false,
   devtool: 'eval',
 
@@ -30,6 +31,7 @@ const devPlugins = [
 ];
 
 const prodConfig = {
+  mode: 'production',
   devtool: 'source-map',
 };
 
