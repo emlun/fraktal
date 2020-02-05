@@ -63,13 +63,13 @@ function Controls({
           onClick={ onZoomOut }
           type="button"
         >
-          { 'Zoom out' }
+          Zoom out
         </button>
         <button
           onClick={ onZoomIn }
           type="button"
         >
-          { 'Zoom in' }
+          Zoom in
         </button>
       </p>
       <p>
@@ -81,7 +81,7 @@ function Controls({
 
       <div>
         <p>
-          { 'Number of color values:' }
+          Number of color values:
         </p>
         <p>
           <input
@@ -96,7 +96,7 @@ function Controls({
         </p>
 
         <p>
-          { 'Gradient:' }
+          Gradient:
         </p>
         { gradient.map((pivot, index) => {
           const colorHex = `#${
@@ -127,13 +127,13 @@ function Controls({
               onClick={ () => onAddGradientPivot(index) }
               type="button"
             >
-              { '+' }
+              +
             </button>
             <button
               onClick={ () => onDeleteGradientPivot(index) }
               type="button"
             >
-              { '-' }
+              -
             </button>
           </div>;
         }) }

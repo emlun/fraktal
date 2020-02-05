@@ -54,6 +54,20 @@ function renderPixels( // eslint-disable-line max-params, max-statements
 
 class Canvas extends React.Component {
 
+  static propTypes = {
+    colors: PropTypes.instanceOf(Colors).isRequired,
+    computeProgress: PropTypes.number.isRequired,
+    matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
+    numColors: PropTypes.number.isRequired,
+    panTriggerThreshold: PropTypes.number.isRequired,
+    viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
+
+    onChangeSize: PropTypes.func.isRequired,
+    onSetCenter: PropTypes.func.isRequired,
+    onZoomIn: PropTypes.func.isRequired,
+    onZoomOut: PropTypes.func.isRequired,
+  };
+
   constructor(props) { // eslint-disable-line max-statements
     super(props);
 
@@ -247,19 +261,6 @@ class Canvas extends React.Component {
   }
 
 }
-Canvas.propTypes = {
-  colors: PropTypes.instanceOf(Colors).isRequired,
-  computeProgress: PropTypes.number.isRequired,
-  matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
-  numColors: PropTypes.number.isRequired,
-  panTriggerThreshold: PropTypes.number.isRequired,
-  viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
-
-  onChangeSize: PropTypes.func.isRequired,
-  onSetCenter: PropTypes.func.isRequired,
-  onZoomIn: PropTypes.func.isRequired,
-  onZoomOut: PropTypes.func.isRequired,
-};
 
 class CanvasContainer extends React.Component {
 

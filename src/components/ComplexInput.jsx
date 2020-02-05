@@ -20,7 +20,7 @@ export default function ComplexInput({
       placeholder="Im"
       value={ im }
     />
-    { 'i' }
+    i
   </span>;
 }
 ComplexInput.propTypes = {

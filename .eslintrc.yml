@@ -3,11 +3,7 @@ extends:
   - google
   - plugin:react/all
 
-parserOptions:
-  sourceType: module
-  ecmaFeatures:
-    jsx: true
-    experimentalObjectRestSpread: true
+parser: babel-eslint
 
 env:
   browser: true
@@ -87,6 +83,7 @@ rules:
   react/jsx-indent: [error, 2]
   react/jsx-max-depth: off
   react/jsx-no-bind: off
+  react/jsx-no-literals: off
   react/jsx-sort-props:
     - error
     - callbacksLast: false
@@ -122,4 +119,5 @@ rules:
       ignoreCase: true
       requiredFirst: true
       sortShapeProp: true
+  react/static-property-placement: off
   require-jsdoc: off

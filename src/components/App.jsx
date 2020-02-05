@@ -50,7 +50,7 @@ function App({
         </div>
         <div>
           <a href="https://emlun.se/">
-            { 'emlun.se' }
+            emlun.se
           </a>
         </div>
       </footer>
