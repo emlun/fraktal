@@ -5,7 +5,6 @@ import _ from 'underscore';
 
 import * as julia from 'fractals/julia';
 import * as mandelbrot from 'fractals/mandelbrot';
-import { debug } from 'logging';
 
 
 export const defaultGradientBottom = Immutable.fromJS({
@@ -66,36 +65,48 @@ export function getLimits({ center, scale, W, H }) {
   return { topLeft, btmRight };
 }
 
-export function computeMatrix({
+let x = 0;
+let W = 1;
+let H = 1;
+let center = false;
+let topLeft = false;
+let btmRight = false;
+let check = false;
+let iterationLimit = false;
+export let matrix = Immutable.List([]);
+
+export function setView({
   center: rawCenter,
-  dimensions: { width: W, height: H },
+  dimensions: { width, height },
   fractal,
   fractalParameters,
-  iterationLimit,
-  notifyProgress,
+  iterationLimit: il,
   scale,
 }) {
-  const center = new Complex(rawCenter);
-  const notify = _.throttle(notifyProgress, 100);
+  center = new Complex(rawCenter);
+  W = width;
+  H = height;
+  ({ topLeft, btmRight } = getLimits({ center, scale, W, H }));
+  check = getFractal(fractal).makeCheck(fractalParameters);
+  iterationLimit = il;
+  matrix = Array(W);
+}
 
-  debug('computeMatrix', W, H, center, scale, iterationLimit, fractal, fractalParameters);
-
-  const { topLeft, btmRight } = getLimits({ center, scale, W, H });
-  const check = getFractal(fractal).makeCheck(fractalParameters);
-
-  return Immutable.Range(0, W)
-    .toJS()
-    .map(x => {
-      notify(x, W);
-      return Immutable.Range(0, H)
-        .toJS()
-        .map(y => {
-          const c = new Complex(
-            ((btmRight.re - topLeft.re) * (x / W)) + topLeft.re,
-            ((btmRight.im - topLeft.im) * (y / H)) + topLeft.im
-          );
-
-          return check(c, iterationLimit);
-        });
-    });
+export function computeNextColumn() {
+  if (check) {
+    matrix[x] = Immutable.Range(0, H)
+      .toJS()
+      .map(y => {
+        const c = new Complex(
+          ((btmRight.re - topLeft.re) * (x / W)) + topLeft.re,
+          ((btmRight.im - topLeft.im) * (y / H)) + topLeft.im
+        );
+        return check(c, iterationLimit);
+      });
+    const prevx = x;
+    x = (x + 1) % W;
+    return prevx;
+  } else {
+    return false;
+  }
 }

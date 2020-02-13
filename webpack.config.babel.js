@@ -43,7 +43,6 @@ module.exports = {
 
   entry: {
     index: ['react-hot-loader/patch', path.resolve(SRC_DIR, 'index')],
-    worker: path.resolve(SRC_DIR, 'worker'),
   },
 
   output: {
