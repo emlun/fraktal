@@ -9,9 +9,13 @@ Try it here: https://emlun.se/fraktal/
 Usage
 ---
 
-    $ npm install
-    $ npm start
-    $ $BROWSER http://localhost:8080
+```
+$ wasm-pack build
+$ cd www
+$ npm install
+$ npm start
+$ $BROWSER http://localhost:8080
+```
 
 
 Controls
