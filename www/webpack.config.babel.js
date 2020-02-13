@@ -42,7 +42,7 @@ module.exports = {
   context,
 
   entry: {
-    index: ['react-hot-loader/patch', path.resolve(SRC_DIR, 'index')],
+    index: ['react-hot-loader/patch', path.resolve(SRC_DIR, 'bootstrap')],
   },
 
   output: {
@@ -55,6 +55,7 @@ module.exports = {
     extensions: [
       '.local.js', '.local.jsx',
       '.js', '.jsx',
+      '.wasm',
     ],
 
     modules: [
@@ -68,7 +69,7 @@ module.exports = {
       {
         test: /\.jsx?$/,
         enforce: 'pre',
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /fraktal\/pkg/],
         loader: 'eslint-loader',
       },
 
