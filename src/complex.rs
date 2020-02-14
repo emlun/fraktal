@@ -5,8 +5,8 @@ use std::ops::Sub;
 
 #[derive(Clone)]
 pub struct Complex<Num> {
-    re: Num,
-    im: Num,
+    pub re: Num,
+    pub im: Num,
 }
 
 impl<Num> Display for Complex<Num>
