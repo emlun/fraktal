@@ -16,35 +16,40 @@ import ProgressBar from 'components/ProgressBar';
 import styles from './Canvas.css';
 
 
-function renderColumn( // eslint-disable-line max-params, max-statements
+function renderColumns( // eslint-disable-line max-params, max-statements
     imageData,
-    column,
+    matrix,
+    xInit,
+    xWidth,
     palette,
     insideColor = [0, 0, 0],
 ) {
-  const x = 0;
-  const W = 1;
+  const W = xWidth;
   const H = imageData.height;
 
-  for (let y = 0; y < H; y += 1) {
-    const iterations = column[y] || 0;
-    const X = x * 4;
-    const Y = y * W * 4;
+  for (let x = 0; x < xWidth; x += 1) {
+    const column = matrix[(xInit + x) % matrix.length];
 
-    if (iterations > 0) {
-      imageData.data[Y + X] = palette.getIn([0, iterations], 255);
-      imageData.data[Y + X + 1] = palette.getIn([1, iterations], 255);
-      imageData.data[Y + X + 2] = palette.getIn([2, iterations], 255);
-    } else {
-      [
-        imageData.data[Y + X],
-        imageData.data[Y + X + 1],
-        imageData.data[Y + X + 2],
-      ] = insideColor;
+    for (let y = 0; y < H; y += 1) {
+      const iterations = column[y] || 0;
+      const X = x * 4;
+      const Y = y * W * 4;
+
+      if (iterations > 0) {
+        imageData.data[Y + X] = palette.getIn([0, iterations], 255);
+        imageData.data[Y + X + 1] = palette.getIn([1, iterations], 255);
+        imageData.data[Y + X + 2] = palette.getIn([2, iterations], 255);
+      } else {
+        [
+          imageData.data[Y + X],
+          imageData.data[Y + X + 1],
+          imageData.data[Y + X + 2],
+        ] = insideColor;
+      }
+      imageData.data[Y + X + 3] = 255;
     }
-    imageData.data[Y + X + 3] = 255;
-  }
 
+  }
   return imageData;
 }
 
@@ -87,10 +92,14 @@ class Canvas extends React.Component {
   }
 
   componentDidMount() {
+    const columnsAtATime = 20;
     const renderLoop = () => {
       const x = fractals.computeNextColumn();
+      for (let i = 1; i < columnsAtATime; i += 1) {
+        fractals.computeNextColumn();
+      }
       if (x !== false) {
-        this.drawPixels(x, fractals.matrix[x]);
+        this.drawPixels(x, columnsAtATime, fractals.matrix);
       }
       window.requestAnimationFrame(renderLoop);
     };
@@ -107,11 +116,13 @@ class Canvas extends React.Component {
     }
   }
 
-  drawPixels(x, column) {
-    if (this.ctx && column) {
-      const imageData = renderColumn(
-        this.ctx.getImageData(x, 0, 1, this.ctx.canvas.height),
-        column,
+  drawPixels(x, xWidth, matrix) {
+    if (this.ctx && matrix) {
+      const imageData = renderColumns(
+        this.ctx.getImageData(x, 0, xWidth, this.ctx.canvas.height),
+        matrix,
+        x,
+        xWidth,
         Immutable.fromJS(this.palette.toJS()),
         this.props.colors.get('inside').toJS()
       );
