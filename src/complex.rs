@@ -24,6 +24,21 @@ impl<Num> Complex<Num> {
     }
 }
 
+impl<Num> Complex<Num>
+where
+    Num: Add<Output = Num>,
+    Num: Sub<Output = Num>,
+    Num: Mul<Output = Num>,
+    Num: Clone,
+{
+    pub fn square(self) -> Self {
+        Complex {
+            re: self.re.clone() * self.re.clone() - self.im.clone() * self.im.clone(),
+            im: self.re.clone() * self.im.clone() + self.im * self.re,
+        }
+    }
+}
+
 impl<'a, Num> Complex<Num>
 where
     &'a Num: Mul<&'a Num, Output = Num>,
