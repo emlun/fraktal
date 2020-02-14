@@ -14,7 +14,7 @@ pub fn check(c_re: f64, c_im: f64, iteration_limit: u16, escape_abs: f64) -> Opt
             return Some(i);
         }
 
-        z = z.clone() * z + c.clone();
+        z = z.square() + &c;
         i += 1;
     }
 
