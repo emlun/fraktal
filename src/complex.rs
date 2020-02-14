@@ -63,6 +63,71 @@ where
     }
 }
 
+impl<'a, Num> Add<&'a Self> for Complex<Num>
+where
+    Num: Add<&'a Num, Output = Num>,
+{
+    type Output = Self;
+    fn add(self, rhs: &'a Self) -> Self::Output {
+        Complex {
+            re: self.re + &rhs.re,
+            im: self.im + &rhs.im,
+        }
+    }
+}
+
+impl<'a, Num> Add for &'a Complex<Num>
+where
+    &'a Num: Add<&'a Num, Output = Num>,
+{
+    type Output = Complex<Num>;
+    fn add(self, rhs: Self) -> Self::Output {
+        Complex {
+            re: &self.re + &rhs.re,
+            im: &self.im + &rhs.im,
+        }
+    }
+}
+
+impl<Num> Sub for Complex<Num>
+where
+    Num: Sub<Output = Num>,
+{
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Complex {
+            re: self.re - rhs.re,
+            im: self.im - rhs.im,
+        }
+    }
+}
+
+impl<'a, Num> Sub<&'a Self> for Complex<Num>
+where
+    Num: Sub<&'a Num, Output = Num>,
+{
+    type Output = Self;
+    fn sub(self, rhs: &'a Self) -> Self::Output {
+        Complex {
+            re: self.re - &rhs.re,
+            im: self.im - &rhs.im,
+        }
+    }
+}
+
+impl<'a, Num> Sub for &'a Complex<Num>
+where
+    &'a Num: Sub<&'a Num, Output = Num>,
+{
+    type Output = Complex<Num>;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Complex {
+            re: &self.re - &rhs.re,
+            im: &self.im - &rhs.im,
+        }
+    }
+}
+
 impl<Num> Mul for Complex<Num>
 where
     Num: Add<Output = Num>,
@@ -79,16 +144,61 @@ where
     }
 }
 
+impl<'a, Num> Mul<&'a Self> for Complex<Num>
+where
+    Num: Add<Output = Num>,
+    Num: Sub<Output = Num>,
+    Num: Mul<&'a Num, Output = Num>,
+    Num: Clone,
+{
+    type Output = Self;
+    fn mul(self, rhs: &'a Self) -> Self::Output {
+        Complex {
+            re: self.re.clone() * &rhs.re - self.im.clone() * &rhs.im,
+            im: self.re * &rhs.im + self.im * &rhs.re,
+        }
+    }
+}
+
+impl<'a, Num> Mul for &'a Complex<Num>
+where
+    Num: Add<Output = Num>,
+    Num: Sub<Output = Num>,
+    &'a Num: Mul<Output = Num>,
+{
+    type Output = Complex<Num>;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Complex {
+            re: &self.re * &rhs.re - &self.im * &rhs.im,
+            im: &self.re * &rhs.im + &self.im * &rhs.re,
+        }
+    }
+}
+
+impl<Num> Mul<Num> for Complex<Num>
+where
+    Num: Mul<Output = Num>,
+    Num: Clone,
+{
+    type Output = Self;
+    fn mul(self, rhs: Num) -> Self::Output {
+        Complex {
+            re: self.re * rhs.clone(),
+            im: self.im * rhs,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test_add {
     use super::Complex;
 
     #[test]
     fn zero() -> Result<(), ()> {
-        let sum = Complex::<f64>::from((0, 0)) + (0, 0).into();
+        let sum = Complex::<f64>::from((0, 0)) + Complex::<f64>::from((0, 0));
         assert_eq!(sum.as_tuple(), (&0.0, &0.0));
 
-        let sum = Complex::<i64>::from((0, 0)) + (1, 2).into();
+        let sum = Complex::<i32>::from((0, 0)) + Complex::<i32>::from((1, 2));
         assert_eq!(sum.as_tuple(), (&1, &2));
 
         Ok(())
