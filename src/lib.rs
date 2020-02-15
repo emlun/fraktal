@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod complex;
 pub mod mandelbrot;
+mod math;
 #[macro_use]
 mod utils;
 
@@ -141,6 +142,7 @@ pub struct FractalView {
     btm_right: Complex<f64>,
     image: Image,
     sweep_index: usize,
+    sweep_step: usize,
 }
 
 #[wasm_bindgen]
@@ -153,6 +155,11 @@ impl FractalView {
             btm_right: (2, -2).into(),
             image: Image::new(width, height),
             sweep_index: 0,
+            sweep_step: if width * height > 100 {
+                math::increase_until_relprime(width * height / 100, width * height)
+            } else {
+                1
+            },
         }
     }
 
@@ -177,7 +184,8 @@ impl FractalView {
             let escape_count = mandelbrot::check(c, 256, 2.0);
             self.image.escape_counts[self.sweep_index] = escape_count;
 
-            self.sweep_index = (self.sweep_index + 1) % self.image.escape_counts.len();
+            self.sweep_index =
+                (self.sweep_index + self.sweep_step) % self.image.escape_counts.len();
         }
     }
 
