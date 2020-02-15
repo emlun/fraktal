@@ -6,6 +6,8 @@ import _ from 'underscore';
 import * as julia from 'fractals/julia';
 import * as mandelbrot from 'fractals/mandelbrot';
 
+import { FractalView } from 'fraktal-wasm';
+
 
 export const defaultGradientBottom = Immutable.fromJS({
   color: [0, 0, 0],
@@ -65,47 +67,39 @@ export function getLimits({ center, scale, W, H }) {
   return { topLeft, btmRight };
 }
 
-let x = 0;
 let W = 1;
 let H = 1;
-let center = false;
-let topLeft = false;
-let btmRight = false;
+// let center = false;
+// let topLeft = false;
+// let btmRight = false;
 let check = false;
-let iterationLimit = false;
-export let matrix = Immutable.List([]);
+// let iterationLimit = false;
+// export let matrix = Immutable.List([]);
+
+export let fractalView = FractalView.new(1, 1);
 
 export function setView({
-  center: rawCenter,
+  // center: rawCenter,
   dimensions: { width, height },
   fractal,
   fractalParameters,
   iterationLimit: il,
   scale,
 }) {
-  center = new Complex(rawCenter);
+  // center = new Complex(rawCenter);
   W = width;
   H = height;
-  ({ topLeft, btmRight } = getLimits({ center, scale, W, H }));
+  // ({ topLeft, btmRight } = getLimits({ center, scale, W, H }));
   check = getFractal(fractal).makeCheck(fractalParameters);
-  iterationLimit = il;
-  matrix = Array(W);
+  // iterationLimit = il;
+  // matrix = Array(W);
+  fractalView = FractalView.new(W, H);
 }
 
-export function computeNextColumn() {
+export function computeNextRow() {
   if (check) {
-    matrix[x] = Immutable.Range(0, H)
-      .toJS()
-      .map(y => {
-        const c = new Complex(
-          ((btmRight.re - topLeft.re) * (x / W)) + topLeft.re,
-          ((btmRight.im - topLeft.im) * (y / H)) + topLeft.im
-        );
-        return check(c, iterationLimit);
-      });
-    const prevx = x;
-    x = (x + 1) % W;
-    return prevx;
+    fractalView.compute(W);
+    return true;
   } else {
     return false;
   }

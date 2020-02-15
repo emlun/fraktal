@@ -11,62 +11,31 @@ import * as viewpointActions from 'actions/viewpoint';
 import Colors from 'data/Colors';
 import Viewpoint from 'data/Viewpoint';
 
-import ProgressBar from 'components/ProgressBar';
+import { memory } from 'fraktal-wasm/fraktal_bg';
 
 import styles from './Canvas.css';
 
-
-function renderColumns( // eslint-disable-line max-params, max-statements
-    imageData,
-    matrix,
-    xInit,
-    xWidth,
-    palette,
-    insideColor = [0, 0, 0],
-) {
-  const W = xWidth;
-  const H = imageData.height;
-
-  for (let x = 0; x < xWidth; x += 1) {
-    const column = matrix[(xInit + x) % matrix.length];
-
-    for (let y = 0; y < H; y += 1) {
-      const iterations = column[y] || 0;
-      const X = x * 4;
-      const Y = y * W * 4;
-
-      if (iterations > 0) {
-        imageData.data[Y + X] = palette.getIn([0, iterations], 255);
-        imageData.data[Y + X + 1] = palette.getIn([1, iterations], 255);
-        imageData.data[Y + X + 2] = palette.getIn([2, iterations], 255);
-      } else {
-        [
-          imageData.data[Y + X],
-          imageData.data[Y + X + 1],
-          imageData.data[Y + X + 2],
-        ] = insideColor;
-      }
-      imageData.data[Y + X + 3] = 255;
-    }
-
-  }
-  return imageData;
-}
 
 class Canvas extends React.Component {
 
   static propTypes = {
     colors: PropTypes.instanceOf(Colors).isRequired,
-    computeProgress: PropTypes.number.isRequired,
+    fractal: PropTypes.string.isRequired,
+    fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
     matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
     numColors: PropTypes.number.isRequired,
-    panTriggerThreshold: PropTypes.number.isRequired,
     viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
     onChangeSize: PropTypes.func.isRequired,
     onSetCenter: PropTypes.func.isRequired,
     onZoomIn: PropTypes.func.isRequired,
     onZoomOut: PropTypes.func.isRequired,
+
+    panTriggerThreshold: PropTypes.number,
+  };
+
+  static defaultProps = {
+    panTriggerThreshold: 10,
   };
 
   constructor(props) { // eslint-disable-line max-statements
@@ -92,22 +61,23 @@ class Canvas extends React.Component {
   }
 
   componentDidMount() {
-    const columnsAtATime = 20;
     const renderLoop = () => {
-      const x = fractals.computeNextColumn();
-      for (let i = 1; i < columnsAtATime; i += 1) {
-        fractals.computeNextColumn();
-      }
-      if (x !== false) {
-        this.drawPixels(x, columnsAtATime, fractals.matrix);
-      }
+      fractals.fractalView.compute(100000);
+      this.drawPixels();
       window.requestAnimationFrame(renderLoop);
     };
     this.stopRenderLoop = window.requestAnimationFrame(renderLoop);
   }
 
-  componentDidUpdate() {
-    this.updatePalette();
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.fractal !== this.props.fractal
+        || prevProps.fractalParameters !== this.props.fractalParameters
+        || prevProps.numColors !== this.props.numColors
+        || prevProps.viewpoint !== this.props.viewpoint
+    ) {
+      this.updatePalette();
+    }
   }
 
   componentWillUnmount() {
@@ -116,18 +86,10 @@ class Canvas extends React.Component {
     }
   }
 
-  drawPixels(x, xWidth, matrix) {
-    if (this.ctx && matrix) {
-      const imageData = renderColumns(
-        this.ctx.getImageData(x, 0, xWidth, this.ctx.canvas.height),
-        matrix,
-        x,
-        xWidth,
-        Immutable.fromJS(this.palette.toJS()),
-        this.props.colors.get('inside').toJS()
-      );
-
-      this.ctx.putImageData(imageData, x, 0);
+  drawPixels() {
+    if (this.ctx && this.imageData) {
+      fractals.fractalView.render();
+      this.ctx.putImageData(this.imageData, 0, 0);
       this.ctx.save();
     }
   }
@@ -163,6 +125,19 @@ class Canvas extends React.Component {
       this.canvas = canvas;
       this.updateCanvasSize();
       this.ctx = this.canvas.getContext('2d');
+
+      const imd = new Uint8ClampedArray(
+        memory.buffer,
+        fractals.fractalView.image_data(),
+        this.canvas.width * this.canvas.height * 4
+      );
+      console.log('imd:', imd);
+
+      this.imageData = new ImageData(
+        imd,
+        this.canvas.width,
+      );
+      console.log('imd set!');
     }
   }
 
@@ -173,6 +148,15 @@ class Canvas extends React.Component {
     this.props.onChangeSize({
       height: this.canvas.height,
       width: this.canvas.width,
+    });
+
+    fractals.setView({
+      // center: this.props.viewpoint.get('center'),
+      dimensions: { height: this.canvas.height, width: this.canvas.width },
+      fractal: this.props.fractal,
+      fractalParameters: this.props.fractalParameters.toJS(),
+      iterationLimit: this.props.numColors - 1,
+      scale: this.props.viewpoint.get('scale'),
     });
   }
 
@@ -254,81 +238,9 @@ class Canvas extends React.Component {
         ref={ this.updateCanvas }
         className={ styles['main-canvas'] }
       />
-      <ProgressBar
-        max={ 1 }
-        value={ this.props.computeProgress }
-      />
     </div>;
   }
-
 }
-
-class CanvasContainer extends React.Component {
-
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      computeProgress: 0,
-    };
-    this.computing = false;
-
-    this.updateMatrixSettings = this.updateMatrixSettings.bind(this);
-  }
-
-  componentDidUpdate(prevProps) {
-    if (
-      prevProps.fractal !== this.props.fractal
-      || prevProps.fractalParameters !== this.props.fractalParameters
-      || prevProps.numColors !== this.props.numColors
-      || prevProps.viewpoint !== this.props.viewpoint
-    ) {
-      this.updateMatrixSettings();
-    }
-  }
-
-  updateMatrixSettings() {
-    debug('Updating matrix settings...');
-
-    fractals.setView({
-      center: this.props.viewpoint.get('center'),
-      dimensions: this.props.viewpoint.get('dimensions').toJS(),
-      fractal: this.props.fractal,
-      fractalParameters: this.props.fractalParameters.toJS(),
-      iterationLimit: this.props.numColors - 1,
-      scale: this.props.viewpoint.get('scale'),
-    });
-  }
-
-  render() {
-    return <Canvas
-      colors={ this.props.colors }
-      computeProgress={ this.state.computeProgress }
-      matrix={ this.props.matrix }
-      numColors={ this.props.numColors }
-      onChangeSize={ this.props.onCanvasChangeSize }
-      onSetCenter={ this.props.onSetCenter }
-      onZoomIn={ this.props.onZoomIn }
-      onZoomOut={ this.props.onZoomOut }
-      panTriggerThreshold={ 10 }
-      viewpoint={ this.props.viewpoint }
-    />;
-  }
-
-}
-CanvasContainer.propTypes = {
-  colors: PropTypes.instanceOf(Colors).isRequired,
-  fractal: PropTypes.string.isRequired,
-  fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
-  matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
-  numColors: PropTypes.number.isRequired,
-  viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
-
-  onCanvasChangeSize: PropTypes.func.isRequired,
-  onSetCenter: PropTypes.func.isRequired,
-  onZoomIn: PropTypes.func.isRequired,
-  onZoomOut: PropTypes.func.isRequired,
-};
 
 export default ReactRedux.connect(
   state => ({
@@ -341,8 +253,8 @@ export default ReactRedux.connect(
   }),
   {
     onSetCenter: viewpointActions.setCenter,
-    onCanvasChangeSize: viewpointActions.setDimensions,
+    onChangeSize: viewpointActions.setDimensions,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,
   }
-)(CanvasContainer);
+)(Canvas);

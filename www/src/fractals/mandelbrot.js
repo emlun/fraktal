@@ -2,7 +2,7 @@ import Immutable from 'immutable';
 
 import { contained } from './constants';
 
-import { check } from 'fraktal-wasm';
+import { check_wasm as check } from 'fraktal-wasm';
 
 
 export const name = 'Mandelbrot set';

@@ -190,20 +190,6 @@ where
     }
 }
 
-impl<Num> Mul<Num> for Complex<Num>
-where
-    Num: Mul<Output = Num>,
-    Num: Clone,
-{
-    type Output = Self;
-    fn mul(self, rhs: Num) -> Self::Output {
-        Complex {
-            re: self.re * rhs.clone(),
-            im: self.im * rhs,
-        }
-    }
-}
-
 #[cfg(test)]
 mod test_add {
     use super::Complex;
