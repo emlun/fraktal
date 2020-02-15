@@ -1,5 +1,7 @@
 pub mod complex;
 pub mod mandelbrot;
+#[macro_use]
+mod utils;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
