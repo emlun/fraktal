@@ -90,7 +90,6 @@ class Canvas extends React.Component {
     if (this.ctx && this.imageData) {
       fractals.fractalView.render();
       this.ctx.putImageData(this.imageData, 0, 0);
-      this.ctx.save();
     }
   }
 
