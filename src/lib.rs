@@ -169,13 +169,13 @@ impl FractalView {
 
     pub fn compute(&mut self, count: usize) {
         if let Some(dirty_before_index) = self.dirty_before_index {
+            let corner_diff = self.btm_right.clone() - &self.top_left;
+            let re_span = corner_diff.re;
+            let im_span = corner_diff.im;
+
             for _ in 0..std::cmp::min(count, self.image.escape_counts.len()) {
                 let x = self.sweep_index % self.image.width;
                 let y = self.sweep_index / self.image.width;
-
-                let corner_diff = self.btm_right.clone() - &self.top_left;
-                let re_span = corner_diff.re;
-                let im_span = corner_diff.im;
 
                 let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
                 let c_offset_im: f64 = (y as f64 * im_span / self.image.height as f64).into();
