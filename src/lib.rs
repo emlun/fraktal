@@ -89,7 +89,6 @@ impl Palette {
     }
 }
 
-#[wasm_bindgen]
 pub struct Image {
     width: usize,
     height: usize,
@@ -129,7 +128,6 @@ impl Image {
     }
 }
 
-#[wasm_bindgen]
 impl Image {
     pub fn image_data(&self) -> *const u8 {
         self.pixels.as_ptr()
