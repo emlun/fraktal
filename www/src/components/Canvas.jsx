@@ -1,14 +1,12 @@
 import React from 'react';
 import * as ReactRedux from 'react-redux';
 import PropTypes from 'prop-types';
-import Immutable from 'immutable';
 
 import * as fractals from 'fractals/common';
 import { debug } from 'logging';
 import { computeNumberAt } from 'util/view';
 
 import * as viewpointActions from 'actions/viewpoint';
-import Colors from 'data/Colors';
 import Viewpoint from 'data/Viewpoint';
 
 import { memory } from 'fraktal-wasm/fraktal_bg';
@@ -19,14 +17,7 @@ import styles from './Canvas.css';
 class Canvas extends React.Component {
 
   static propTypes = {
-    colors: PropTypes.instanceOf(Colors).isRequired,
-    fractal: PropTypes.string.isRequired,
-    fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
-    matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
-    numColors: PropTypes.number.isRequired,
     viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
-
-    onChangeSize: PropTypes.func.isRequired,
     onSetCenter: PropTypes.func.isRequired,
     onZoomIn: PropTypes.func.isRequired,
     onZoomOut: PropTypes.func.isRequired,
@@ -43,7 +34,6 @@ class Canvas extends React.Component {
 
     this.state = {
       mousePos: null,
-      scrollStartMatrix: null,
       scrollStartPos: null,
     };
 
@@ -56,7 +46,6 @@ class Canvas extends React.Component {
     this.onWindowResize = this.onWindowResize.bind(this);
     this.updateCanvas = this.updateCanvas.bind(this);
     this.updateCanvasSize = this.updateCanvasSize.bind(this);
-    this.updatePalette = this.updatePalette.bind(this);
     this.updateWrapper = this.updateWrapper.bind(this);
   }
 
@@ -67,17 +56,6 @@ class Canvas extends React.Component {
       window.requestAnimationFrame(renderLoop);
     };
     this.stopRenderLoop = window.requestAnimationFrame(renderLoop);
-  }
-
-  componentDidUpdate(prevProps) {
-    if (
-      prevProps.fractal !== this.props.fractal
-        || prevProps.fractalParameters !== this.props.fractalParameters
-        || prevProps.numColors !== this.props.numColors
-        || prevProps.viewpoint !== this.props.viewpoint
-    ) {
-      this.updatePalette();
-    }
   }
 
   componentWillUnmount() {
@@ -94,7 +72,7 @@ class Canvas extends React.Component {
   }
 
   getScrollOffset() {
-    if (this.isKeepingScrollOffset() || (this.state.scrollStartPos && this.state.mousePos)) {
+    if (this.state.scrollStartPos && this.state.mousePos) {
       return {
         x: this.state.mousePos.x - this.state.scrollStartPos.x,
         y: this.state.mousePos.y - this.state.scrollStartPos.y,
@@ -102,10 +80,6 @@ class Canvas extends React.Component {
     } else {
       return { x: 0, y: 0 };
     }
-  }
-
-  isKeepingScrollOffset() {
-    return this.state.scrollStartMatrix === this.props.matrix;
   }
 
   getRenderOffset() {
@@ -144,26 +118,9 @@ class Canvas extends React.Component {
     debug('updateCanvasSize', this.canvas.height, this.canvas.width, this.canvas.offsetHeight, this.canvas.offsetWidth);
     this.canvas.height = this.canvas.offsetHeight;
     this.canvas.width = this.canvas.offsetWidth;
-    this.props.onChangeSize({
-      height: this.canvas.height,
-      width: this.canvas.width,
-    });
-
     fractals.setView({
-      // center: this.props.viewpoint.get('center'),
       dimensions: { height: this.canvas.height, width: this.canvas.width },
-      fractal: this.props.fractal,
-      fractalParameters: this.props.fractalParameters.toJS(),
-      iterationLimit: this.props.numColors - 1,
-      scale: this.props.viewpoint.get('scale'),
     });
-  }
-
-  updatePalette() {
-    this.palette = fractals.computePalette(
-      this.props.colors.get('gradient'),
-      this.props.numColors
-    );
   }
 
   updateWrapper(wrapper) {
@@ -207,7 +164,6 @@ class Canvas extends React.Component {
         y: (dimensions.height / 2) - offset.y,
       });
 
-      this.setState({ scrollStartMatrix: this.props.matrix });
       this.props.onSetCenter(center);
     }
 
@@ -243,16 +199,10 @@ class Canvas extends React.Component {
 
 export default ReactRedux.connect(
   state => ({
-    colors: state.get('colors'),
-    fractal: state.get('fractal'),
-    fractalParameters: state.get('fractalParameters'),
-    matrix: state.getIn(['worker', 'matrix']),
-    numColors: state.get('numColors'),
     viewpoint: state.get('viewpoint'),
   }),
   {
     onSetCenter: viewpointActions.setCenter,
-    onChangeSize: viewpointActions.setDimensions,
     onZoomIn: viewpointActions.zoomIn,
     onZoomOut: viewpointActions.zoomOut,
   }
