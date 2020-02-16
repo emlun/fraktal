@@ -31,6 +31,7 @@ impl Color {
 pub struct Gradient {
     root: Color,
     pivots: Vec<(usize, Color)>,
+    max_value: usize,
 }
 
 impl Gradient {
@@ -61,7 +62,9 @@ impl Gradient {
             prev_color = color;
         }
 
-        values.push(self.pivots.last().unwrap().1);
+        while values.len() <= self.max_value {
+            values.push(self.pivots.last().unwrap().1);
+        }
 
         Palette {
             escape_values: values,
@@ -105,6 +108,7 @@ impl Image {
             palette: Gradient {
                 root: Color::of(0, 0, 0, 255),
                 pivots: vec![(50, Color::of(255, 0, 255, 255))],
+                max_value: 50,
             }
             .make_palette(Color::of(0, 0, 0, 255)),
             escape_counts: vec![0; width * height],
@@ -178,7 +182,8 @@ impl FractalView {
                 let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
                 let c = self.top_left.clone() + c_offset;
-                let escape_count = mandelbrot::check(c, 256, 2.0);
+                let escape_count =
+                    mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
                 self.image.escape_counts[self.sweep_index] = escape_count;
 
                 self.sweep_index =
