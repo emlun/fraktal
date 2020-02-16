@@ -76,15 +76,20 @@ pub struct Palette {
 }
 
 impl Palette {
-    fn get_color<'slf, 'ret>(&'slf self, escape_count: usize) -> &'ret Color
+    fn get_color<'slf, 'ret>(&'slf self, escape_count: Option<usize>) -> &'ret Color
     where
         'slf: 'ret,
     {
-        let len = self.escape_values.len();
-        if escape_count >= len {
-            &self.escape_values.last().unwrap()
-        } else {
-            &self.escape_values[escape_count]
+        match escape_count {
+            Some(count) => {
+                let len = self.escape_values.len();
+                if count >= len {
+                    &self.escape_values.last().unwrap()
+                } else {
+                    &self.escape_values[count]
+                }
+            }
+            None => &self.inside_color,
         }
     }
 }
@@ -115,11 +120,7 @@ impl Image {
     pub fn render_pixels(&mut self) {
         for i in 0..self.escape_counts.len() {
             let pixel_index = i * 4;
-            let color = if let Some(count) = self.escape_counts[i] {
-                self.palette.get_color(count)
-            } else {
-                &self.palette.inside_color
-            };
+            let color = self.palette.get_color(self.escape_counts[i]);
             self.pixels[pixel_index] = color.r;
             self.pixels[pixel_index + 1] = color.g;
             self.pixels[pixel_index + 2] = color.b;
