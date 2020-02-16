@@ -3,7 +3,7 @@ use std::ops::Add;
 use std::ops::Mul;
 use std::ops::Sub;
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Complex<Num> {
     pub re: Num,
     pub im: Num,
@@ -29,12 +29,12 @@ where
     Num: Add<Output = Num>,
     Num: Sub<Output = Num>,
     Num: Mul<Output = Num>,
-    Num: Clone,
+    Num: Copy,
 {
     pub fn square(self) -> Self {
         Complex {
-            re: self.re.clone() * self.re.clone() - self.im.clone() * self.im.clone(),
-            im: self.re.clone() * self.im.clone() + self.im * self.re,
+            re: self.re * self.re - self.im * self.im,
+            im: self.re * self.im + self.im * self.re,
         }
     }
 }
@@ -91,19 +91,6 @@ where
     }
 }
 
-impl<'a, Num> Add for &'a Complex<Num>
-where
-    &'a Num: Add<&'a Num, Output = Num>,
-{
-    type Output = Complex<Num>;
-    fn add(self, rhs: Self) -> Self::Output {
-        Complex {
-            re: &self.re + &rhs.re,
-            im: &self.im + &rhs.im,
-        }
-    }
-}
-
 impl<Num> Sub for Complex<Num>
 where
     Num: Sub<Output = Num>,
@@ -130,30 +117,17 @@ where
     }
 }
 
-impl<'a, Num> Sub for &'a Complex<Num>
-where
-    &'a Num: Sub<&'a Num, Output = Num>,
-{
-    type Output = Complex<Num>;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Complex {
-            re: &self.re - &rhs.re,
-            im: &self.im - &rhs.im,
-        }
-    }
-}
-
 impl<Num> Mul for Complex<Num>
 where
     Num: Add<Output = Num>,
     Num: Sub<Output = Num>,
     Num: Mul<Output = Num>,
-    Num: Clone,
+    Num: Copy,
 {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
         Complex {
-            re: self.re.clone() * rhs.re.clone() - self.im.clone() * rhs.im.clone(),
+            re: self.re * rhs.re - self.im * rhs.im,
             im: self.re * rhs.im + self.im * rhs.re,
         }
     }
@@ -164,28 +138,13 @@ where
     Num: Add<Output = Num>,
     Num: Sub<Output = Num>,
     Num: Mul<&'a Num, Output = Num>,
-    Num: Clone,
+    Num: Copy,
 {
     type Output = Self;
     fn mul(self, rhs: &'a Self) -> Self::Output {
         Complex {
-            re: self.re.clone() * &rhs.re - self.im.clone() * &rhs.im,
+            re: self.re * &rhs.re - self.im * &rhs.im,
             im: self.re * &rhs.im + self.im * &rhs.re,
-        }
-    }
-}
-
-impl<'a, Num> Mul for &'a Complex<Num>
-where
-    Num: Add<Output = Num>,
-    Num: Sub<Output = Num>,
-    &'a Num: Mul<Output = Num>,
-{
-    type Output = Complex<Num>;
-    fn mul(self, rhs: Self) -> Self::Output {
-        Complex {
-            re: &self.re * &rhs.re - &self.im * &rhs.im,
-            im: &self.re * &rhs.im + &self.im * &rhs.re,
         }
     }
 }
