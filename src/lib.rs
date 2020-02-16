@@ -135,7 +135,7 @@ impl Image {
 }
 
 #[wasm_bindgen]
-pub struct FractalView {
+pub struct Engine {
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     image: Image,
@@ -145,11 +145,11 @@ pub struct FractalView {
 }
 
 #[wasm_bindgen]
-impl FractalView {
-    pub fn new(width: usize, height: usize) -> FractalView {
+impl Engine {
+    pub fn new(width: usize, height: usize) -> Engine {
         utils::set_panic_hook();
 
-        FractalView {
+        Engine {
             top_left: (-2, 2).into(),
             btm_right: (2, -2).into(),
             image: Image::new(width, height),

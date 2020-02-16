@@ -51,7 +51,7 @@ class Canvas extends React.Component {
 
   componentDidMount() {
     const renderLoop = () => {
-      fractals.fractalView.compute(100000);
+      fractals.engine.compute(100000);
       this.drawPixels();
       window.requestAnimationFrame(renderLoop);
     };
@@ -66,7 +66,7 @@ class Canvas extends React.Component {
 
   drawPixels() {
     if (this.ctx && this.imageData) {
-      fractals.fractalView.render();
+      fractals.engine.render();
       this.ctx.putImageData(this.imageData, 0, 0);
     }
   }
@@ -101,7 +101,7 @@ class Canvas extends React.Component {
 
       const imd = new Uint8ClampedArray(
         memory.buffer,
-        fractals.fractalView.image_data(),
+        fractals.engine.image_data(),
         this.canvas.width * this.canvas.height * 4
       );
       console.log('imd:', imd);
