@@ -76,20 +76,15 @@ pub struct Palette {
 }
 
 impl Palette {
-    fn get_color<'slf, 'ret>(&'slf self, escape_count: Option<usize>) -> &'ret Color
+    fn get_color<'slf, 'ret>(&'slf self, escape_count: usize) -> &'ret Color
     where
         'slf: 'ret,
     {
-        match escape_count {
-            Some(count) => {
-                let len = self.escape_values.len();
-                if count >= len {
-                    &self.escape_values.last().unwrap()
-                } else {
-                    &self.escape_values[count]
-                }
-            }
-            None => &self.inside_color,
+        let len = self.escape_values.len();
+        if escape_count >= len {
+            &self.inside_color
+        } else {
+            &self.escape_values[escape_count]
         }
     }
 }
@@ -98,7 +93,7 @@ pub struct Image {
     width: usize,
     height: usize,
     palette: Palette,
-    escape_counts: Vec<Option<usize>>,
+    escape_counts: Vec<usize>,
     pixels: Vec<u8>,
 }
 
@@ -112,7 +107,7 @@ impl Image {
                 pivots: vec![(50, Color::of(255, 0, 255, 255))],
             }
             .make_palette(Color::of(0, 0, 0, 255)),
-            escape_counts: vec![None; width * height],
+            escape_counts: vec![0; width * height],
             pixels: vec![0; width * height * 4],
         }
     }
