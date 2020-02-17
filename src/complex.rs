@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use std::ops::Add;
+use std::ops::AddAssign;
 use std::ops::Mul;
 use std::ops::Sub;
 
@@ -88,6 +89,16 @@ where
             re: self.re + &rhs.re,
             im: self.im + &rhs.im,
         }
+    }
+}
+
+impl<Num> AddAssign for Complex<Num>
+where
+    Num: AddAssign,
+{
+    fn add_assign(&mut self, rhs: Self) {
+        self.re += rhs.re;
+        self.im += rhs.im;
     }
 }
 
