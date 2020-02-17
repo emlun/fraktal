@@ -207,6 +207,27 @@ impl Engine {
         self.update_limits();
     }
 
+    pub fn zoom_in_around(&mut self, x: usize, y: usize) {
+        self.zoom_around(self.scale / 2.0, x, y);
+    }
+
+    pub fn zoom_out_around(&mut self, x: usize, y: usize) {
+        self.zoom_around(self.scale * 2.0, x, y);
+    }
+
+    fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) {
+        let w_div2 = self.image.width as f64 / 2.0;
+        let h_div2 = self.image.height as f64 / 2.0;
+        self.center += (
+            self.scale * (x as f64 - w_div2) + new_scale * (w_div2 - x as f64),
+            self.scale * (h_div2 - y as f64) + new_scale * (y as f64 - h_div2),
+        )
+            .into();
+
+        self.scale = new_scale;
+        self.update_limits();
+    }
+
     pub fn image_data(&self) -> *const u8 {
         self.image.image_data()
     }
