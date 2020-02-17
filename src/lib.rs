@@ -216,11 +216,10 @@ impl Engine {
     }
 
     fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) {
-        let w_div2 = self.image.width as f64 / 2.0;
-        let h_div2 = self.image.height as f64 / 2.0;
+        let sdiff = new_scale - self.scale;
         self.center += (
-            self.scale * (x as f64 - w_div2) + new_scale * (w_div2 - x as f64),
-            self.scale * (h_div2 - y as f64) + new_scale * (y as f64 - h_div2),
+            sdiff * (self.image.width as f64 / 2.0 - x as f64),
+            sdiff * (y as f64 - self.image.height as f64 / 2.0),
         )
             .into();
 
