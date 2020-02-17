@@ -152,7 +152,7 @@ impl Engine {
         utils::set_panic_hook();
 
         let mut e = Engine {
-            scale: 3.0,
+            scale: 4.0,
             center: Complex::from((0, 0)),
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
