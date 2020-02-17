@@ -6,8 +6,6 @@ import _ from 'underscore';
 import * as julia from 'fractals/julia';
 import * as mandelbrot from 'fractals/mandelbrot';
 
-import { Engine } from 'fraktal-wasm';
-
 
 export const defaultGradientBottom = Immutable.fromJS({
   color: [0, 0, 0],
@@ -43,12 +41,4 @@ export function getLimits({ center, scale, W, H }) {
   const topLeft = center.add(new Complex(-w / 2, h / 2));
   const btmRight = center.add(new Complex(w / 2, -h / 2));
   return { topLeft, btmRight };
-}
-
-export let engine = Engine.new(1, 1);
-
-export function setView({
-  dimensions: { width, height },
-}) {
-  engine = Engine.new(width, height);
 }

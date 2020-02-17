@@ -2,12 +2,9 @@ import React from 'react';
 import * as ReactRedux from 'react-redux';
 import PropTypes from 'prop-types';
 
-import * as fractals from 'fractals/common';
 import { debug } from 'logging';
-import { computeNumberAt } from 'util/view';
 
 import * as viewpointActions from 'actions/viewpoint';
-import Viewpoint from 'data/Viewpoint';
 
 import { memory } from 'fraktal-wasm/fraktal_bg';
 
@@ -17,7 +14,13 @@ import styles from './Canvas.css';
 class Canvas extends React.Component {
 
   static propTypes = {
-    viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
+    engine: PropTypes.shape({
+      compute: PropTypes.func.isRequired,
+      image_data: PropTypes.func.isRequired,
+      render: PropTypes.func.isRequired,
+      set_size: PropTypes.func.isRequired,
+    }).isRequired,
+
     onSetCenter: PropTypes.func.isRequired,
     onZoomIn: PropTypes.func.isRequired,
     onZoomOut: PropTypes.func.isRequired,
@@ -51,7 +54,7 @@ class Canvas extends React.Component {
 
   componentDidMount() {
     const renderLoop = () => {
-      fractals.engine.compute(100000);
+      this.props.engine.compute(100000);
       this.drawPixels();
       window.requestAnimationFrame(renderLoop);
     };
@@ -66,8 +69,9 @@ class Canvas extends React.Component {
 
   drawPixels() {
     if (this.ctx && this.imageData) {
-      fractals.engine.render();
-      this.ctx.putImageData(this.imageData, 0, 0);
+      this.props.engine.render();
+      const { x, y } = this.getRenderOffset();
+      this.ctx.putImageData(this.imageData, x, y);
     }
   }
 
@@ -101,26 +105,22 @@ class Canvas extends React.Component {
 
       const imd = new Uint8ClampedArray(
         memory.buffer,
-        fractals.engine.image_data(),
+        this.props.engine.image_data(),
         this.canvas.width * this.canvas.height * 4
       );
-      console.log('imd:', imd);
 
       this.imageData = new ImageData(
         imd,
         this.canvas.width,
       );
-      console.log('imd set!');
     }
   }
 
   updateCanvasSize() {
-    debug('updateCanvasSize', this.canvas.height, this.canvas.width, this.canvas.offsetHeight, this.canvas.offsetWidth);
-    this.canvas.height = this.canvas.offsetHeight;
+    debug('updateCanvasSize', this.canvas.width, this.canvas.height, this.canvas.offsetWidth, this.canvas.offsetHeight);
     this.canvas.width = this.canvas.offsetWidth;
-    fractals.setView({
-      dimensions: { height: this.canvas.height, width: this.canvas.width },
-    });
+    this.canvas.height = this.canvas.offsetHeight;
+    this.props.engine.set_size(this.canvas.width, this.canvas.height);
   }
 
   updateWrapper(wrapper) {
@@ -152,19 +152,13 @@ class Canvas extends React.Component {
     const scrollOffset = this.getScrollOffset();
 
     if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= this.props.panTriggerThreshold) {
-      const offset = this.getRenderOffset();
-      const dimensions = this.getDimensions();
-      const { viewpoint } = this.props;
-
-      const center = computeNumberAt({
-        center: viewpoint.get('center'),
-        dimensions,
-        scale: viewpoint.get('scale'),
-        x: (dimensions.width / 2) - offset.x,
-        y: (dimensions.height / 2) - offset.y,
+      const { x, y } = this.getRenderOffset();
+      const { width: w, height: h } = this.getDimensions();
+      this.props.onSetCenter({
+        x: x / w,
+        y: y / h,
+        aspectRatio: w / h,
       });
-
-      this.props.onSetCenter(center);
     }
 
     this.setState({ scrollStartPos: null });
@@ -199,7 +193,6 @@ class Canvas extends React.Component {
 
 export default ReactRedux.connect(
   state => ({
-    viewpoint: state.get('viewpoint'),
   }),
   {
     onSetCenter: viewpointActions.setCenter,

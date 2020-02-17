@@ -1,17 +1,19 @@
 import * as actions from 'actions/viewpoint';
+import { computeNumberAt } from 'util/view';
 import ViewpointState from 'data/Viewpoint';
-
 
 export default function reducer(state = new ViewpointState(), action) {
   switch (action.type) {
-    case actions.SET_CENTER:
-      return state.set('center', action.center);
-
-    case actions.SET_DIMENSIONS:
-      return state
-        .setIn(['dimensions', 'height'], action.height)
-        .setIn(['dimensions', 'width'], action.width)
-      ;
+    case actions.SET_CENTER: {
+      const { x, y, aspectRatio } = action;
+      return state.update('center', center => computeNumberAt({
+        center,
+        aspectRatio,
+        scale: state.get('scale'),
+        x,
+        y,
+      }));
+    }
 
     case actions.SET_SCALE:
       return state.set('scale', action.scale);

@@ -149,18 +149,28 @@ impl Engine {
     pub fn new(width: usize, height: usize) -> Engine {
         utils::set_panic_hook();
 
-        Engine {
+        let mut e = Engine {
             top_left: (-2, 2).into(),
             btm_right: (2, -2).into(),
-            image: Image::new(width, height),
+            image: Image::new(0, 0),
             sweep_index: 0,
-            sweep_step: if width * height > 100 {
-                math::increase_until_relprime(width * height / 100, width * height)
-            } else {
-                1
-            },
-            dirty_before_index: Some(0),
-        }
+            sweep_step: 0,
+            dirty_before_index: None,
+        };
+        e.set_size(width, height);
+        e
+    }
+
+    pub fn set_size(&mut self, width: usize, height: usize) {
+        log!("set_size {} {}", width, height);
+        self.image = Image::new(width, height);
+        self.sweep_step = if width * height > 100 {
+            math::increase_until_relprime(width * height / 100, width * height)
+        } else {
+            1
+        };
+        self.dirty_before_index = Some(0);
+        self.sweep_index = 0;
     }
 
     pub fn image_data(&self) -> *const u8 {

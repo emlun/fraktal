@@ -9,7 +9,12 @@ import Controls from 'components/Controls';
 import Sidebar from 'components/Sidebar';
 import GithubCorner from 'components/GithubCorner';
 
+import { Engine } from 'fraktal-wasm';
+
 import styles from './App.css';
+
+
+const engine = Engine.new();
 
 
 function computeTreeRef() {
@@ -32,7 +37,7 @@ function App({
       repo="emlun/fraktal"
       visible={ sidebarExpanded }
     />
-    <Canvas/>
+    <Canvas engine={ engine }/>
     <Sidebar
       expanded={ sidebarExpanded }
       onToggle={ onToggleSidebar }
