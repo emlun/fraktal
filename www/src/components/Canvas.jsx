@@ -18,6 +18,8 @@ class Canvas extends React.Component {
       pan: PropTypes.func.isRequired,
       render: PropTypes.func.isRequired,
       set_size: PropTypes.func.isRequired,
+      zoom_in: PropTypes.func.isRequired,
+      zoom_out: PropTypes.func.isRequired,
     }).isRequired,
 
     panTriggerThreshold: PropTypes.number,
@@ -157,11 +159,10 @@ class Canvas extends React.Component {
   }
 
   onWheel(event) {
-    debug('onWheel', event);
     if (event.deltaY > 0) {
-      console.log('Zoom out!');
+      this.props.engine.zoom_out();
     } else {
-      console.log('Zoom in!');
+      this.props.engine.zoom_in();
     }
   }
 

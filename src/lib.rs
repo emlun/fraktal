@@ -136,6 +136,7 @@ impl Image {
 
 #[wasm_bindgen]
 pub struct Engine {
+    center: Complex<f64>,
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     scale: f64,
@@ -147,38 +148,27 @@ pub struct Engine {
 
 #[wasm_bindgen]
 impl Engine {
-    pub fn new(width: usize, height: usize) -> Engine {
+    pub fn new() -> Engine {
         utils::set_panic_hook();
 
         let mut e = Engine {
-            scale: 1.0,
+            scale: 3.0,
+            center: Complex::from((0, 0)),
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
-            image: Image::new(0, 0),
+            image: Image::new(1, 1),
             sweep_index: 0,
             sweep_step: 0,
             dirty_before_index: None,
         };
-        e.set_size(width, height);
+        e.set_size(1, 1);
         e
     }
 
     pub fn set_size(&mut self, width: usize, height: usize) {
-        self.scale = 3.0 / height as f64;
-
-        self.top_left = (
-            -(width as f64) / 2.0 * self.scale,
-            height as f64 / 2.0 * self.scale,
-        )
-            .into();
-
-        self.btm_right = (
-            width as f64 / 2.0 * self.scale,
-            -(height as f64) / 2.0 * self.scale,
-        )
-            .into();
-
+        self.scale = self.scale * self.image.width as f64 / width as f64;
         self.image = Image::new(width, height);
+        self.update_limits();
         self.sweep_step = if width * height > 100 {
             math::increase_until_relprime(width * height / 100, width * height)
         } else {
@@ -188,13 +178,33 @@ impl Engine {
         self.sweep_index = 0;
     }
 
+    fn update_limits(&mut self) {
+        let view_center: Complex<f64> = (
+            self.image.width as f64 / 2.0 * self.scale,
+            -(self.image.height as f64) / 2.0 * self.scale,
+        )
+            .into();
+        self.top_left = self.center - view_center;
+        self.btm_right = self.center + view_center;
+        self.dirty_before_index = Some(self.sweep_index);
+    }
+
     pub fn pan(&mut self, dx: i32, dy: i32) {
         self.dirty_before_index = Some(self.sweep_index);
         let dre = self.scale * dx as f64;
         let dim = self.scale * (-dy) as f64;
-        let dc = Complex::from((dre, dim));
-        self.top_left += dc;
-        self.btm_right += dc;
+        self.center += (dre, dim).into();
+        self.update_limits();
+    }
+
+    pub fn zoom_in(&mut self) {
+        self.scale /= 2.0;
+        self.update_limits();
+    }
+
+    pub fn zoom_out(&mut self) {
+        self.scale *= 2.0;
+        self.update_limits();
     }
 
     pub fn image_data(&self) -> *const u8 {
