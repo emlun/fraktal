@@ -4,8 +4,6 @@ import PropTypes from 'prop-types';
 
 import { debug } from 'logging';
 
-import * as viewpointActions from 'actions/viewpoint';
-
 import { memory } from 'fraktal-wasm/fraktal_bg';
 
 import styles from './Canvas.css';
@@ -17,13 +15,10 @@ class Canvas extends React.Component {
     engine: PropTypes.shape({
       compute: PropTypes.func.isRequired,
       image_data: PropTypes.func.isRequired,
+      pan: PropTypes.func.isRequired,
       render: PropTypes.func.isRequired,
       set_size: PropTypes.func.isRequired,
     }).isRequired,
-
-    onSetCenter: PropTypes.func.isRequired,
-    onZoomIn: PropTypes.func.isRequired,
-    onZoomOut: PropTypes.func.isRequired,
 
     panTriggerThreshold: PropTypes.number,
   };
@@ -71,6 +66,8 @@ class Canvas extends React.Component {
     if (this.ctx && this.imageData) {
       this.props.engine.render();
       const { x, y } = this.getRenderOffset();
+      this.ctx.fillStyle = '#000000';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.putImageData(this.imageData, x, y);
     }
   }
@@ -153,12 +150,7 @@ class Canvas extends React.Component {
 
     if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= this.props.panTriggerThreshold) {
       const { x, y } = this.getRenderOffset();
-      const { width: w, height: h } = this.getDimensions();
-      this.props.onSetCenter({
-        x: x / w,
-        y: y / h,
-        aspectRatio: w / h,
-      });
+      this.props.engine.pan(-x, -y);
     }
 
     this.setState({ scrollStartPos: null });
@@ -167,9 +159,9 @@ class Canvas extends React.Component {
   onWheel(event) {
     debug('onWheel', event);
     if (event.deltaY > 0) {
-      this.props.onZoomOut();
+      console.log('Zoom out!');
     } else {
-      this.props.onZoomIn();
+      console.log('Zoom in!');
     }
   }
 
@@ -195,8 +187,5 @@ export default ReactRedux.connect(
   state => ({
   }),
   {
-    onSetCenter: viewpointActions.setCenter,
-    onZoomIn: viewpointActions.zoomIn,
-    onZoomOut: viewpointActions.zoomOut,
   }
 )(Canvas);

@@ -6,14 +6,9 @@ import ImmutablePropTypes from 'react-immutable-proptypes';
 import { sprintf } from 'sprintf-js';
 
 import * as fractals from 'fractals/common';
-import * as propTypes from 'util/prop-types';
 
 import * as rootActions from 'actions';
 import * as colorsActions from 'actions/colors';
-import * as viewpointActions from 'actions/viewpoint';
-import Viewpoint from 'data/Viewpoint';
-
-import ComplexInput from 'components/ComplexInput';
 
 import styles from './Controls.css';
 
@@ -30,55 +25,19 @@ function Controls({
   fractalParametersControls: FractalParameters,
   gradient,
   insideColor,
-  limits,
   numColors,
-  viewpoint,
 
   onAddGradientPivot,
   onDeleteGradientPivot,
-  onSetCenter,
   onSetFractal,
   onSetFractalParameters,
   onSetInsideColor,
   onSetNumColors,
   onSetPivotColor,
   onSetPivotValue,
-  onZoomIn,
-  onZoomOut,
 }) {
   return <div>
     <form onSubmit={ onSubmit }>
-      <p>
-        { 'Center: ' }
-        <ComplexInput
-          onChange={ onSetCenter }
-          value={ viewpoint.get('center') }
-        />
-      </p>
-      <p>
-        { `Scale: ${viewpoint.get('scale')}` }
-      </p>
-      <p>
-        <button
-          onClick={ onZoomOut }
-          type="button"
-        >
-          Zoom out
-        </button>
-        <button
-          onClick={ onZoomIn }
-          type="button"
-        >
-          Zoom in
-        </button>
-      </p>
-      <p>
-        { `Top left: ${limits.topLeft.toString()}` }
-      </p>
-      <p>
-        { `Bottom right: ${limits.btmRight.toString()}` }
-      </p>
-
       <div>
         <p>
           Number of color values:
@@ -190,24 +149,16 @@ Controls.propTypes = {
     })
   ).isRequired,
   insideColor: PropTypes.instanceOf(Immutable.List).isRequired,
-  limits: PropTypes.shape({
-    btmRight: propTypes.complex.isRequired,
-    topLeft: propTypes.complex.isRequired,
-  }).isRequired,
   numColors: PropTypes.number.isRequired,
-  viewpoint: PropTypes.instanceOf(Viewpoint).isRequired,
 
   onAddGradientPivot: PropTypes.func.isRequired,
   onDeleteGradientPivot: PropTypes.func.isRequired,
-  onSetCenter: PropTypes.func.isRequired,
   onSetFractal: PropTypes.func.isRequired,
   onSetFractalParameters: PropTypes.func.isRequired,
   onSetInsideColor: PropTypes.func.isRequired,
   onSetNumColors: PropTypes.func.isRequired,
   onSetPivotColor: PropTypes.func.isRequired,
   onSetPivotValue: PropTypes.func.isRequired,
-  onZoomIn: PropTypes.func.isRequired,
-  onZoomOut: PropTypes.func.isRequired,
 };
 
 export default ReactRedux.connect(
@@ -217,26 +168,16 @@ export default ReactRedux.connect(
     fractalParametersControls: fractals.getFractal(state.get('fractal')).ParameterControls,
     gradient: state.getIn(['colors', 'gradient']),
     insideColor: state.getIn(['colors', 'inside']),
-    limits: fractals.getLimits({
-      center: state.getIn(['viewpoint', 'center']),
-      scale: state.getIn(['viewpoint', 'scale']),
-      W: state.getIn(['viewpoint', 'dimensions', 'width']),
-      H: state.getIn(['viewpoint', 'dimensions', 'height']),
-    }),
     numColors: state.get('numColors'),
-    viewpoint: state.get('viewpoint'),
   }),
   {
     onAddGradientPivot: colorsActions.addPivot,
     onDeleteGradientPivot: colorsActions.deletePivot,
-    onSetCenter: viewpointActions.setCenter,
     onSetFractal: rootActions.setFractal,
     onSetFractalParameters: rootActions.setFractalParameters,
     onSetInsideColor: colorsActions.setInsideColor,
     onSetNumColors: rootActions.setNumColors,
     onSetPivotColor: colorsActions.setPivotColor,
     onSetPivotValue: colorsActions.setPivotValue,
-    onZoomIn: viewpointActions.zoomIn,
-    onZoomOut: viewpointActions.zoomOut,
   }
 )(Controls);

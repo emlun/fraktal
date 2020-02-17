@@ -138,6 +138,7 @@ impl Image {
 pub struct Engine {
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
+    scale: f64,
     image: Image,
     sweep_index: usize,
     sweep_step: usize,
@@ -150,8 +151,9 @@ impl Engine {
         utils::set_panic_hook();
 
         let mut e = Engine {
-            top_left: (-2, 2).into(),
-            btm_right: (2, -2).into(),
+            scale: 1.0,
+            top_left: Complex::from((0, 0)),
+            btm_right: Complex::from((0, 0)),
             image: Image::new(0, 0),
             sweep_index: 0,
             sweep_step: 0,
@@ -162,7 +164,20 @@ impl Engine {
     }
 
     pub fn set_size(&mut self, width: usize, height: usize) {
-        log!("set_size {} {}", width, height);
+        self.scale = 3.0 / height as f64;
+
+        self.top_left = (
+            -(width as f64) / 2.0 * self.scale,
+            height as f64 / 2.0 * self.scale,
+        )
+            .into();
+
+        self.btm_right = (
+            width as f64 / 2.0 * self.scale,
+            -(height as f64) / 2.0 * self.scale,
+        )
+            .into();
+
         self.image = Image::new(width, height);
         self.sweep_step = if width * height > 100 {
             math::increase_until_relprime(width * height / 100, width * height)
@@ -171,6 +186,15 @@ impl Engine {
         };
         self.dirty_before_index = Some(0);
         self.sweep_index = 0;
+    }
+
+    pub fn pan(&mut self, dx: i32, dy: i32) {
+        self.dirty_before_index = Some(self.sweep_index);
+        let dre = self.scale * dx as f64;
+        let dim = self.scale * (-dy) as f64;
+        let dc = Complex::from((dre, dim));
+        self.top_left += dc;
+        self.btm_right += dc;
     }
 
     pub fn image_data(&self) -> *const u8 {

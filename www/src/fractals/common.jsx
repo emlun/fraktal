@@ -1,5 +1,4 @@
 import React from 'react';
-import Complex from 'complex.js';
 import Immutable from 'immutable';
 import _ from 'underscore';
 
@@ -32,13 +31,4 @@ export function getFractal(name) {
     ParameterControls: NoParameterControls,
     ...fractals[name],
   };
-}
-
-export function getLimits({ center, scale, W, H }) {
-  const aspectRatio = H / W;
-  const w = scale;
-  const h = scale * aspectRatio;
-  const topLeft = center.add(new Complex(-w / 2, h / 2));
-  const btmRight = center.add(new Complex(w / 2, -h / 2));
-  return { topLeft, btmRight };
 }
