@@ -1,7 +1,3 @@
-use std::collections::VecDeque;
-use std::ops::Range;
-use wasm_bindgen::prelude::wasm_bindgen;
-
 pub mod complex;
 pub mod mandelbrot;
 mod math;
@@ -9,6 +5,15 @@ mod math;
 mod utils;
 
 use complex::Complex;
+use math::NextCoprime;
+use std::collections::VecDeque;
+use std::ops::Add;
+use std::ops::Div;
+use std::ops::Mul;
+use std::ops::Range;
+use std::ops::Rem;
+use std::ops::Sub;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -176,8 +181,78 @@ impl Image {
 
 #[derive(Debug)]
 struct RangeRect<T> {
-    x: Range<T>,
-    y: Range<T>,
+    xs: Range<T>,
+    ys: Range<T>,
+    x0: T,
+    y0: T,
+    w: T,
+    h: T,
+    len: T,
+    step: T,
+    i: T,
+    exhausted: bool,
+}
+
+impl<T> RangeRect<T>
+where
+    T: Copy,
+    T: Div<T, Output = T>,
+    T: From<u8>,
+    T: Mul<T, Output = T>,
+    T: NextCoprime,
+    T: Sub<T, Output = T>,
+{
+    fn new(xs: Range<T>, ys: Range<T>) -> RangeRect<T> {
+        let x0 = xs.start;
+        let y0 = ys.start;
+        let w = xs.end - x0;
+        let h = ys.end - y0;
+        let len = w * h;
+        RangeRect {
+            x0,
+            y0,
+            w,
+            h,
+            len,
+            step: (len / 100.into()).next_coprime(len),
+            xs,
+            ys,
+            i: 0.into(),
+            exhausted: false,
+        }
+    }
+}
+
+impl<T> RangeRect<T> {
+    fn is_exhausted(&self) -> bool {
+        self.exhausted
+    }
+}
+
+impl<T> Iterator for RangeRect<T>
+where
+    T: Add<T, Output = T>,
+    T: Copy,
+    T: Div<T, Output = T>,
+    T: Eq,
+    T: From<u8>,
+    T: Mul<T, Output = T>,
+    T: Rem<T, Output = T>,
+{
+    type Item = (T, T);
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.is_exhausted() {
+            None
+        } else {
+            let y = self.y0 + self.i / self.w;
+            let x = self.x0 + self.i % self.w;
+            self.i = (self.i + self.step) % self.len;
+            if self.i == 0.into() {
+                self.exhausted = true;
+            }
+            Some((x, y))
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -226,10 +301,8 @@ impl Engine {
 
     fn dirtify_all(&mut self) {
         self.dirty_regions.clear();
-        self.dirty_regions.push_back(RangeRect {
-            x: 0..self.image.width,
-            y: 0..self.image.height,
-        });
+        self.dirty_regions
+            .push_back(RangeRect::new(0..self.image.width, 0..self.image.height));
     }
 
     pub fn pan(&mut self, dx: i32, dy: i32) {
@@ -251,18 +324,18 @@ impl Engine {
             (self.image.height - dy as usize, self.image.height)
         };
 
-        self.dirty_regions.push_back(RangeRect {
-            x: dirty_x_min..dirty_x_max,
-            y: 0..self.image.height,
-        });
-        self.dirty_regions.push_back(RangeRect {
-            x: if dx < 0 {
+        self.dirty_regions.push_back(RangeRect::new(
+            dirty_x_min..dirty_x_max,
+            0..self.image.height,
+        ));
+        self.dirty_regions.push_back(RangeRect::new(
+            if dx < 0 {
                 dirty_x_max..self.image.width
             } else {
                 0..dirty_x_min
             },
-            y: dirty_y_min..dirty_y_max,
-        });
+            dirty_y_min..dirty_y_max,
+        ));
     }
 
     pub fn zoom_in(&mut self) {
@@ -303,25 +376,25 @@ impl Engine {
     }
 
     pub fn compute(&mut self, count: usize) {
-        while let Some(dirty_region) = self.dirty_regions.pop_front() {
+        while let Some(dirty_region) = self.dirty_regions.front_mut() {
             let corner_diff = self.btm_right.clone() - &self.top_left;
             let re_span = corner_diff.re;
             let im_span = corner_diff.im;
 
-            for y in dirty_region.y {
-                for x in dirty_region.x.clone() {
-                    let i = x + y * self.image.width;
+            for (x, y) in dirty_region {
+                let i = x + y * self.image.width;
 
-                    let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
-                    let c_offset_im: f64 = (y as f64 * im_span / self.image.height as f64).into();
-                    let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
+                let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
+                let c_offset_im: f64 = (y as f64 * im_span / self.image.height as f64).into();
+                let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
-                    let c = self.top_left.clone() + c_offset;
-                    let escape_count =
-                        mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
-                    self.image.escape_counts[i] = escape_count;
-                }
+                let c = self.top_left.clone() + c_offset;
+                let escape_count =
+                    mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
+                self.image.escape_counts[i] = escape_count;
             }
+
+            self.dirty_regions.pop_front();
         }
     }
 
