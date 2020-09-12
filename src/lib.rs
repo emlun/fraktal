@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+use std::ops::Range;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod complex;
@@ -172,6 +174,12 @@ impl Image {
     }
 }
 
+#[derive(Debug)]
+struct RangeRect<T> {
+    x: Range<T>,
+    y: Range<T>,
+}
+
 #[wasm_bindgen]
 pub struct Engine {
     center: Complex<f64>,
@@ -179,9 +187,7 @@ pub struct Engine {
     btm_right: Complex<f64>,
     scale: f64,
     image: Image,
-    sweep_index: usize,
-    sweep_step: usize,
-    dirty_before_index: Option<usize>,
+    dirty_regions: VecDeque<RangeRect<usize>>,
 }
 
 #[wasm_bindgen]
@@ -195,9 +201,7 @@ impl Engine {
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
             image: Image::new(1, 1),
-            sweep_index: 0,
-            sweep_step: 0,
-            dirty_before_index: None,
+            dirty_regions: VecDeque::new(),
         };
         e.set_size(1, 1);
         e
@@ -207,13 +211,7 @@ impl Engine {
         self.scale = self.scale * self.image.width as f64 / width as f64;
         self.image = Image::new(width, height);
         self.update_limits();
-        self.sweep_step = if width * height > 100 {
-            math::increase_until_relprime(width * height / 100, width * height)
-        } else {
-            1
-        };
-        self.dirty_before_index = Some(0);
-        self.sweep_index = 0;
+        self.dirtify_all();
     }
 
     fn update_limits(&mut self) {
@@ -224,26 +222,59 @@ impl Engine {
             .into();
         self.top_left = self.center - view_center;
         self.btm_right = self.center + view_center;
-        self.dirty_before_index = Some(self.sweep_index);
+    }
+
+    fn dirtify_all(&mut self) {
+        self.dirty_regions.clear();
+        self.dirty_regions.push_back(RangeRect {
+            x: 0..self.image.width,
+            y: 0..self.image.height,
+        });
     }
 
     pub fn pan(&mut self, dx: i32, dy: i32) {
-        self.dirty_before_index = Some(self.sweep_index);
         let dre = self.scale * dx as f64;
         let dim = self.scale * (-dy) as f64;
         self.center += (dre, dim).into();
         self.update_limits();
         self.image.pan(-dx, -dy);
+
+        let (dirty_x_min, dirty_x_max) = if dx < 0 {
+            (0, -dx as usize)
+        } else {
+            (self.image.width - dx as usize, self.image.width)
+        };
+
+        let (dirty_y_min, dirty_y_max) = if dy < 0 {
+            (0, -dy as usize)
+        } else {
+            (self.image.height - dy as usize, self.image.height)
+        };
+
+        self.dirty_regions.push_back(RangeRect {
+            x: dirty_x_min..dirty_x_max,
+            y: 0..self.image.height,
+        });
+        self.dirty_regions.push_back(RangeRect {
+            x: if dx < 0 {
+                dirty_x_max..self.image.width
+            } else {
+                0..dirty_x_min
+            },
+            y: dirty_y_min..dirty_y_max,
+        });
     }
 
     pub fn zoom_in(&mut self) {
         self.scale /= 2.0;
         self.update_limits();
+        self.dirtify_all();
     }
 
     pub fn zoom_out(&mut self) {
         self.scale *= 2.0;
         self.update_limits();
+        self.dirtify_all();
     }
 
     pub fn zoom_in_around(&mut self, x: usize, y: usize) {
@@ -264,6 +295,7 @@ impl Engine {
 
         self.scale = new_scale;
         self.update_limits();
+        self.dirtify_all();
     }
 
     pub fn image_data(&self) -> *const u8 {
@@ -271,30 +303,23 @@ impl Engine {
     }
 
     pub fn compute(&mut self, count: usize) {
-        if let Some(dirty_before_index) = self.dirty_before_index {
+        while let Some(dirty_region) = self.dirty_regions.pop_front() {
             let corner_diff = self.btm_right.clone() - &self.top_left;
             let re_span = corner_diff.re;
             let im_span = corner_diff.im;
 
-            for _ in 0..std::cmp::min(count, self.image.escape_counts.len()) {
-                let x = self.sweep_index % self.image.width;
-                let y = self.sweep_index / self.image.width;
+            for y in dirty_region.y {
+                for x in dirty_region.x.clone() {
+                    let i = x + y * self.image.width;
 
-                let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
-                let c_offset_im: f64 = (y as f64 * im_span / self.image.height as f64).into();
-                let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
+                    let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
+                    let c_offset_im: f64 = (y as f64 * im_span / self.image.height as f64).into();
+                    let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
-                let c = self.top_left.clone() + c_offset;
-                let escape_count =
-                    mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
-                self.image.escape_counts[self.sweep_index] = escape_count;
-
-                self.sweep_index =
-                    (self.sweep_index + self.sweep_step) % self.image.escape_counts.len();
-                if self.sweep_index == dirty_before_index {
-                    self.sweep_index = 0;
-                    self.dirty_before_index = None;
-                    break;
+                    let c = self.top_left.clone() + c_offset;
+                    let escape_count =
+                        mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
+                    self.image.escape_counts[i] = escape_count;
                 }
             }
         }
