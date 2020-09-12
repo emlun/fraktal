@@ -22,7 +22,10 @@ where
     }
 }
 
-pub fn increase_until_relprime<Num>(mut divisor: Num, dividee: Num) -> Num
+pub trait NextCoprime {
+    fn next_coprime(self, other: Self) -> Self;
+}
+impl<Num> NextCoprime for Num
 where
     Num: Copy,
     Num: Gcd,
@@ -30,10 +33,12 @@ where
     Num: AddAssign<Num>,
     Num: From<u8>,
 {
-    while dividee.gcd(divisor) > 1.into() {
-        divisor += 1.into();
+    fn next_coprime(mut self, dividee: Self) -> Self {
+        while dividee.gcd(self) > 1.into() {
+            self += 1.into();
+        }
+        self
     }
-    divisor
 }
 
 #[cfg(test)]
@@ -41,15 +46,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_increase_until_relprime() {
+    fn test_next_coprime() {
         let a: i16 = 12;
         let b = 2;
-        let c = increase_until_relprime(b, a);
+        let c = b.next_coprime(a);
         assert_eq!(c, 5);
 
         let a = 12;
         let b: u128 = 2;
-        let c = increase_until_relprime(b, a);
+        let c = b.next_coprime(a);
         assert_eq!(c, 5);
     }
 }
