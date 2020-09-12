@@ -1,6 +1,6 @@
 pub mod complex;
 pub mod mandelbrot;
-mod math;
+pub mod math;
 #[macro_use]
 mod utils;
 

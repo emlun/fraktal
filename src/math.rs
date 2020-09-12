@@ -23,6 +23,23 @@ where
 }
 
 pub trait NextCoprime {
+    /// Return the smallest `N` such that `N >= self` and `N` is coprime to `other`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fraktal::math::NextCoprime;
+    ///
+    /// let a: i16 = 12;
+    /// let b = 2;
+    /// assert_eq!(a.next_coprime(b), 13);
+    /// assert_eq!(b.next_coprime(a), 5);
+    ///
+    /// let a = 12;
+    /// let b: u128 = 5;
+    /// assert_eq!(a.next_coprime(b), 12);
+    /// assert_eq!(b.next_coprime(a), 5);
+    /// ```
     fn next_coprime(self, other: Self) -> Self;
 }
 impl<Num> NextCoprime for Num
@@ -38,23 +55,5 @@ where
             self += 1.into();
         }
         self
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_next_coprime() {
-        let a: i16 = 12;
-        let b = 2;
-        let c = b.next_coprime(a);
-        assert_eq!(c, 5);
-
-        let a = 12;
-        let b: u128 = 2;
-        let c = b.next_coprime(a);
-        assert_eq!(c, 5);
     }
 }
