@@ -262,7 +262,7 @@ pub struct Engine {
     btm_right: Complex<f64>,
     scale: f64,
     image: Image,
-    dirty_regions: VecDeque<RangeRect<usize>>,
+    dirty_regions: VecDeque<RangeRect<i32>>,
 }
 
 #[wasm_bindgen]
@@ -301,8 +301,10 @@ impl Engine {
 
     fn dirtify_all(&mut self) {
         self.dirty_regions.clear();
-        self.dirty_regions
-            .push_back(RangeRect::new(0..self.image.width, 0..self.image.height));
+        self.dirty_regions.push_back(RangeRect::new(
+            0..(self.image.width as i32),
+            0..(self.image.height as i32),
+        ));
     }
 
     pub fn pan(&mut self, dx: i32, dy: i32) {
@@ -313,24 +315,29 @@ impl Engine {
         self.image.pan(-dx, -dy);
 
         let (dirty_x_min, dirty_x_max) = if dx < 0 {
-            (0, -dx as usize)
+            (0, -dx)
         } else {
-            (self.image.width - dx as usize, self.image.width)
+            (self.image.width as i32 - dx, self.image.width as i32)
         };
 
         let (dirty_y_min, dirty_y_max) = if dy < 0 {
-            (0, -dy as usize)
+            (0, -dy)
         } else {
-            (self.image.height - dy as usize, self.image.height)
+            (self.image.height as i32 - dy, self.image.height as i32)
         };
+
+        for region in &mut self.dirty_regions {
+            region.x0 -= dx;
+            region.y0 -= dy;
+        }
 
         self.dirty_regions.push_back(RangeRect::new(
             dirty_x_min..dirty_x_max,
-            0..self.image.height,
+            0..(self.image.height as i32),
         ));
         self.dirty_regions.push_back(RangeRect::new(
             if dx < 0 {
-                dirty_x_max..self.image.width
+                dirty_x_max..(self.image.width as i32)
             } else {
                 0..dirty_x_min
             },
@@ -382,20 +389,26 @@ impl Engine {
             let im_span = corner_diff.im;
 
             while let Some((x, y)) = dirty_region.next() {
-                let i = x + y * self.image.width;
+                if x >= 0
+                    && x < (self.image.width as i32)
+                    && y >= 0
+                    && y < (self.image.height as i32)
+                {
+                    let i = x as usize + y as usize * self.image.width;
 
-                let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
-                let c_offset_im: f64 = (y as f64 * im_span / self.image.height as f64).into();
-                let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
+                    let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
+                    let c_offset_im: f64 = (y as f64 * im_span / self.image.height as f64).into();
+                    let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
-                let c = self.top_left.clone() + c_offset;
-                let escape_count =
-                    mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
-                self.image.escape_counts[i] = escape_count;
+                    let c = self.top_left.clone() + c_offset;
+                    let escape_count =
+                        mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
+                    self.image.escape_counts[i] = escape_count;
 
-                count -= 1;
-                if count == 0 {
-                    return;
+                    count -= 1;
+                    if count == 0 {
+                        return;
+                    }
                 }
             }
 
