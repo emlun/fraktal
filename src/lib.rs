@@ -116,6 +116,44 @@ impl Image {
         }
     }
 
+    pub fn pan(&mut self, dx: i32, dy: i32) {
+        let di: usize =
+            (dx + (dy * self.width as i32)).rem_euclid(self.escape_counts.len() as i32) as usize;
+
+        let v: Vec<usize> = self.escape_counts.clone();
+        let l = self.escape_counts.len();
+        for i in 0..self.escape_counts.len() {
+            self.escape_counts[(i + di) % l] = v[i];
+        }
+
+        let y_to_zero = if dy >= 0 {
+            0..(dy as usize)
+        } else {
+            (self.height - ((-dy) as usize))..self.height
+        };
+
+        let x_to_zero = if dx >= 0 {
+            0..(dx as usize)
+        } else {
+            (self.width - ((-dx) as usize))..self.width
+        };
+
+        for y in y_to_zero {
+            let yw = y * self.width;
+            for x in 0..self.width {
+                let i = (x + yw).rem_euclid(self.escape_counts.len());
+                self.escape_counts[i] = 0;
+            }
+        }
+        for y in 0..self.height {
+            let yw = y * self.width;
+            for x in x_to_zero.clone() {
+                let i = (x + yw).rem_euclid(self.escape_counts.len());
+                self.escape_counts[i] = 0;
+            }
+        }
+    }
+
     pub fn render_pixels(&mut self) {
         for i in 0..self.escape_counts.len() {
             let pixel_index = i * 4;
@@ -195,6 +233,7 @@ impl Engine {
         let dim = self.scale * (-dy) as f64;
         self.center += (dre, dim).into();
         self.update_limits();
+        self.image.pan(-dx, -dy);
     }
 
     pub fn zoom_in(&mut self) {
