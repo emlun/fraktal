@@ -375,13 +375,13 @@ impl Engine {
         self.image.image_data()
     }
 
-    pub fn compute(&mut self, count: usize) {
+    pub fn compute(&mut self, mut count: usize) {
         while let Some(dirty_region) = self.dirty_regions.front_mut() {
             let corner_diff = self.btm_right.clone() - &self.top_left;
             let re_span = corner_diff.re;
             let im_span = corner_diff.im;
 
-            for (x, y) in dirty_region {
+            while let Some((x, y)) = dirty_region.next() {
                 let i = x + y * self.image.width;
 
                 let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
@@ -392,6 +392,11 @@ impl Engine {
                 let escape_count =
                     mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
                 self.image.escape_counts[i] = escape_count;
+
+                count -= 1;
+                if count == 0 {
+                    return;
+                }
             }
 
             self.dirty_regions.pop_front();
