@@ -10,7 +10,6 @@ use std::collections::VecDeque;
 use std::ops::Add;
 use std::ops::Div;
 use std::ops::Mul;
-use std::ops::Range;
 use std::ops::Rem;
 use std::ops::Sub;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -181,8 +180,6 @@ impl Image {
 
 #[derive(Debug)]
 struct RangeRect<T> {
-    xs: Range<T>,
-    ys: Range<T>,
     x0: T,
     y0: T,
     w: T,
@@ -202,11 +199,7 @@ where
     T: NextCoprime,
     T: Sub<T, Output = T>,
 {
-    fn new(xs: Range<T>, ys: Range<T>) -> RangeRect<T> {
-        let x0 = xs.start;
-        let y0 = ys.start;
-        let w = xs.end - x0;
-        let h = ys.end - y0;
+    fn new((x0, w): (T, T), (y0, h): (T, T)) -> RangeRect<T> {
         let len = w * h;
         RangeRect {
             x0,
@@ -215,8 +208,6 @@ where
             h,
             len,
             step: (len / 100.into()).next_coprime(len),
-            xs,
-            ys,
             i: 0.into(),
             exhausted: false,
         }
@@ -302,8 +293,8 @@ impl Engine {
     fn dirtify_all(&mut self) {
         self.dirty_regions.clear();
         self.dirty_regions.push_back(RangeRect::new(
-            0..(self.image.width as i32),
-            0..(self.image.height as i32),
+            (0, self.image.width as i32),
+            (0, self.image.height as i32),
         ));
     }
 
@@ -332,16 +323,16 @@ impl Engine {
         }
 
         self.dirty_regions.push_back(RangeRect::new(
-            dirty_x_min..dirty_x_max,
-            0..(self.image.height as i32),
+            (dirty_x_min, dirty_x_max),
+            (0, self.image.height as i32),
         ));
         self.dirty_regions.push_back(RangeRect::new(
             if dx < 0 {
-                dirty_x_max..(self.image.width as i32)
+                (dirty_x_max, self.image.width as i32)
             } else {
-                0..dirty_x_min
+                (0, dirty_x_min)
             },
-            dirty_y_min..dirty_y_max,
+            (dirty_y_min, dirty_y_max),
         ));
     }
 
