@@ -241,7 +241,7 @@ where
 {
     type Item = (T, T);
     fn next(&mut self) -> Option<Self::Item> {
-        if self.is_exhausted() {
+        if self.is_exhausted() || self.len == 0.into() {
             None
         } else {
             let y = self.y0 + self.i / self.w;
