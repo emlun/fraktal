@@ -2,6 +2,23 @@ use std::ops::AddAssign;
 use std::ops::Rem;
 
 pub trait Gcd {
+    /// Return the greatest common divisor of `self` and `other`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fraktal::math::Gcd;
+    ///
+    /// let a: i16 = 12;
+    /// let b = 8;
+    /// assert_eq!(a.gcd(b), 4);
+    /// assert_eq!(b.gcd(a), 4);
+    ///
+    /// let a = 12;
+    /// let b: u128 = 5;
+    /// assert_eq!(a.gcd(b), 1);
+    /// assert_eq!(b.gcd(a), 1);
+    /// ```
     fn gcd(self, other: Self) -> Self;
 }
 
