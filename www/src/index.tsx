@@ -1,11 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import configureStore from 'configureStore';
-
 import Root from 'components/Root';
 
-import './index.css';
+import './index.module.css';
 
 
 function getRoot() {
@@ -21,13 +19,8 @@ function getRoot() {
 }
 
 const root = getRoot();
-const store = configureStore();
 
 ReactDOM.render(
-  <Root store={ store }/>,
+  <Root/>,
   root
 );
-
-if (module.hot) {
-  module.hot.accept();
-}

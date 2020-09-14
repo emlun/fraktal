@@ -1,16 +1,20 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import styles from './Sidebar.css';
+import styles from './Sidebar.module.css';
 
+interface Props {
+  children: React.ReactNode,
+  expanded: boolean,
+  title: string,
+  onToggle: () => void,
+}
 
 export default function Sidebar({
   children,
-  expanded = false,
+  expanded = true,
   title,
-
   onToggle,
-}) {
+}: Props) {
   return <div
     className={ `${styles.Sidebar} ${expanded ? styles.expanded : ''}` }
   >
@@ -30,11 +34,3 @@ export default function Sidebar({
     </div>
   </div>;
 }
-Sidebar.propTypes = {
-  expanded: PropTypes.bool.isRequired,
-  title: PropTypes.string.isRequired,
-
-  onToggle: PropTypes.func.isRequired,
-
-  children: PropTypes.node,
-};

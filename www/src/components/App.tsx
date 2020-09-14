@@ -1,15 +1,16 @@
-import React from 'react';
-import * as ReactRedux from 'react-redux';
-import PropTypes from 'prop-types';
-
-import * as actions from 'actions/index';
+import React, { useState } from 'react';
 
 import Canvas from 'components/Canvas';
 import Controls from 'components/Controls';
 import Sidebar from 'components/Sidebar';
 import GithubCorner from 'components/GithubCorner';
 
-import styles from './App.css';
+import { Engine } from 'fraktal-wasm';
+
+import styles from './App.module.module.css';
+
+
+const engine = Engine.new();
 
 
 function computeTreeRef() {
@@ -21,24 +22,22 @@ function computeTreeRef() {
   }
 }
 
+function App() {
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
-function App({
-  sidebarExpanded,
-  onToggleSidebar,
-}) {
   return <div className={ styles.wrapper }>
     <GithubCorner
       fillColor="#626262"
       repo="emlun/fraktal"
       visible={ sidebarExpanded }
     />
-    <Canvas/>
+    <Canvas engine={ engine }/>
     <Sidebar
       expanded={ sidebarExpanded }
-      onToggle={ onToggleSidebar }
+      onToggle={ () => setSidebarExpanded(!sidebarExpanded) }
       title="Settings"
     >
-      <Controls/>
+      <Controls engine={ engine } />
 
       <footer className={ styles.footer }>
         <div>
@@ -57,16 +56,5 @@ function App({
     </Sidebar>
   </div>;
 }
-App.propTypes = {
-  sidebarExpanded: PropTypes.bool.isRequired,
-  onToggleSidebar: PropTypes.func.isRequired,
-};
 
-export default ReactRedux.connect(
-  state => ({
-    sidebarExpanded: state.getIn(['sidebar', 'expanded'], false),
-  }),
-  {
-    onToggleSidebar: actions.toggleSidebar,
-  }
-)(App);
+export default App;
