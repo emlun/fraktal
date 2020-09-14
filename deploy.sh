@@ -7,6 +7,7 @@ set -e
 set -x
 
 cargo test
+cd www && npm run lint && cd -
 wasm-pack build
 cd www
 npm run build
