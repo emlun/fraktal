@@ -81,9 +81,9 @@ pub struct Gradient {
     max_value: usize,
 }
 
-impl Gradient {
-    pub fn new() -> Gradient {
-        Gradient {
+impl Default for Gradient {
+    fn default() -> Self {
+        Self {
             inside: Color::of(0, 0, 0, 255),
             root: Color::of(0, 0, 0, 255),
             pivots: vec![
@@ -93,7 +93,9 @@ impl Gradient {
             max_value: 50,
         }
     }
+}
 
+impl Gradient {
     fn set_inside_color(&mut self, color: Color) {
         self.inside = color;
     }
@@ -210,7 +212,7 @@ impl Image {
         Image {
             width,
             height,
-            palette: Gradient::new().make_palette(),
+            palette: Gradient::default().make_palette(),
             escape_counts: vec![0; width * height],
             pixels: vec![0; width * height * 4],
         }
@@ -222,8 +224,8 @@ impl Image {
 
         let v: Vec<usize> = self.escape_counts.clone();
         let l = self.escape_counts.len();
-        for i in 0..self.escape_counts.len() {
-            self.escape_counts[(i + di) % l] = v[i];
+        for (i, v) in v.into_iter().enumerate() {
+            self.escape_counts[(i + di) % l] = v;
         }
 
         let y_to_zero = if dy >= 0 {
@@ -351,22 +353,28 @@ pub struct Engine {
     dirty_regions: VecDeque<RangeRect<i32>>,
 }
 
-#[wasm_bindgen]
-impl Engine {
-    pub fn new() -> Engine {
+impl Default for Engine {
+    fn default() -> Self {
         utils::set_panic_hook();
 
-        let mut e = Engine {
+        let mut e = Self {
             scale: 4.0,
             center: Complex::from((0, 0)),
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
-            gradient: Gradient::new(),
+            gradient: Gradient::default(),
             image: Image::new(1, 1),
             dirty_regions: VecDeque::new(),
         };
         e.set_size(1, 1);
         e
+    }
+}
+
+#[wasm_bindgen]
+impl Engine {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn set_size(&mut self, width: usize, height: usize) {
@@ -471,11 +479,11 @@ impl Engine {
 
     pub fn compute(&mut self, mut count: usize) {
         while let Some(dirty_region) = self.dirty_regions.front_mut() {
-            let corner_diff = self.btm_right.clone() - &self.top_left;
+            let corner_diff = self.btm_right - self.top_left;
             let re_span = corner_diff.re;
             let im_span = corner_diff.im;
 
-            while let Some((x, y)) = dirty_region.next() {
+            for (x, y) in dirty_region {
                 if x >= 0
                     && x < (self.image.width as i32)
                     && y >= 0
@@ -483,11 +491,11 @@ impl Engine {
                 {
                     let i = x as usize + y as usize * self.image.width;
 
-                    let c_offset_re: f64 = (x as f64 * re_span / self.image.width as f64).into();
-                    let c_offset_im: f64 = (y as f64 * im_span / self.image.height as f64).into();
+                    let c_offset_re: f64 = x as f64 * re_span / self.image.width as f64;
+                    let c_offset_im: f64 = y as f64 * im_span / self.image.height as f64;
                     let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
-                    let c = self.top_left.clone() + c_offset;
+                    let c = self.top_left + c_offset;
                     let escape_count =
                         mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
                     self.image.escape_counts[i] = escape_count;

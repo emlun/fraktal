@@ -2,7 +2,7 @@ use super::complex::Complex;
 
 pub fn check(c: Complex<f64>, iteration_limit: usize, escape_abs: f64) -> usize {
     let escape_abs_squared = escape_abs * escape_abs;
-    let mut z = c.clone();
+    let mut z = c;
     let mut i = 0;
 
     while i < iteration_limit {
@@ -10,7 +10,7 @@ pub fn check(c: Complex<f64>, iteration_limit: usize, escape_abs: f64) -> usize 
             return i;
         }
 
-        z = z.square() + &c;
+        z = z.square() + c;
         i += 1;
     }
 
