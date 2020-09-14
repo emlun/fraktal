@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import * as ReactRedux from 'react-redux';
 import { sprintf } from 'sprintf-js';
+import _ from 'underscore';
 
 import * as rootActions from 'actions';
 import * as colorsActions from 'actions/colors';
@@ -40,6 +41,11 @@ function Controls({
   onSetPivotColor,
   onSetPivotValue,
 }: Props) {
+  const handleSetPivotColor = useCallback(
+    _.debounce(onSetPivotColor, 500),
+    [onSetPivotColor]
+  );
+
   return <div>
     <form onSubmit={ onSubmit }>
       <div>
@@ -82,7 +88,7 @@ function Controls({
               value={ pivot.value }
             />
             <input
-              onChange={ ({ target: { value } }) => onSetPivotColor(index, value) }
+              onChange={ ({ target: { value } }) => handleSetPivotColor(index, value) }
               type="color"
               value={ colorHex }
             />

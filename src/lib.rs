@@ -20,6 +20,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+#[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
     r: u8,
@@ -28,16 +29,42 @@ pub struct Color {
     a: u8,
 }
 
+#[wasm_bindgen]
 impl Color {
-    fn of(r: u8, g: u8, b: u8, a: u8) -> Color {
+    pub fn of(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
     }
 }
 
+#[wasm_bindgen]
 pub struct Gradient {
     root: Color,
     pivots: Vec<(usize, Color)>,
     max_value: usize,
+}
+
+#[wasm_bindgen]
+impl Gradient {
+    pub fn new() -> Gradient {
+        Gradient {
+            root: Color::of(0, 0, 0, 255),
+            pivots: vec![(50, Color::of(255, 0, 255, 255))],
+            max_value: 50,
+        }
+    }
+
+    pub fn empty(root: Color) -> Gradient {
+        Gradient {
+            root,
+            pivots: Vec::new(),
+            max_value: 0,
+        }
+    }
+
+    pub fn append_pivot(&mut self, value: usize, color: Color) {
+        self.max_value = value;
+        self.pivots.push((value, color));
+    }
 }
 
 impl Gradient {
@@ -108,12 +135,7 @@ impl Image {
         Image {
             width,
             height,
-            palette: Gradient {
-                root: Color::of(0, 0, 0, 255),
-                pivots: vec![(50, Color::of(255, 0, 255, 255))],
-                max_value: 50,
-            }
-            .make_palette(Color::of(0, 0, 0, 255)),
+            palette: Gradient::new().make_palette(Color::of(0, 0, 0, 255)),
             escape_counts: vec![0; width * height],
             pixels: vec![0; width * height * 4],
         }
@@ -406,5 +428,9 @@ impl Engine {
 
     pub fn render(&mut self) {
         self.image.render_pixels();
+    }
+
+    pub fn set_gradient(&mut self, gradient: &Gradient) {
+        self.image.palette = gradient.make_palette(Color::of(0, 0, 0, 255));
     }
 }

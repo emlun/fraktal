@@ -1,16 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as ReactRedux from 'react-redux';
+import _ from 'underscore';
 
 import { debug } from 'logging';
 
-import { Engine } from 'fraktal-wasm/fraktal';
+import { Color, Engine, Gradient } from 'fraktal-wasm/fraktal';
 import { memory } from 'fraktal-wasm/fraktal_bg';
+
+import { GradientPivot } from 'data/Colors';
 
 import styles from './Canvas.module.css';
 
 
 interface Props {
   engine: Engine,
+  gradient: GradientPivot[],
 
   readonly panTriggerThreshold?: number,
 };
@@ -22,6 +26,7 @@ interface Pos {
 
 function Canvas({
   engine,
+  gradient,
   panTriggerThreshold = 10,
 }: Props) {
 
@@ -137,6 +142,17 @@ function Canvas({
 
   useEffect(
     () => {
+      let g = Gradient.empty(Color.of(gradient[0][0], gradient[0][1], gradient[0][2], 255));
+      for (let pivot of gradient) {
+        g.append_pivot(pivot.value, Color.of(pivot.color[0], pivot.color[1], pivot.color[2], 255));
+      }
+      engine.set_gradient(g);
+    },
+    [gradient]
+  );
+
+  useEffect(
+    () => {
       if (canvas) {
         const drawPixels = () => {
           ctx.fillStyle = '#000000';
@@ -163,7 +179,7 @@ function Canvas({
         };
       }
     },
-    [ctx, canvas, imageData]
+    [ctx, canvas, gradient, imageData]
   );
 
   return <div
@@ -177,4 +193,8 @@ function Canvas({
   </div>;
 }
 
-export default Canvas;
+export default ReactRedux.connect(
+  state => ({
+    gradient: state.colors.gradient,
+  })
+)(Canvas);
