@@ -66,7 +66,7 @@ function Canvas({
     scrollStartPos.current = null;
   }
 
-  const onWheel = (event: MouseScrollEvent) => {
+  const onWheel = (event: WheelEvent) => {
     if (event.deltaY > 0) {
       if (event.shiftKey) {
         engine.zoom_out_around(event.clientX, event.clientY);
