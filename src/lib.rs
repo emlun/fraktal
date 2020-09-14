@@ -48,19 +48,19 @@ impl Gradient {
         let mut prev_color = &self.root;
 
         for (escape_count, color) in &self.pivots {
-            let r_diff: u32 = (color.r - prev_color.r) as u32;
-            let g_diff: u32 = (color.g - prev_color.g) as u32;
-            let b_diff: u32 = (color.b - prev_color.b) as u32;
-            let a_diff: u32 = (color.a - prev_color.a) as u32;
-            let i_diff: u32 = (escape_count - prev_i) as u32;
+            let r_diff: i16 = color.r as i16 - prev_color.r as i16;
+            let g_diff: i16 = color.g as i16 - prev_color.g as i16;
+            let b_diff: i16 = color.b as i16 - prev_color.b as i16;
+            let a_diff: i16 = color.a as i16 - prev_color.a as i16;
+            let i_diff: i16 = *escape_count as i16 - prev_i as i16;
 
             for i in prev_i..*escape_count {
-                let di = i - prev_i;
+                let di = (i - prev_i) as i16;
                 values.push(Color::of(
-                    prev_color.r + (r_diff * di as u32 / i_diff) as u8,
-                    prev_color.g + (g_diff * di as u32 / i_diff) as u8,
-                    prev_color.b + (b_diff * di as u32 / i_diff) as u8,
-                    prev_color.a + (a_diff * di as u32 / i_diff) as u8,
+                    prev_color.r + (r_diff * di / i_diff) as u8,
+                    prev_color.g + (g_diff * di / i_diff) as u8,
+                    prev_color.b + (b_diff * di / i_diff) as u8,
+                    prev_color.a + (a_diff * di / i_diff) as u8,
                 ));
             }
 
