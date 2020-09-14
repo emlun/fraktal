@@ -29,7 +29,7 @@ function Canvas({
   const scrollStartPos = useRef<Pos | null>(null);
   const [ctx, setContext] = useState<CanvasRenderingContext2D>();
   const [canvas, setCanvas] = useState<HTMLCanvasElement>();
-  const imageData = useRef<ImageData>();
+  const imageData = useRef(new ImageData(100, 100));
 
   const getScrollOffset = () => {
     if (scrollStartPos.current && mousePos.current) {
@@ -137,7 +137,7 @@ function Canvas({
 
   useEffect(
     () => {
-      if (canvas) {
+      if (canvas && ctx && imageData.current) {
         const drawPixels = () => {
           ctx.fillStyle = '#000000';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
