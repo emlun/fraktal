@@ -1,4 +1,3 @@
-/* eslint global-require: off */
 import { createStore } from 'redux';
 
 import rootReducer from './reducers/index';
@@ -11,13 +10,6 @@ export default function configureStore() {
     rootReducer,
     DevTools.instrument()
   );
-
-  if (module.hot) {
-    module.hot.accept('./reducers/index', () => {
-      const nextRootReducer = require('./reducers/index').default;
-      store.replaceReducer(nextRootReducer);
-    });
-  }
 
   return store;
 }

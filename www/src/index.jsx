@@ -27,7 +27,3 @@ ReactDOM.render(
   <Root store={ store }/>,
   root
 );
-
-if (module.hot) {
-  module.hot.accept();
-}
