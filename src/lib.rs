@@ -98,11 +98,6 @@ impl Gradient {
         self.inside = color;
     }
 
-    fn append_pivot(&mut self, value: usize, color: Color) {
-        self.max_value = value;
-        self.pivots.push(GradientPivot::new(value, color));
-    }
-
     fn insert_pivot(&mut self, index: usize) -> GradientPivot {
         if let Some(pivot_after) = self.pivots.get(index + 1) {
             let pivot_before = &self.pivots[index];
