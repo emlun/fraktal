@@ -31,50 +31,130 @@ pub struct Color {
 
 #[wasm_bindgen]
 impl Color {
-    pub fn of(r: u8, g: u8, b: u8, a: u8) -> Color {
+    fn of(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
+    }
+
+    fn parse_hex(hex: &str) -> Result<Color, std::num::ParseIntError> {
+        Ok(Color {
+            r: u8::from_str_radix(&hex[1..3], 16)?,
+            g: u8::from_str_radix(&hex[3..5], 16)?,
+            b: u8::from_str_radix(&hex[5..7], 16)?,
+            a: 255,
+        })
+    }
+
+    pub fn as_hex(&self) -> String {
+        format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
 }
 
 #[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct GradientPivot {
+    pub value: usize,
+    pub color: Color,
+}
+
+impl GradientPivot {
+    fn new(value: usize, color: Color) -> Self {
+        GradientPivot { value, color }
+    }
+
+    fn average(&self, other: &Self) -> Self {
+        GradientPivot {
+            value: (self.value + other.value) / 2,
+            color: Color::of(
+                (self.color.r + other.color.r) / 2,
+                (self.color.g + other.color.g) / 2,
+                (self.color.b + other.color.b) / 2,
+                (self.color.a + other.color.a) / 2,
+            ),
+        }
+    }
+}
+
 pub struct Gradient {
+    inside: Color,
     root: Color,
-    pivots: Vec<(usize, Color)>,
+    pivots: Vec<GradientPivot>,
     max_value: usize,
 }
 
-#[wasm_bindgen]
 impl Gradient {
     pub fn new() -> Gradient {
         Gradient {
+            inside: Color::of(0, 0, 0, 255),
             root: Color::of(0, 0, 0, 255),
-            pivots: vec![(50, Color::of(255, 0, 255, 255))],
+            pivots: vec![
+                GradientPivot::new(0, Color::of(0, 0, 0, 255)),
+                GradientPivot::new(50, Color::of(255, 0, 255, 255)),
+            ],
             max_value: 50,
         }
     }
 
-    pub fn empty(root: Color) -> Gradient {
-        Gradient {
-            root,
-            pivots: Vec::new(),
-            max_value: 0,
+    fn set_inside_color(&mut self, color: Color) {
+        self.inside = color;
+    }
+
+    fn append_pivot(&mut self, value: usize, color: Color) {
+        self.max_value = value;
+        self.pivots.push(GradientPivot::new(value, color));
+    }
+
+    fn insert_pivot(&mut self, index: usize) -> GradientPivot {
+        if let Some(pivot_after) = self.pivots.get(index + 1) {
+            let pivot_before = &self.pivots[index];
+            let pivot = pivot_before.average(pivot_after);
+            self.pivots.insert(index + 1, pivot.clone());
+            pivot
+        } else {
+            let pivot = self.pivots.last().unwrap().clone();
+            self.pivots.push(pivot.clone());
+            pivot
         }
     }
 
-    pub fn append_pivot(&mut self, value: usize, color: Color) {
-        self.max_value = value;
-        self.pivots.push((value, color));
+    fn delete_pivot(&mut self, index: usize) {
+        self.pivots.remove(index);
     }
-}
 
-impl Gradient {
-    fn make_palette(&self, inside_color: Color) -> Palette {
-        let mut values: Vec<Color> = Vec::with_capacity(self.pivots.last().unwrap().0 + 1);
+    fn set_pivot_value(&mut self, index: usize, value: usize) -> Option<usize> {
+        let min_value = self.pivots.get(index - 1).map(|p| p.value + 1).unwrap_or(0);
+        let max_value = self
+            .pivots
+            .get(index + 1)
+            .map(|p| p.value - 1)
+            .unwrap_or(usize::max_value());
+
+        self.pivots.get_mut(index).map(|pivot| {
+            let v = std::cmp::max(std::cmp::min(value, max_value), min_value);
+            pivot.value = v;
+            v
+        })
+    }
+
+    fn set_pivot_color(&mut self, index: usize, color: Color) -> bool {
+        if let Some(pivot) = self.pivots.get_mut(index) {
+            pivot.color = color;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn make_palette(&self) -> Palette {
+        let mut values: Vec<Color> = Vec::with_capacity(self.pivots.last().unwrap().value + 1);
         values.push(self.root);
         let mut prev_i = 0;
         let mut prev_color = &self.root;
 
-        for (escape_count, color) in &self.pivots {
+        for GradientPivot {
+            value: escape_count,
+            color,
+        } in &self.pivots
+        {
             let r_diff: i16 = color.r as i16 - prev_color.r as i16;
             let g_diff: i16 = color.g as i16 - prev_color.g as i16;
             let b_diff: i16 = color.b as i16 - prev_color.b as i16;
@@ -96,12 +176,12 @@ impl Gradient {
         }
 
         while values.len() <= self.max_value {
-            values.push(self.pivots.last().unwrap().1);
+            values.push(self.pivots.last().unwrap().color);
         }
 
         Palette {
             escape_values: values,
-            inside_color,
+            inside_color: self.inside,
         }
     }
 }
@@ -135,7 +215,7 @@ impl Image {
         Image {
             width,
             height,
-            palette: Gradient::new().make_palette(Color::of(0, 0, 0, 255)),
+            palette: Gradient::new().make_palette(),
             escape_counts: vec![0; width * height],
             pixels: vec![0; width * height * 4],
         }
@@ -271,6 +351,7 @@ pub struct Engine {
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     scale: f64,
+    gradient: Gradient,
     image: Image,
     dirty_regions: VecDeque<RangeRect<i32>>,
 }
@@ -285,6 +366,7 @@ impl Engine {
             center: Complex::from((0, 0)),
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
+            gradient: Gradient::new(),
             image: Image::new(1, 1),
             dirty_regions: VecDeque::new(),
         };
@@ -430,7 +512,44 @@ impl Engine {
         self.image.render_pixels();
     }
 
-    pub fn set_gradient(&mut self, gradient: &Gradient) {
-        self.image.palette = gradient.make_palette(Color::of(0, 0, 0, 255));
+    fn update_palette(&mut self) {
+        self.image.palette = self.gradient.make_palette();
+    }
+
+    pub fn gradient_set_pivot_value(&mut self, index: usize, value: usize) -> Option<usize> {
+        let result = self.gradient.set_pivot_value(index, value);
+        self.update_palette();
+        result
+    }
+
+    pub fn gradient_set_pivot_color(&mut self, index: usize, color: &str) -> bool {
+        if let Ok(color) = Color::parse_hex(color) {
+            self.gradient.set_pivot_color(index, color);
+            self.update_palette();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn gradient_insert_pivot(&mut self, index: usize) -> GradientPivot {
+        let pivot = self.gradient.insert_pivot(index);
+        self.update_palette();
+        pivot
+    }
+
+    pub fn gradient_delete_pivot(&mut self, index: usize) {
+        self.gradient.delete_pivot(index);
+        self.update_palette();
+    }
+
+    pub fn gradient_set_inside_color(&mut self, color: &str) -> bool {
+        if let Ok(color) = Color::parse_hex(color) {
+            self.gradient.set_inside_color(color);
+            self.update_palette();
+            true
+        } else {
+            false
+        }
     }
 }

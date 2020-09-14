@@ -6,15 +6,13 @@ interface Props {
   children: React.ReactNode,
   expanded: boolean,
   title: string,
-
-  onToggle: () => {},
+  onToggle: () => void,
 }
 
 export default function Sidebar({
   children,
-  expanded = false,
+  expanded = true,
   title,
-
   onToggle,
 }: Props) {
   return <div

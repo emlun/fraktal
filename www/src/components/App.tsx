@@ -1,7 +1,4 @@
-import React from 'react';
-import * as ReactRedux from 'react-redux';
-
-import * as actions from 'actions/index';
+import React, { useState } from 'react';
 
 import Canvas from 'components/Canvas';
 import Controls from 'components/Controls';
@@ -25,15 +22,9 @@ function computeTreeRef() {
   }
 }
 
-interface Props {
-  sidebarExpanded: boolean,
-  onToggleSidebar: () => {},
-}
+function App() {
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
-function App({
-  sidebarExpanded,
-  onToggleSidebar,
-}: Props) {
   return <div className={ styles.wrapper }>
     <GithubCorner
       fillColor="#626262"
@@ -43,10 +34,10 @@ function App({
     <Canvas engine={ engine }/>
     <Sidebar
       expanded={ sidebarExpanded }
-      onToggle={ onToggleSidebar }
+      onToggle={ () => setSidebarExpanded(!sidebarExpanded) }
       title="Settings"
     >
-      <Controls/>
+      <Controls engine={ engine } />
 
       <footer className={ styles.footer }>
         <div>
@@ -66,11 +57,4 @@ function App({
   </div>;
 }
 
-export default ReactRedux.connect(
-  state => ({
-    sidebarExpanded: state.sidebar.expanded,
-  }),
-  {
-    onToggleSidebar: actions.toggleSidebar,
-  }
-)(App);
+export default App;
