@@ -25,7 +25,6 @@
     "@babel/preset-typescript": "^7.10.4",
     "@babel/register": "^7.8.3",
     "@tsconfig/recommended": "^1.0.1",
-    "@types/complex.js": "^2.0.1",
     "@types/react": "^16.9.49",
     "@types/react-dom": "^16.9.8",
     "@types/underscore": "^1.10.22",
@@ -51,7 +50,6 @@
     "webpack-dev-server": "^3.10.3"
   },
   "dependencies": {
-    "complex.js": "^2.0.11",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "underscore": "^1.9.2"

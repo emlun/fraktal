@@ -1,7 +1,11 @@
 import React from 'react';
-import Complex from 'complex.js';
 
 import FloatInput from 'components/FloatInput';
+
+interface Complex {
+  re: number,
+  im: number,
+}
 
 interface Props {
   value: Complex,
@@ -14,13 +18,13 @@ export default function ComplexInput({
 }: Props) {
   return <span>
     <FloatInput
-      onChange={ value => onChange(new Complex(value, im)) }
+      onChange={ value => onChange({ re: value, im }) }
       placeholder="Re"
       value={ re }
     />
     { ' + ' }
     <FloatInput
-      onChange={ value => onChange(new Complex(re, value)) }
+      onChange={ value => onChange({ re, im: value }) }
       placeholder="Im"
       value={ im }
     />
