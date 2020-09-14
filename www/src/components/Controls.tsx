@@ -42,7 +42,10 @@ function Controls({
   onSetPivotValue,
 }: Props) {
   const handleSetPivotColor = useCallback(
-    _.debounce(onSetPivotColor, 500),
+    _.debounce(
+      (index, value) => onSetPivotColor(index, value),
+      500
+    ),
     [onSetPivotColor]
   );
 
@@ -82,24 +85,42 @@ function Controls({
               max={ numColors - 1 }
               min={ 0 }
               onChange={
-                ({ target: { value } }) => onSetPivotValue(index, parseInt(value, 10))
+                useCallback(
+                  ({ target: { value } }) => onSetPivotValue(index, parseInt(value, 10)),
+                  [index, onSetPivotValue]
+                )
               }
               type="range"
               value={ pivot.value }
             />
             <input
-              onChange={ ({ target: { value } }) => handleSetPivotColor(index, value) }
+              onChange={
+                useCallback(
+                  ({ target: { value } }) => handleSetPivotColor(index, value),
+                  [index, handleSetPivotColor]
+                )
+              }
               type="color"
               value={ colorHex }
             />
             <button
-              onClick={ () => onAddGradientPivot(index) }
+              onClick={
+                useCallback(
+                  () => onAddGradientPivot(index),
+                  [index, onAddGradientPivot]
+                )
+              }
               type="button"
             >
               +
             </button>
             <button
-              onClick={ () => onDeleteGradientPivot(index) }
+              onClick={
+                useCallback(
+                  () => onDeleteGradientPivot(index),
+                  [index, onDeleteGradientPivot]
+                )
+              }
               type="button"
             >
               -
@@ -110,7 +131,12 @@ function Controls({
         <p>
           { 'Color inside set: ' }
           <input
-            onChange={ ({ target: { value } }) => onSetInsideColor(value) }
+            onChange={
+              useCallback(
+                ({ target: { value } }) => onSetInsideColor(value),
+                [onSetInsideColor]
+              )
+            }
             type="color"
             value={
               `#${
