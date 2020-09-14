@@ -85,10 +85,7 @@ pub struct Palette {
 }
 
 impl Palette {
-    fn get_color<'slf, 'ret>(&'slf self, escape_count: usize) -> &'ret Color
-    where
-        'slf: 'ret,
-    {
+    fn get_color(&self, escape_count: usize) -> &Color {
         let len = self.escape_values.len();
         if escape_count >= len {
             &self.inside_color
