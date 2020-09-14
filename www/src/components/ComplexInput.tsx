@@ -1,13 +1,17 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import Complex from 'complex.js';
 
 import FloatInput from 'components/FloatInput';
 
+interface Props {
+  value: Complex,
+  onChange: (value: Complex) => void,
+}
+
 export default function ComplexInput({
   value: { im, re },
   onChange,
-}) {
+}: Props) {
   return <span>
     <FloatInput
       onChange={ value => onChange(new Complex(value, im)) }
@@ -23,10 +27,3 @@ export default function ComplexInput({
     i
   </span>;
 }
-ComplexInput.propTypes = {
-  value: PropTypes.shape({
-    im: PropTypes.number.isRequired,
-    re: PropTypes.number.isRequired,
-  }).isRequired,
-  onChange: PropTypes.func.isRequired,
-};

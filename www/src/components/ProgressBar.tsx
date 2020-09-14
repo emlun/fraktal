@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import styles from './ProgressBar.css';
+import styles from './ProgressBar.module.css';
 
 export default function ProgressBar({
   max = 100,

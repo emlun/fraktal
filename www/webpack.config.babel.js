@@ -4,6 +4,7 @@ const childProcess = require('child_process');
 const path = require('path');
 
 const webpack = require('webpack');
+const ForkTsCheckerPlugin = require('fork-ts-checker-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const projectName = 'Fraktal';
@@ -28,6 +29,15 @@ const devConfig = {
 
 const devPlugins = [
   new webpack.HotModuleReplacementPlugin(),
+  new ForkTsCheckerPlugin({
+    typescript: {
+      configFile: path.resolve(__dirname, 'tsconfig.json'),
+      disgnosticOptions: {
+        semantic: true,
+        syntactic: true,
+      }
+    }
+  }),
 ];
 
 const prodConfig = {
@@ -53,8 +63,14 @@ module.exports = {
 
   resolve: {
     extensions: [
-      '.local.js', '.local.jsx',
-      '.js', '.jsx',
+      '.local.ts', '.local.tsx', '.local.js', '.local.jsx',
+      process.env.NODE_ENV === 'production'
+        ? '.prod.tsx'
+        : '.dev.tsx',
+      process.env.NODE_ENV === 'production'
+        ? '.prod.ts'
+        : '.dev.ts',
+      '.ts', '.tsx', '.js', '.jsx',
       '.wasm',
     ],
 
@@ -74,7 +90,7 @@ module.exports = {
       },
 
       {
-        test: /\.jsx?$/,
+        test: /\.(ts|js)x?$/,
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
@@ -86,6 +102,12 @@ module.exports = {
             ],
           },
         },
+      },
+
+      {
+        test: /\.(ts|js)x?$/,
+        use: ['source-map-loader'],
+        enforce: 'pre',
       },
 
       {

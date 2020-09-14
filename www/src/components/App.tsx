@@ -1,6 +1,5 @@
 import React from 'react';
 import * as ReactRedux from 'react-redux';
-import PropTypes from 'prop-types';
 
 import * as actions from 'actions/index';
 
@@ -11,7 +10,7 @@ import GithubCorner from 'components/GithubCorner';
 
 import { Engine } from 'fraktal-wasm';
 
-import styles from './App.css';
+import styles from './App.module.module.css';
 
 
 const engine = Engine.new();
@@ -26,11 +25,15 @@ function computeTreeRef() {
   }
 }
 
+interface Props {
+  sidebarExpanded: boolean,
+  onToggleSidebar: () => {},
+}
 
 function App({
   sidebarExpanded,
   onToggleSidebar,
-}) {
+}: Props) {
   return <div className={ styles.wrapper }>
     <GithubCorner
       fillColor="#626262"
@@ -62,14 +65,10 @@ function App({
     </Sidebar>
   </div>;
 }
-App.propTypes = {
-  sidebarExpanded: PropTypes.bool.isRequired,
-  onToggleSidebar: PropTypes.func.isRequired,
-};
 
 export default ReactRedux.connect(
   state => ({
-    sidebarExpanded: state.getIn(['sidebar', 'expanded'], false),
+    sidebarExpanded: state.sidebar.expanded,
   }),
   {
     onToggleSidebar: actions.toggleSidebar,

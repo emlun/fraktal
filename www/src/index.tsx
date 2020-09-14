@@ -5,7 +5,7 @@ import configureStore from 'configureStore';
 
 import Root from 'components/Root';
 
-import './index.css';
+import './index.module.css';
 
 
 function getRoot() {

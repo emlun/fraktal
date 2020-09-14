@@ -1,7 +1,10 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-export default function GithubRibbon({ repo }) {
+interface Props {
+  repo: string,
+}
+
+export default function GithubRibbon({ repo }: Props) {
   return <a href={ 'https://github.com/' + repo }>
     <img
       style={ { position: 'absolute', top: 0, right: 0, border: 0 } }
@@ -11,6 +14,3 @@ export default function GithubRibbon({ repo }) {
     />
   </a>;
 }
-GithubRibbon.propTypes = {
-  repo: PropTypes.string,
-};

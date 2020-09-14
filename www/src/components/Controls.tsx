@@ -1,41 +1,45 @@
 import React from 'react';
 import * as ReactRedux from 'react-redux';
-import PropTypes from 'prop-types';
-import Immutable from 'immutable';
-import ImmutablePropTypes from 'react-immutable-proptypes';
 import { sprintf } from 'sprintf-js';
-
-import * as fractals from 'fractals/common';
 
 import * as rootActions from 'actions';
 import * as colorsActions from 'actions/colors';
+import { Color, GradientPivot } from 'data/Colors';
 
-import styles from './Controls.css';
+import styles from './Controls.module.css';
 
 
-function onSubmit(event) {
+function onSubmit(event: React.FormEvent<HTMLFormElement>) {
   if (event && event.preventDefault) {
     event.preventDefault();
   }
 }
 
+interface Props {
+  gradient: GradientPivot[],
+  insideColor: Color,
+  numColors: number,
+
+  onAddGradientPivot: (index: number) => {},
+  onDeleteGradientPivot: (index: number) => {},
+  onSetInsideColor: (color: string) => {},
+  onSetNumColors: (num: number) => {},
+  onSetPivotColor: (index: number, color: string) => {},
+  onSetPivotValue: (index: number, value: number) => {},
+}
+
 function Controls({
-  fractal,
-  fractalParameters,
-  fractalParametersControls: FractalParameters,
   gradient,
   insideColor,
   numColors,
 
   onAddGradientPivot,
   onDeleteGradientPivot,
-  onSetFractal,
-  onSetFractalParameters,
   onSetInsideColor,
   onSetNumColors,
   onSetPivotColor,
   onSetPivotValue,
-}) {
+}: Props) {
   return <div>
     <form onSubmit={ onSubmit }>
       <div>
@@ -59,13 +63,13 @@ function Controls({
         </p>
         { gradient.map((pivot, index) => {
           const colorHex = `#${
-            pivot.get('color')
+            pivot.color
               .map(d => sprintf('%02x', d))
               .join('')
           }`;
 
           return <div
-            key={ pivot.get('id') }
+            key={ pivot.id }
             className={ styles['Gradient-Row'] }
           >
             <input
@@ -75,7 +79,7 @@ function Controls({
                 ({ target: { value } }) => onSetPivotValue(index, parseInt(value, 10))
               }
               type="range"
-              value={ pivot.get('value') }
+              value={ pivot.value }
             />
             <input
               onChange={ ({ target: { value } }) => onSetPivotColor(index, value) }
@@ -112,69 +116,19 @@ function Controls({
           />
         </p>
       </div>
-
-      <div>
-        { 'Fractal: ' }
-        <select
-          onChange={ ({ target: { value } }) => onSetFractal(value) }
-          value={ fractal }
-        >
-          { ['julia', 'mandelbrot'].map(fractalOption =>
-            <option
-              key={ fractalOption }
-              value={ fractalOption }
-            >
-              { fractals.getFractal(fractalOption).name }
-            </option>
-          ) }
-        </select>
-      </div>
-
-      <FractalParameters
-        onChange={ onSetFractalParameters }
-        parameters={ fractalParameters }
-      />
     </form>
   </div>;
 }
-Controls.propTypes = {
-  fractal: PropTypes.string.isRequired,
-  fractalParameters: PropTypes.instanceOf(Immutable.Record).isRequired,
-  fractalParametersControls: PropTypes.oneOfType([PropTypes.element, PropTypes.func]).isRequired,
-  gradient: ImmutablePropTypes.listOf(
-    ImmutablePropTypes.contains({
-      color: ImmutablePropTypes.listOf(PropTypes.number).isRequired,
-      id: PropTypes.string.isRequired,
-      value: PropTypes.number.isRequired,
-    })
-  ).isRequired,
-  insideColor: PropTypes.instanceOf(Immutable.List).isRequired,
-  numColors: PropTypes.number.isRequired,
-
-  onAddGradientPivot: PropTypes.func.isRequired,
-  onDeleteGradientPivot: PropTypes.func.isRequired,
-  onSetFractal: PropTypes.func.isRequired,
-  onSetFractalParameters: PropTypes.func.isRequired,
-  onSetInsideColor: PropTypes.func.isRequired,
-  onSetNumColors: PropTypes.func.isRequired,
-  onSetPivotColor: PropTypes.func.isRequired,
-  onSetPivotValue: PropTypes.func.isRequired,
-};
 
 export default ReactRedux.connect(
   state => ({
-    fractal: state.get('fractal'),
-    fractalParameters: state.get('fractalParameters'),
-    fractalParametersControls: fractals.getFractal(state.get('fractal')).ParameterControls,
-    gradient: state.getIn(['colors', 'gradient']),
-    insideColor: state.getIn(['colors', 'inside']),
-    numColors: state.get('numColors'),
+    gradient: state.colors.gradient,
+    insideColor: state.colors.inside,
+    numColors: state.numColors,
   }),
   {
     onAddGradientPivot: colorsActions.addPivot,
     onDeleteGradientPivot: colorsActions.deletePivot,
-    onSetFractal: rootActions.setFractal,
-    onSetFractalParameters: rootActions.setFractalParameters,
     onSetInsideColor: colorsActions.setInsideColor,
     onSetNumColors: rootActions.setNumColors,
     onSetPivotColor: colorsActions.setPivotColor,

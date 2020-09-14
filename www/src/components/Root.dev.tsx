@@ -1,14 +1,23 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import { hot } from 'react-hot-loader/root';
 import { Provider } from 'react-redux';
+
+import { Action } from 'actions';
+import { AppState } from 'data/AppState';
 
 import App from 'components/App';
 import DevTools from 'components/DevTools';
 
 
-function Root({ store }) {
+interface Props {
+  store: {
+    dispatch: (action: Action) => {},
+    getState: () => AppState,
+  }
+}
+
+function Root({ store }: Props) {
   return <Provider store={ store }>
     <div>
       <App/>
@@ -16,11 +25,5 @@ function Root({ store }) {
     </div>
   </Provider>;
 }
-Root.propTypes = {
-  store: PropTypes.shape({
-    dispatch: PropTypes.func.isRequired,
-    getState: PropTypes.func.isRequired,
-  }).isRequired,
-};
 
 export default hot(Root);
