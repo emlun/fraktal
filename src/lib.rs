@@ -191,12 +191,9 @@ pub struct Palette {
 
 impl Palette {
     fn get_color(&self, escape_count: usize) -> &Color {
-        let len = self.escape_values.len();
-        if escape_count >= len {
-            &self.inside_color
-        } else {
-            &self.escape_values[escape_count]
-        }
+        self.escape_values
+            .get(escape_count)
+            .unwrap_or(&self.inside_color)
     }
 }
 
