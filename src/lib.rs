@@ -12,6 +12,7 @@ use std::ops::Div;
 use std::ops::Mul;
 use std::ops::Rem;
 use std::ops::Sub;
+use utils::Pristine;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -348,7 +349,7 @@ pub struct Engine {
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     scale: f64,
-    gradient: Gradient,
+    gradient: Pristine<Gradient>,
     image: Image,
     dirty_regions: VecDeque<RangeRect<i32>>,
 }
@@ -362,7 +363,7 @@ impl Default for Engine {
             center: Complex::from((0, 0)),
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
-            gradient: Gradient::default(),
+            gradient: Default::default(),
             image: Image::new(1, 1),
             dirty_regions: VecDeque::new(),
         };
@@ -512,44 +513,35 @@ impl Engine {
     }
 
     pub fn render(&mut self) {
+        if let Some(gradient) = self.gradient.get_dirty() {
+            self.image.palette = gradient.make_palette();
+        };
         self.image.render_pixels();
     }
 
-    fn update_palette(&mut self) {
-        self.image.palette = self.gradient.make_palette();
-    }
-
     pub fn gradient_set_pivot_value(&mut self, index: usize, value: usize) -> Option<usize> {
-        let result = self.gradient.set_pivot_value(index, value);
-        self.update_palette();
-        result
+        self.gradient.set_pivot_value(index, value)
     }
 
     pub fn gradient_set_pivot_color(&mut self, index: usize, color: &str) -> bool {
         if let Ok(color) = Color::parse_hex(color) {
-            self.gradient.set_pivot_color(index, color);
-            self.update_palette();
-            true
+            self.gradient.set_pivot_color(index, color)
         } else {
             false
         }
     }
 
     pub fn gradient_insert_pivot(&mut self, index: usize) -> GradientPivot {
-        let pivot = self.gradient.insert_pivot(index);
-        self.update_palette();
-        pivot
+        self.gradient.insert_pivot(index)
     }
 
     pub fn gradient_delete_pivot(&mut self, index: usize) {
-        self.gradient.delete_pivot(index);
-        self.update_palette();
+        self.gradient.delete_pivot(index)
     }
 
     pub fn gradient_set_inside_color(&mut self, color: &str) -> bool {
         if let Ok(color) = Color::parse_hex(color) {
             self.gradient.set_inside_color(color);
-            self.update_palette();
             true
         } else {
             false
