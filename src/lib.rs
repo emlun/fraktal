@@ -341,6 +341,19 @@ where
 }
 
 #[wasm_bindgen]
+#[derive(Clone, Copy)]
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[wasm_bindgen]
+pub struct Viewpoint {
+    pub center: Point,
+    pub scale: f64,
+}
+
+#[wasm_bindgen]
 pub struct Engine {
     center: Complex<f64>,
     top_left: Complex<f64>,
@@ -375,13 +388,13 @@ impl Engine {
         Self::default()
     }
 
-    pub fn set_size(&mut self, width: usize, height: usize) {
+    pub fn set_size(&mut self, width: usize, height: usize) -> Viewpoint {
         self.scale = self.scale * self.image.width as f64 / width as f64;
         self.image = Image::new(width, height);
-        self.update_limits();
+        self.update_limits()
     }
 
-    fn update_limits(&mut self) {
+    fn update_limits(&mut self) -> Viewpoint {
         let view_center: Complex<f64> = (
             self.image.width as f64 / 2.0 * self.scale,
             -(self.image.height as f64) / 2.0 * self.scale,
@@ -390,6 +403,13 @@ impl Engine {
         self.top_left = self.center - view_center;
         self.btm_right = self.center + view_center;
         self.dirtify_all();
+        Viewpoint {
+            center: Point {
+                x: self.center.re,
+                y: self.center.im,
+            },
+            scale: self.scale,
+        }
     }
 
     fn dirtify_all(&mut self) {
@@ -400,11 +420,17 @@ impl Engine {
         ));
     }
 
-    pub fn pan(&mut self, dx: i32, dy: i32) {
+    pub fn set_viewpoint(&mut self, center_x: f64, center_y: f64, scale: f64) -> Viewpoint {
+        self.center = (center_x, center_y).into();
+        self.scale = scale;
+        self.update_limits()
+    }
+
+    pub fn pan(&mut self, dx: i32, dy: i32) -> Viewpoint {
         let dre = self.scale * dx as f64;
         let dim = self.scale * (-dy) as f64;
         self.center += (dre, dim).into();
-        self.update_limits();
+        let viewpoint = self.update_limits();
         self.image.pan(-dx, -dy);
 
         let (dirty_x_min, dirty_x_max) = if dx < 0 {
@@ -436,27 +462,29 @@ impl Engine {
             },
             (dirty_y_min, dirty_y_max),
         ));
+
+        viewpoint
     }
 
-    pub fn zoom_in(&mut self) {
+    pub fn zoom_in(&mut self) -> Viewpoint {
         self.scale /= 2.0;
-        self.update_limits();
+        self.update_limits()
     }
 
-    pub fn zoom_out(&mut self) {
+    pub fn zoom_out(&mut self) -> Viewpoint {
         self.scale *= 2.0;
-        self.update_limits();
+        self.update_limits()
     }
 
-    pub fn zoom_in_around(&mut self, x: usize, y: usize) {
-        self.zoom_around(self.scale / 2.0, x, y);
+    pub fn zoom_in_around(&mut self, x: usize, y: usize) -> Viewpoint {
+        self.zoom_around(self.scale / 2.0, x, y)
     }
 
-    pub fn zoom_out_around(&mut self, x: usize, y: usize) {
-        self.zoom_around(self.scale * 2.0, x, y);
+    pub fn zoom_out_around(&mut self, x: usize, y: usize) -> Viewpoint {
+        self.zoom_around(self.scale * 2.0, x, y)
     }
 
-    fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) {
+    fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) -> Viewpoint {
         let sdiff = new_scale - self.scale;
         self.center += (
             sdiff * (self.image.width as f64 / 2.0 - x as f64),
@@ -465,7 +493,7 @@ impl Engine {
             .into();
 
         self.scale = new_scale;
-        self.update_limits();
+        self.update_limits()
     }
 
     pub fn image_data(&self) -> *const u8 {

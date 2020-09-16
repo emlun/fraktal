@@ -3,7 +3,7 @@ import _ from 'underscore';
 
 import { debug } from 'logging';
 
-import { Engine } from 'fraktal-wasm/fraktal';
+import { Engine, Viewpoint } from 'fraktal-wasm/fraktal';
 import { memory } from 'fraktal-wasm/fraktal_bg';
 
 import styles from './Canvas.module.css';
@@ -28,87 +28,113 @@ function Canvas({
   const mousePos = useRef<Pos | null>(null);
   const scrollStartPos = useRef<Pos | null>(null);
   const [ctx, setContext] = useState<CanvasRenderingContext2D>();
+  const [wrapper, setWrapper] = useState<HTMLElement | null>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement>();
+  const [viewpoint, setViewpoint] = useState<Viewpoint>();
   const imageData = useRef(new ImageData(100, 100));
 
-  const getScrollOffset = () => {
-    if (scrollStartPos.current && mousePos.current) {
-      return {
-        x: mousePos.current.x - scrollStartPos.current.x,
-        y: mousePos.current.y - scrollStartPos.current.y,
-      };
-    } else {
-      return { x: 0, y: 0 };
-    }
-  };
-  const getRenderOffset = () => getScrollOffset();
-
-  const onMouseDown = (event: MouseEvent) => {
-    const pos = { x: event.offsetX, y: event.offsetY };
-    scrollStartPos.current = pos;
-    mousePos.current = pos;
-  };
-
-  const onMouseMove = (event: MouseEvent) => {
-    if (scrollStartPos.current) {
-      mousePos.current = { x: event.offsetX, y: event.offsetY };
-    }
-  };
-
-  const onMouseUp = (event: MouseEvent) => {
-    const scrollOffset = getScrollOffset();
-
-    if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= panTriggerThreshold) {
-      const { x, y } = getRenderOffset();
-      engine.pan(-x, -y);
-    }
-
-    scrollStartPos.current = null;
-  }
-
-  const onWheel = (event: WheelEvent) => {
-    if (event.deltaY > 0) {
-      if (event.shiftKey) {
-        engine.zoom_out_around(event.clientX, event.clientY);
+  const getScrollOffset = useCallback(
+    () => {
+      if (scrollStartPos.current && mousePos.current) {
+        return {
+          x: mousePos.current.x - scrollStartPos.current.x,
+          y: mousePos.current.y - scrollStartPos.current.y,
+        };
       } else {
-        engine.zoom_out();
-      }
-    } else if (event.shiftKey) {
-      engine.zoom_in_around(event.clientX, event.clientY);
-    } else {
-      engine.zoom_in();
-    }
-  };
-
-  const updateCanvas = useCallback(
-    (node) => {
-      if (node) {
-        setCanvas(node);
-        setContext(node.getContext('2d'));
+        return { x: 0, y: 0 };
       }
     },
-    []
+    [engine]
+  );
+  const getRenderOffset = getScrollOffset;
+
+  const onMouseDown = useCallback(
+    (event: MouseEvent) => {
+      const pos = { x: event.offsetX, y: event.offsetY };
+      scrollStartPos.current = pos;
+      mousePos.current = pos;
+    },
+    [engine]
   );
 
-  const updateWasmPointer = () => {
-    if (canvas) {
-      const imd = new Uint8ClampedArray(
-        memory.buffer,
-        engine.image_data(),
-        canvas.width * canvas.height * 4
-      );
-      imageData.current = new ImageData(imd, canvas.width);
+  const onMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (scrollStartPos.current) {
+        mousePos.current = { x: event.offsetX, y: event.offsetY };
+      }
+    },
+    [engine, panTriggerThreshold]
+  );
+
+  const onMouseUp = useCallback(
+    (event: MouseEvent) => {
+      const scrollOffset = getScrollOffset();
+
+      if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= panTriggerThreshold) {
+        const { x, y } = getRenderOffset();
+        setViewpoint(engine.pan(-x, -y));
+      }
+
+      scrollStartPos.current = null;
+    },
+    [engine, panTriggerThreshold]
+  );
+
+  const onWheel = useCallback(
+    (event: WheelEvent) => {
+      if (event.deltaY > 0) {
+        if (event.shiftKey) {
+          setViewpoint(engine.zoom_out_around(event.clientX, event.clientY));
+        } else {
+          setViewpoint(engine.zoom_out());
+        }
+      } else if (event.shiftKey) {
+        setViewpoint(engine.zoom_in_around(event.clientX, event.clientY));
+      } else {
+        setViewpoint(engine.zoom_in());
+      }
+    },
+    [engine]
+  );
+
+  const updateCanvas = (node: HTMLCanvasElement) => {
+    if (node) {
+      setCanvas(node);
+      setContext(node.getContext('2d') || undefined);
     }
   };
 
-  const resizeCanvas = () => {
-    if (canvas) {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      engine.set_size(canvas.width, canvas.height);
-      updateWasmPointer();
-    }
-  };
+  const updateWasmPointer = useCallback(
+    () => {
+      if (canvas) {
+        const imd = new Uint8ClampedArray(
+          memory.buffer,
+          engine.image_data(),
+          canvas.width * canvas.height * 4
+        );
+        imageData.current = new ImageData(imd, canvas.width);
+      }
+    },
+    [canvas, engine]
+  );
+
+  const resizeCanvas = useCallback(
+    () => {
+      if (canvas) {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        const initialViewpoint = engine.set_size(canvas.width, canvas.height);
+
+        if (viewpoint) {
+          setViewpoint(engine.set_viewpoint(viewpoint.center.x, viewpoint.center.y, viewpoint.scale));
+        } else {
+          setViewpoint(initialViewpoint);
+        }
+        updateWasmPointer();
+      }
+    },
+    [canvas, engine, updateWasmPointer]
+  );
   useEffect(
     () => {
       if (canvas) {
@@ -120,19 +146,7 @@ function Canvas({
         };
       }
     },
-    [canvas, engine]
-  );
-
-  const updateWrapper = useCallback(
-    (node) => {
-      if (node) {
-        node.addEventListener('mousedown', onMouseDown, true);
-        node.addEventListener('mousemove', onMouseMove, true);
-        node.addEventListener('mouseup', onMouseUp, true);
-        node.addEventListener('wheel', onWheel, true);
-      }
-    },
-    []
+    [canvas, engine, resizeCanvas]
   );
 
   useEffect(
@@ -166,11 +180,29 @@ function Canvas({
         };
       }
     },
-    [ctx, canvas, engine, imageData]
+    [ctx, canvas, engine, imageData, updateWasmPointer]
+  );
+
+  useEffect(
+    () => {
+      if (wrapper) {
+        wrapper.addEventListener('mousedown', onMouseDown, true);
+        wrapper.addEventListener('mousemove', onMouseMove, true);
+        wrapper.addEventListener('mouseup', onMouseUp, true);
+        wrapper.addEventListener('wheel', onWheel, true);
+        return () => {
+          wrapper.removeEventListener('mousedown', onMouseDown, true);
+          wrapper.removeEventListener('mousemove', onMouseMove, true);
+          wrapper.removeEventListener('mouseup', onMouseUp, true);
+          wrapper.removeEventListener('wheel', onWheel, true);
+        };
+      }
+    },
+    [wrapper, onMouseDown, onMouseMove, onMouseUp, onWheel]
   );
 
   return <div
-    ref={ updateWrapper }
+    ref={ setWrapper }
     className={ styles['Canvas-Container'] }
   >
     <canvas
