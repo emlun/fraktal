@@ -379,7 +379,6 @@ impl Engine {
         self.scale = self.scale * self.image.width as f64 / width as f64;
         self.image = Image::new(width, height);
         self.update_limits();
-        self.dirtify_all();
     }
 
     fn update_limits(&mut self) {
@@ -390,6 +389,7 @@ impl Engine {
             .into();
         self.top_left = self.center - view_center;
         self.btm_right = self.center + view_center;
+        self.dirtify_all();
     }
 
     fn dirtify_all(&mut self) {
@@ -441,13 +441,11 @@ impl Engine {
     pub fn zoom_in(&mut self) {
         self.scale /= 2.0;
         self.update_limits();
-        self.dirtify_all();
     }
 
     pub fn zoom_out(&mut self) {
         self.scale *= 2.0;
         self.update_limits();
-        self.dirtify_all();
     }
 
     pub fn zoom_in_around(&mut self, x: usize, y: usize) {
@@ -468,7 +466,6 @@ impl Engine {
 
         self.scale = new_scale;
         self.update_limits();
-        self.dirtify_all();
     }
 
     pub fn image_data(&self) -> *const u8 {
