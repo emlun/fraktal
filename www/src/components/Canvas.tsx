@@ -120,7 +120,7 @@ function Canvas({
         };
       }
     },
-    [canvas]
+    [canvas, engine]
   );
 
   const updateWrapper = useCallback(
@@ -150,20 +150,23 @@ function Canvas({
           ctx.putImageData(imageData.current, x, y);
         };
 
+        let stopRenderLoop: any;
         const renderLoop = () => {
           engine.compute(100000);
           engine.render();
           drawPixels();
-          window.requestAnimationFrame(renderLoop);
+          stopRenderLoop = window.requestAnimationFrame(renderLoop);
         };
-        const stopRenderLoop = window.requestAnimationFrame(renderLoop);
+        stopRenderLoop = window.requestAnimationFrame(renderLoop);
 
         return () => {
-          window.cancelAnimationFrame(stopRenderLoop);
+          if (stopRenderLoop) {
+            window.cancelAnimationFrame(stopRenderLoop);
+          }
         };
       }
     },
-    [ctx, canvas, imageData]
+    [ctx, canvas, engine, imageData]
   );
 
   return <div
