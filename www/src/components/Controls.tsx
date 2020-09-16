@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import _ from 'underscore';
 
 import { Color, Engine } from 'fraktal-wasm/fraktal';
@@ -30,6 +30,22 @@ function Controls({ engine }: Props) {
     { id: _.uniqueId('gradient-pivot-'), value: 0, color: '#000000' },
     { id: _.uniqueId('gradient-pivot-'), value: numColors, color: '#ff00ff' },
   ]);
+
+  useEffect(
+    () => {
+      engine.gradient_set_inside_color(insideColor);
+      for (let i = 0; i < gradient.length; ++i) {
+        if (engine.gradient_set_pivot_color(i, gradient[i].color)) {
+          engine.gradient_set_pivot_value(i, gradient[i].value);
+        } else {
+          engine.gradient_insert_pivot(i);
+          engine.gradient_set_pivot_color(i, gradient[i].color);
+          engine.gradient_set_pivot_value(i, gradient[i].value);
+        }
+      }
+    },
+    [engine, gradient, insideColor]
+  );
 
   const setPivotValue = useCallback(
     (index, value) => {
