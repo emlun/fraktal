@@ -26,6 +26,7 @@ interface GradientPivot {
 
 function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
 
+  const [maxPrecision, setMaxPrecision] = useState(100);
   const [numColors, setNumColors] = useState(50);
   const [insideColor, setInsideColor] = useState<string>('#000000');
   const [gradient, setGradient] = useState<GradientPivot[]>([
@@ -65,6 +66,36 @@ function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
       }
     },
     [engine, gradient],
+  );
+
+  const onSetNumColors = useCallback(
+    (numColors: number) => {
+      let n = engine.set_iteration_limit(numColors);
+      setNumColors(n);
+      setPivotValue(gradient.length - 1, n);
+    },
+    [engine, gradient, setPivotValue],
+  );
+
+  const onReduceMaxPrecision = useCallback(
+    () => {
+      setMaxPrecision(maxPrecision / 2);
+      onSetNumColors(numColors / 2);
+    },
+    [maxPrecision, numColors, onSetNumColors]
+  );
+
+  const onIncreaseMaxPrecision = useCallback(
+    () => {
+      if (numColors >= maxPrecision) {
+        const newMax = maxPrecision * 2;
+        setMaxPrecision(newMax);
+        onSetNumColors(newMax);
+      } else {
+        onSetNumColors(maxPrecision);
+      }
+    },
+    [maxPrecision, numColors, onSetNumColors]
   );
 
   const setPivotColor = useCallback(
@@ -124,17 +155,33 @@ function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
         <p>
           Precision:
         </p>
-        <p>
+
+        <div className={ styles['Precision-Slider'] }>
+          <button
+            type="button"
+            disabled={ maxPrecision <= 100 }
+            onClick={ onReduceMaxPrecision }
+          >
+            -
+          </button>
           <input
-            max={ 1000 }
+            max={ maxPrecision }
             min={ 10 }
-            onChange={ ({ target: { value } }) => setNumColors(parseInt(value, 10)) }
-            step={ 10 }
+            onChange={ ({ target: { value } }) => onSetNumColors(parseInt(value, 10)) }
+            step={ Math.max(maxPrecision / 100, 10) }
             type="range"
             value={ numColors }
           />
-          { numColors }
-        </p>
+          <button
+            type="button"
+            onClick={ onIncreaseMaxPrecision }
+          >
+            +
+          </button>
+          <span>
+            { numColors }
+          </span>
+        </div>
 
         <p>
           Gradient:

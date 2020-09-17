@@ -201,10 +201,14 @@ pub struct Palette {
 }
 
 impl Palette {
-    fn get_color(&self, escape_count: usize) -> &Color {
-        self.escape_values
-            .get(escape_count)
-            .unwrap_or(&self.inside_color)
+    fn get_color(&self, escape_count: usize, max_value: usize) -> &Color {
+        if escape_count >= max_value {
+            &self.inside_color
+        } else {
+            self.escape_values
+                .get(escape_count)
+                .unwrap_or(&self.inside_color)
+        }
     }
 }
 
@@ -265,10 +269,10 @@ impl Image {
         }
     }
 
-    pub fn render_pixels(&mut self) {
+    pub fn render_pixels(&mut self, max_value: usize) {
         for i in 0..self.escape_counts.len() {
             let pixel_index = i * 4;
-            let color = self.palette.get_color(self.escape_counts[i]);
+            let color = self.palette.get_color(self.escape_counts[i], max_value);
             self.pixels[pixel_index] = color.r;
             self.pixels[pixel_index + 1] = color.g;
             self.pixels[pixel_index + 2] = color.b;
@@ -410,6 +414,7 @@ pub struct Engine {
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     scale: f64,
+    iteration_limit: usize,
     gradient: Pristine<Gradient>,
     image: Image,
     dirty_regions: VecDeque<RangeRect<i32>>,
@@ -424,6 +429,7 @@ impl Default for Engine {
             center: Complex::from((0, 0)),
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
+            iteration_limit: 50,
             gradient: Default::default(),
             image: Image::new(1, 1),
             dirty_regions: VecDeque::new(),
@@ -570,8 +576,7 @@ impl Engine {
                     let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
                     let c = self.top_left + c_offset;
-                    let escape_count =
-                        mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
+                    let escape_count = mandelbrot::check(c, self.iteration_limit, 2.0);
                     self.image.escape_counts[i] = escape_count;
 
                     count -= 1;
@@ -589,7 +594,15 @@ impl Engine {
         if let Some(gradient) = self.gradient.get_dirty() {
             self.image.palette = gradient.make_palette();
         };
-        self.image.render_pixels();
+        self.image.render_pixels(self.iteration_limit);
+    }
+
+    pub fn set_iteration_limit(&mut self, iteration_limit: usize) -> usize {
+        if iteration_limit > self.iteration_limit {
+            self.dirtify_all();
+        }
+        self.iteration_limit = iteration_limit;
+        self.iteration_limit
     }
 
     pub fn gradient_set_pivot_value(&mut self, index: usize, value: usize) -> Option<usize> {
