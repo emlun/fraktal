@@ -4,7 +4,7 @@ import _ from 'underscore';
 import { debug } from 'logging';
 
 import { Engine, Viewpoint } from 'fraktal-wasm/fraktal';
-import { memory } from 'fraktal-wasm/fraktal_bg';
+import { memory } from 'fraktal-wasm/fraktal_bg.wasm';
 
 import styles from './Canvas.module.css';
 
