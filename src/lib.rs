@@ -477,9 +477,9 @@ impl Engine {
         ));
     }
 
-    pub fn set_viewpoint(&mut self, center_x: f64, center_y: f64, scale: f64) -> Viewpoint {
-        self.center = (center_x, center_y).into();
-        self.scale = scale;
+    pub fn set_viewpoint(&mut self, viewpoint: Viewpoint) -> Viewpoint {
+        self.center = (viewpoint.center.x, viewpoint.center.y).into();
+        self.scale = viewpoint.scale;
         self.update_limits()
     }
 

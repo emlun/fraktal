@@ -28,7 +28,7 @@ function App() {
 
   const restoreViewpoint = useCallback(
     (restored: Viewpoint) => {
-      setViewpoint(engine.set_viewpoint(restored.center.x, restored.center.y, restored.scale));
+      setViewpoint(engine.set_viewpoint(restored));
     },
     [engine]
   );

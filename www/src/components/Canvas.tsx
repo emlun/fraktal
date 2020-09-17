@@ -130,7 +130,7 @@ function Canvas({
         const initialViewpoint = engine.set_size(canvas.width, canvas.height);
 
         if (viewpoint) {
-          setViewpoint(engine.set_viewpoint(viewpoint.center.x, viewpoint.center.y, viewpoint.scale));
+          setViewpoint(engine.set_viewpoint(viewpoint));
         } else {
           setViewpoint(initialViewpoint);
         }
