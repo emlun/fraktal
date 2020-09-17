@@ -38,10 +38,10 @@ impl Color {
 
     fn average(&self, other: &Color) -> Color {
         Color::of(
-            (self.r + other.r) / 2,
-            (self.g + other.g) / 2,
-            (self.b + other.b) / 2,
-            (self.a + other.a) / 2,
+            self.r / 2 + other.r / 2,
+            self.g / 2 + other.g / 2,
+            self.b / 2 + other.b / 2,
+            self.a / 2 + other.a / 2,
         )
     }
 
