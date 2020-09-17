@@ -13,6 +13,8 @@ interface Props {
   engine: Engine,
 
   readonly panTriggerThreshold?: number,
+  readonly viewpoint?: Viewpoint,
+  readonly setViewpoint: (vp: Viewpoint) => void,
 };
 
 interface Pos {
@@ -23,6 +25,9 @@ interface Pos {
 function Canvas({
   engine,
   panTriggerThreshold = 10,
+
+  viewpoint,
+  setViewpoint,
 }: Props) {
 
   const mousePos = useRef<Pos | null>(null);
@@ -30,7 +35,6 @@ function Canvas({
   const [ctx, setContext] = useState<CanvasRenderingContext2D>();
   const [wrapper, setWrapper] = useState<HTMLElement | null>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement>();
-  const [viewpoint, setViewpoint] = useState<Viewpoint>();
   const imageData = useRef(new ImageData(100, 100));
 
   const getScrollOffset = useCallback(

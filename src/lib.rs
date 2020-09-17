@@ -365,6 +365,46 @@ pub struct Viewpoint {
 }
 
 #[wasm_bindgen]
+impl Viewpoint {
+    pub fn serialize(&self) -> String {
+        let x = self.center.x.to_be_bytes();
+        let y = self.center.y.to_be_bytes();
+        let s = self.scale.to_be_bytes();
+
+        format!(
+            "{}.{}.{}",
+            base64::encode(x),
+            base64::encode(y),
+            base64::encode(s)
+        )
+    }
+
+    pub fn deserialize(s: &str) -> Option<Viewpoint> {
+        use std::convert::TryInto;
+        let parts: Result<Vec<Vec<u8>>, _> = s.split(".").map(|s| base64::decode(s)).collect();
+
+        match parts {
+            Ok(parts) if parts.len() == 3 => {
+                let x: Result<[u8; 8], _> = parts[0].as_slice().try_into();
+                let y: Result<[u8; 8], _> = parts[1].as_slice().try_into();
+                let s: Result<[u8; 8], _> = parts[2].as_slice().try_into();
+                match (x, y, s) {
+                    (Ok(x), Ok(y), Ok(s)) => Some(Viewpoint {
+                        center: Point {
+                            x: f64::from_be_bytes(x),
+                            y: f64::from_be_bytes(y),
+                        },
+                        scale: f64::from_be_bytes(s),
+                    }),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
 pub struct Engine {
     center: Complex<f64>,
     top_left: Complex<f64>,

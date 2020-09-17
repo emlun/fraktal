@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import _ from 'underscore';
 
-import { Color, Engine } from 'fraktal-wasm/fraktal';
+import { Color, Engine, Viewpoint } from 'fraktal-wasm/fraktal';
 
 import styles from './Controls.module.css';
 
@@ -14,6 +14,8 @@ function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 
 interface Props {
   engine: Engine,
+  viewpoint?: Viewpoint,
+  restoreViewpoint: (vp: Viewpoint) => void,
 }
 
 interface GradientPivot {
@@ -22,7 +24,7 @@ interface GradientPivot {
   id: string,
 }
 
-function Controls({ engine }: Props) {
+function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
 
   const [numColors, setNumColors] = useState(50);
   const [insideColor, setInsideColor] = useState<string>('#000000');
@@ -30,6 +32,7 @@ function Controls({ engine }: Props) {
     { id: _.uniqueId('gradient-pivot-'), value: 0, color: '#000000' },
     { id: _.uniqueId('gradient-pivot-'), value: numColors, color: '#ff00ff' },
   ]);
+  const [serializedViewpoint, setSerializedViewpoint] = useState("");
 
   useEffect(
     () => {
@@ -178,6 +181,41 @@ function Controls({ engine }: Props) {
             value={ insideColor }
           />
         </p>
+
+        { viewpoint &&
+          <>
+            <p>
+              Center: { viewpoint.center.x } + {viewpoint.center.y}i
+            </p>
+            <p>
+              Scale: { viewpoint.scale } units/px
+            </p>
+            <p>
+              Viewpoint:
+            </p>
+            <pre>
+              { viewpoint.serialize() }
+            </pre>
+            <p>
+              <input
+                type="text"
+                value={ serializedViewpoint }
+                onChange={ ({ target: { value } }) => setSerializedViewpoint(value) }
+              />
+              <button
+                type="button"
+                onClick={ () => {
+                  const restored = Viewpoint.deserialize(serializedViewpoint);
+                  if (restored) {
+                    restoreViewpoint(restored);
+                  }
+                }}
+              >
+                Restore
+              </button>
+            </p>
+          </>
+        }
       </div>
     </form>
   </div>;

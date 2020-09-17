@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
+base64 = "0.12.3"
 wasm-bindgen = "0.2"
 web-sys = {version = "0.3", features = ["console"] }
 
