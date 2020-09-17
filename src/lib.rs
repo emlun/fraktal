@@ -460,12 +460,12 @@ impl EngineSettings {
         self.gradient.get().clone()
     }
 
-    fn try_serialize(&self) -> Result<String, serde_json::error::Error> {
-        serde_json::to_string(self)
+    fn try_serialize(&self) -> Result<Vec<u8>, bincode::Error> {
+        bincode::serialize(self)
     }
 
-    fn try_restore(&mut self, serialized: &str) -> Result<(), serde_json::error::Error> {
-        let deserialized: EngineSettings = serde_json::from_str(serialized)?;
+    fn try_restore(&mut self, serialized: &[u8]) -> Result<(), bincode::Error> {
+        let deserialized: EngineSettings = bincode::deserialize(serialized)?;
         *self = deserialized;
         Ok(())
     }
@@ -705,13 +705,17 @@ impl Engine {
     }
 
     pub fn serialize_settings(&self) -> Option<String> {
-        self.settings.try_serialize().ok()
+        self.settings.try_serialize().ok().map(base64::encode)
     }
 
     pub fn restore_settings(&mut self, serialized: &str) -> Option<EngineSettings> {
-        if self.settings.try_restore(serialized).is_ok() {
-            self.update_limits();
-            Some(self.settings.clone())
+        if let Ok(b) = base64::decode(serialized) {
+            if self.settings.try_restore(&b).is_ok() {
+                self.update_limits();
+                Some(self.settings.clone())
+            } else {
+                None
+            }
         } else {
             None
         }
