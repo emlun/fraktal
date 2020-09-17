@@ -436,6 +436,10 @@ pub struct EngineSettings {
     gradient: Pristine<Gradient>,
 }
 
+impl EngineSettings {
+    const SERIAL_VERSION_PREFIX: &'static str = "0:";
+}
+
 #[wasm_bindgen]
 impl EngineSettings {
     pub fn get_viewpoint(&self) -> Viewpoint {
@@ -468,20 +472,28 @@ impl EngineSettings {
         encoder.write_all(&bin)?;
         let zip = encoder.finish()?;
 
-        Ok(base64::encode(zip))
+        Ok(format!(
+            "{}{}",
+            Self::SERIAL_VERSION_PREFIX,
+            base64::encode(zip)
+        ))
     }
 
     fn try_restore(&mut self, serialized: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let zip = base64::decode(serialized)?;
+        if serialized.starts_with(Self::SERIAL_VERSION_PREFIX) {
+            let zip = base64::decode(&serialized[Self::SERIAL_VERSION_PREFIX.len()..])?;
 
-        use std::io::Read;
-        let mut decoder = flate2::read::ZlibDecoder::new(&zip[..]);
-        let mut bin = Vec::new();
-        decoder.read_to_end(&mut bin)?;
+            use std::io::Read;
+            let mut decoder = flate2::read::ZlibDecoder::new(&zip[..]);
+            let mut bin = Vec::new();
+            decoder.read_to_end(&mut bin)?;
 
-        let deserialized: EngineSettings = bincode::deserialize(&bin)?;
-        *self = deserialized;
-        Ok(())
+            let deserialized: EngineSettings = bincode::deserialize(&bin)?;
+            *self = deserialized;
+            Ok(())
+        } else {
+            Err("Unsupported state version")?
+        }
     }
 }
 
