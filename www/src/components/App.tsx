@@ -1,11 +1,11 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import Canvas from 'components/Canvas';
 import Controls from 'components/Controls';
 import Sidebar from 'components/Sidebar';
 import GithubCorner from 'components/GithubCorner';
 
-import { Engine, Viewpoint } from 'fraktal-wasm';
+import { Engine, EngineSettings } from 'fraktal-wasm';
 
 import styles from './App.module.module.css';
 
@@ -22,18 +22,20 @@ function computeTreeRef() {
 function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
-  const [viewpoint, setViewpoint] = useState<Viewpoint>();
+  const [engine, setEngine] = useState<Engine>();
+  const [settings, setSettings] = useState<EngineSettings>();
 
-  const engine = useMemo(Engine.new, [Engine]);
-
-  const restoreViewpoint = useCallback(
-    (restored: Viewpoint) => {
-      setViewpoint(engine.set_viewpoint(restored));
+  useEffect(
+    () => {
+      const eng = Engine.new();
+      let settings = eng.get_settings();
+      setEngine(eng);
+      setSettings(settings);
     },
-    [engine]
+    [Engine]
   );
 
-  if (engine) {
+  if (engine && settings) {
     return <div className={ styles.wrapper }>
       <GithubCorner
         fillColor="#626262"
@@ -42,8 +44,8 @@ function App() {
       />
       <Canvas
         engine={ engine }
-        viewpoint={ viewpoint }
-        setViewpoint={ setViewpoint }
+        settings={ settings }
+        updateSettings={ setSettings }
       />
       <Sidebar
         expanded={ sidebarExpanded }
@@ -52,8 +54,8 @@ function App() {
       >
         <Controls
           engine={ engine }
-          viewpoint={ viewpoint }
-          restoreViewpoint={ restoreViewpoint }
+          settings={ settings }
+          updateSettings={ setSettings }
         />
 
         <footer className={ styles.footer }>

@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import _ from 'underscore';
+import React, { useCallback, useState } from 'react';
 
-import { Color, Engine, Viewpoint } from 'fraktal-wasm/fraktal';
+import { Engine, EngineSettings, GradientPivot } from 'fraktal-wasm/fraktal';
 
 import styles from './Controls.module.css';
 
@@ -14,67 +13,31 @@ function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 
 interface Props {
   engine: Engine,
-  viewpoint?: Viewpoint,
-  restoreViewpoint: (vp: Viewpoint) => void,
+  settings: EngineSettings,
+  updateSettings: (settings: EngineSettings) => void,
 }
 
-interface GradientPivot {
-  value: number,
-  color: string,
-  id: string,
-}
-
-function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
+function Controls({ engine, settings, updateSettings }: Props) {
 
   const [maxPrecision, setMaxPrecision] = useState(100);
-  const [numColors, setNumColors] = useState(50);
-  const [insideColor, setInsideColor] = useState<string>('#000000');
-  const [gradient, setGradient] = useState<GradientPivot[]>([
-    { id: _.uniqueId('gradient-pivot-'), value: 0, color: '#000000' },
-    { id: _.uniqueId('gradient-pivot-'), value: numColors, color: '#ff00ff' },
-  ]);
-  const [serializedViewpoint, setSerializedViewpoint] = useState("");
+  const [serializedSettings, setSerializedSettings] = useState("");
+  const [restoreError, setRestoreError] = useState("");
 
-  useEffect(
-    () => {
-      engine.gradient_set_inside_color(insideColor);
-      for (let i = 0; i < gradient.length; ++i) {
-        if (engine.gradient_set_pivot_color(i, gradient[i].color)) {
-          engine.gradient_set_pivot_value(i, gradient[i].value);
-        } else {
-          engine.gradient_insert_pivot(i);
-          engine.gradient_set_pivot_color(i, gradient[i].color);
-          engine.gradient_set_pivot_value(i, gradient[i].value);
-        }
-      }
-    },
-    [engine, gradient, insideColor]
-  );
+  const gradient = settings.get_gradient();
+  const numColors = settings.get_iteration_limit();
 
   const setPivotValue = useCallback(
     (index, value) => {
-      const updated = engine.gradient_set_pivot_value(index, value);
-      if (updated) {
-        setGradient([
-          ...gradient.slice(0, index),
-          {
-            ...gradient[index],
-            value: updated,
-          },
-          ...gradient.slice(index + 1),
-        ]);
-      }
+      updateSettings(engine.gradient_set_pivot_value(index, value));
     },
-    [engine, gradient],
+    [engine],
   );
 
   const onSetNumColors = useCallback(
     (numColors: number) => {
-      let n = engine.set_iteration_limit(numColors);
-      setNumColors(n);
-      setPivotValue(gradient.length - 1, n);
+      updateSettings(engine.set_iteration_limit(numColors));
     },
-    [engine, gradient, setPivotValue],
+    [engine],
   );
 
   const onReduceMaxPrecision = useCallback(
@@ -82,7 +45,7 @@ function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
       setMaxPrecision(maxPrecision / 2);
       onSetNumColors(numColors / 2);
     },
-    [maxPrecision, numColors, onSetNumColors]
+    [numColors, onSetNumColors]
   );
 
   const onIncreaseMaxPrecision = useCallback(
@@ -100,51 +63,28 @@ function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
 
   const setPivotColor = useCallback(
     (index, color) => {
-      if (engine.gradient_set_pivot_color(index, color)) {
-        setGradient([
-          ...gradient.slice(0, index),
-          {
-            ...gradient[index],
-            color,
-          },
-          ...gradient.slice(index + 1),
-        ]);
-      }
+      updateSettings(engine.gradient_set_pivot_color(index, color));
     },
-    [engine, gradient],
+    [engine],
   );
 
   const addGradientPivot = useCallback(
     (index) => {
-      const pivot = engine.gradient_insert_pivot(index);
-      setGradient([
-        ...gradient.slice(0, index + 1),
-        {
-          id: _.uniqueId('gradient-pivot-'),
-          value: pivot.value,
-          color: pivot.color.as_hex(),
-        },
-        ...gradient.slice(index + 1),
-      ]);
+      updateSettings(engine.gradient_insert_pivot(index));
     },
-    [engine, gradient],
+    [engine],
   );
 
   const deleteGradientPivot = useCallback(
     (index) => {
-      const pivot = engine.gradient_delete_pivot(index);
-      setGradient([
-        ...gradient.slice(0, index),
-        ...gradient.slice(index + 1),
-      ]);
+      updateSettings(engine.gradient_delete_pivot(index));
     },
-    [engine, gradient],
+    [engine],
   );
 
   const onSetInsideColor = useCallback(
     (color) => {
-      engine.gradient_set_inside_color(color);
-      setInsideColor(color);
+      updateSettings(engine.gradient_set_inside_color(color));
     },
     [engine],
   );
@@ -186,11 +126,12 @@ function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
         <p>
           Gradient:
         </p>
-        { gradient.map((pivot, index) => {
-          const colorHex = pivot.color;
+        { Array.from(Array(gradient.len_pivots()).keys()).map((index: number) => {
+          const pivot = gradient.get_pivot(index) as GradientPivot;
+          const colorHex = pivot.color.as_hex();
 
           return <div
-            key={ pivot.id }
+            key={ index }
             className={ styles['Gradient-Row'] }
           >
             <input
@@ -225,43 +166,37 @@ function Controls({ engine, viewpoint, restoreViewpoint }: Props) {
           <input
             onChange={ ({ target: { value } }) => onSetInsideColor(value) }
             type="color"
-            value={ insideColor }
+            value={ gradient.get_inside_color().as_hex() }
           />
         </p>
 
-        { viewpoint &&
-          <>
-            <p>
-              Center: { viewpoint.center.x } + {viewpoint.center.y}i
-            </p>
-            <p>
-              Scale: { viewpoint.scale } units/px
-            </p>
-            <p>
-              Viewpoint:
-            </p>
-            <pre>
-              { viewpoint.serialize() }
-            </pre>
-            <p>
-              <input
-                type="text"
-                value={ serializedViewpoint }
-                onChange={ ({ target: { value } }) => setSerializedViewpoint(value) }
-              />
-              <button
-                type="button"
-                onClick={ () => {
-                  const restored = Viewpoint.deserialize(serializedViewpoint);
-                  if (restored) {
-                    restoreViewpoint(restored);
-                  }
-                }}
-              >
-                Restore
-              </button>
-            </p>
-          </>
+        <p>State:</p>
+        <pre className={ styles['State-Blob'] }>{ engine.serialize_settings() }</pre>
+        <p>
+          <input
+            type="text"
+            value={ serializedSettings }
+            onChange={ ({ target: { value } }) => setSerializedSettings(value) }
+          />
+          <button
+            type="button"
+            onClick={ () => {
+              const settings = engine.restore_settings(serializedSettings);
+              if (settings) {
+                updateSettings(settings);
+                setRestoreError("");
+              } else {
+                setRestoreError('Restore failed');
+              }
+            }}
+          >
+            Restore
+          </button>
+        </p>
+        { restoreError
+          && <p className={ styles['Restore-Error'] }>
+            { restoreError }
+          </p>
         }
       </div>
     </form>

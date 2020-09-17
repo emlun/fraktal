@@ -1,3 +1,8 @@
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
+
 pub fn set_panic_hook() {
     // When the `console_error_panic_hook` feature is enabled, we can call the
     // `set_panic_hook` function at least once during initialization, and then
@@ -17,6 +22,7 @@ macro_rules! log {
 }
 
 /// A container that keeps track of when its contained value has been mutated.
+#[derive(Clone)]
 pub struct Pristine<T> {
     inner: T,
     dirty: bool,
@@ -69,5 +75,30 @@ where
 {
     fn default() -> Self {
         Self::new(Default::default())
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Pristine<T>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let inner = T::deserialize(deserializer)?;
+        Ok(Self::new(inner))
+    }
+}
+
+impl<T> Serialize for Pristine<T>
+where
+    T: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.inner.serialize(serializer)
     }
 }

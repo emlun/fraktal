@@ -1,20 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import _ from 'underscore';
 
 import { debug } from 'logging';
 
-import { Engine, Viewpoint } from 'fraktal-wasm/fraktal';
+import { Engine, EngineSettings } from 'fraktal-wasm/fraktal';
 import { memory } from 'fraktal-wasm/fraktal_bg.wasm';
 
 import styles from './Canvas.module.css';
 
 
 interface Props {
-  engine: Engine,
-
+  readonly engine: Engine,
+  readonly settings: EngineSettings,
+  readonly updateSettings: (settings: EngineSettings) => void,
   readonly panTriggerThreshold?: number,
-  readonly viewpoint?: Viewpoint,
-  readonly setViewpoint: (vp: Viewpoint) => void,
 };
 
 interface Pos {
@@ -24,10 +22,9 @@ interface Pos {
 
 function Canvas({
   engine,
+  settings,
+  updateSettings,
   panTriggerThreshold = 10,
-
-  viewpoint,
-  setViewpoint,
 }: Props) {
 
   const mousePos = useRef<Pos | null>(null);
@@ -76,7 +73,7 @@ function Canvas({
 
       if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= panTriggerThreshold) {
         const { x, y } = getRenderOffset();
-        setViewpoint(engine.pan(-x, -y));
+        updateSettings(engine.pan(-x, -y));
       }
 
       scrollStartPos.current = null;
@@ -88,14 +85,14 @@ function Canvas({
     (event: WheelEvent) => {
       if (event.deltaY > 0) {
         if (event.shiftKey) {
-          setViewpoint(engine.zoom_out_around(event.clientX, event.clientY));
+          updateSettings(engine.zoom_out_around(event.clientX, event.clientY));
         } else {
-          setViewpoint(engine.zoom_out());
+          updateSettings(engine.zoom_out());
         }
       } else if (event.shiftKey) {
-        setViewpoint(engine.zoom_in_around(event.clientX, event.clientY));
+        updateSettings(engine.zoom_in_around(event.clientX, event.clientY));
       } else {
-        setViewpoint(engine.zoom_in());
+        updateSettings(engine.zoom_in());
       }
     },
     [engine]
@@ -127,13 +124,7 @@ function Canvas({
       if (canvas) {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
-        const initialViewpoint = engine.set_size(canvas.width, canvas.height);
-
-        if (viewpoint) {
-          setViewpoint(engine.set_viewpoint(viewpoint));
-        } else {
-          setViewpoint(initialViewpoint);
-        }
+        updateSettings(engine.set_size(canvas.width, canvas.height));
         updateWasmPointer();
       }
     },

@@ -6,6 +6,8 @@ mod utils;
 
 use complex::Complex;
 use math::NextCoprime;
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::VecDeque;
 use std::ops::Add;
 use std::ops::Div;
@@ -22,7 +24,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Color {
     r: u8,
     g: u8,
@@ -73,7 +75,7 @@ impl Color {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GradientPivot {
     pub value: usize,
     pub color: Color,
@@ -92,6 +94,8 @@ impl GradientPivot {
     }
 }
 
+#[wasm_bindgen]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Gradient {
     inside: Color,
     root: Color,
@@ -110,6 +114,21 @@ impl Default for Gradient {
             ],
             max_value: 50,
         }
+    }
+}
+
+#[wasm_bindgen]
+impl Gradient {
+    pub fn len_pivots(&self) -> usize {
+        self.pivots.len()
+    }
+
+    pub fn get_pivot(&self, index: usize) -> Option<GradientPivot> {
+        self.pivots.get(index).cloned()
+    }
+
+    pub fn get_inside_color(&self) -> Color {
+        self.inside.clone()
     }
 }
 
@@ -221,11 +240,11 @@ pub struct Image {
 }
 
 impl Image {
-    fn new(width: usize, height: usize) -> Image {
+    fn new(width: usize, height: usize, gradient: &Gradient) -> Image {
         Image {
             width,
             height,
-            palette: Gradient::default().make_palette(),
+            palette: gradient.make_palette(),
             escape_counts: vec![0; width * height],
             pixels: vec![0; width * height * 4],
         }
@@ -409,13 +428,65 @@ impl Viewpoint {
 }
 
 #[wasm_bindgen]
-pub struct Engine {
+#[derive(Clone, Deserialize, Serialize)]
+pub struct EngineSettings {
     center: Complex<f64>,
-    top_left: Complex<f64>,
-    btm_right: Complex<f64>,
     scale: f64,
     iteration_limit: usize,
     gradient: Pristine<Gradient>,
+}
+
+#[wasm_bindgen]
+impl EngineSettings {
+    pub fn get_viewpoint(&self) -> Viewpoint {
+        Viewpoint {
+            center: Point {
+                x: self.center.re,
+                y: self.center.im,
+            },
+            scale: self.scale,
+        }
+    }
+
+    pub fn get_scale(&self) -> f64 {
+        self.scale
+    }
+
+    pub fn get_iteration_limit(&self) -> usize {
+        self.iteration_limit
+    }
+
+    pub fn get_gradient(&self) -> Gradient {
+        self.gradient.get().clone()
+    }
+
+    fn try_serialize(&self) -> Result<String, serde_json::error::Error> {
+        serde_json::to_string(self)
+    }
+
+    fn try_restore(&mut self, serialized: &str) -> Result<(), serde_json::error::Error> {
+        let deserialized: EngineSettings = serde_json::from_str(serialized)?;
+        *self = deserialized;
+        Ok(())
+    }
+}
+
+impl Default for EngineSettings {
+    fn default() -> Self {
+        Self {
+            scale: 4.0,
+            center: Complex::from((0, 0)),
+            iteration_limit: 50,
+            gradient: Default::default(),
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub struct Engine {
+    settings: EngineSettings,
+    top_left: Complex<f64>,
+    btm_right: Complex<f64>,
     image: Image,
     dirty_regions: VecDeque<RangeRect<i32>>,
 }
@@ -424,15 +495,13 @@ impl Default for Engine {
     fn default() -> Self {
         utils::set_panic_hook();
 
+        let settings = EngineSettings::default();
         let mut e = Self {
-            scale: 4.0,
-            center: Complex::from((0, 0)),
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
-            iteration_limit: 50,
-            gradient: Default::default(),
-            image: Image::new(1, 1),
+            image: Image::new(1, 1, &settings.gradient),
             dirty_regions: VecDeque::new(),
+            settings,
         };
         e.set_size(1, 1);
         e
@@ -445,28 +514,22 @@ impl Engine {
         Self::default()
     }
 
-    pub fn set_size(&mut self, width: usize, height: usize) -> Viewpoint {
-        self.scale = self.scale * self.image.width as f64 / width as f64;
-        self.image = Image::new(width, height);
+    pub fn set_size(&mut self, width: usize, height: usize) -> EngineSettings {
+        self.settings.scale = self.settings.scale * self.image.width as f64 / width as f64;
+        self.image = Image::new(width, height, &self.settings.gradient);
         self.update_limits()
     }
 
-    fn update_limits(&mut self) -> Viewpoint {
+    fn update_limits(&mut self) -> EngineSettings {
         let view_center: Complex<f64> = (
-            self.image.width as f64 / 2.0 * self.scale,
-            -(self.image.height as f64) / 2.0 * self.scale,
+            self.image.width as f64 / 2.0 * self.settings.scale,
+            -(self.image.height as f64) / 2.0 * self.settings.scale,
         )
             .into();
-        self.top_left = self.center - view_center;
-        self.btm_right = self.center + view_center;
+        self.top_left = self.settings.center - view_center;
+        self.btm_right = self.settings.center + view_center;
         self.dirtify_all();
-        Viewpoint {
-            center: Point {
-                x: self.center.re,
-                y: self.center.im,
-            },
-            scale: self.scale,
-        }
+        self.get_settings()
     }
 
     fn dirtify_all(&mut self) {
@@ -477,17 +540,21 @@ impl Engine {
         ));
     }
 
-    pub fn set_viewpoint(&mut self, viewpoint: Viewpoint) -> Viewpoint {
-        self.center = (viewpoint.center.x, viewpoint.center.y).into();
-        self.scale = viewpoint.scale;
+    pub fn get_settings(&self) -> EngineSettings {
+        self.settings.clone()
+    }
+
+    pub fn set_viewpoint(&mut self, viewpoint: Viewpoint) -> EngineSettings {
+        self.settings.center = (viewpoint.center.x, viewpoint.center.y).into();
+        self.settings.scale = viewpoint.scale;
         self.update_limits()
     }
 
-    pub fn pan(&mut self, dx: i32, dy: i32) -> Viewpoint {
-        let dre = self.scale * dx as f64;
-        let dim = self.scale * (-dy) as f64;
-        self.center += (dre, dim).into();
-        let viewpoint = self.update_limits();
+    pub fn pan(&mut self, dx: i32, dy: i32) -> EngineSettings {
+        let dre = self.settings.scale * dx as f64;
+        let dim = self.settings.scale * (-dy) as f64;
+        self.settings.center += (dre, dim).into();
+        self.update_limits();
         self.image.pan(-dx, -dy);
 
         let (dirty_x_min, dirty_x_max) = if dx < 0 {
@@ -520,36 +587,36 @@ impl Engine {
             (dirty_y_min, dirty_y_max),
         ));
 
-        viewpoint
+        self.settings.clone()
     }
 
-    pub fn zoom_in(&mut self) -> Viewpoint {
-        self.scale /= 2.0;
+    pub fn zoom_in(&mut self) -> EngineSettings {
+        self.settings.scale /= 2.0;
         self.update_limits()
     }
 
-    pub fn zoom_out(&mut self) -> Viewpoint {
-        self.scale *= 2.0;
+    pub fn zoom_out(&mut self) -> EngineSettings {
+        self.settings.scale *= 2.0;
         self.update_limits()
     }
 
-    pub fn zoom_in_around(&mut self, x: usize, y: usize) -> Viewpoint {
-        self.zoom_around(self.scale / 2.0, x, y)
+    pub fn zoom_in_around(&mut self, x: usize, y: usize) -> EngineSettings {
+        self.zoom_around(self.settings.scale / 2.0, x, y)
     }
 
-    pub fn zoom_out_around(&mut self, x: usize, y: usize) -> Viewpoint {
-        self.zoom_around(self.scale * 2.0, x, y)
+    pub fn zoom_out_around(&mut self, x: usize, y: usize) -> EngineSettings {
+        self.zoom_around(self.settings.scale * 2.0, x, y)
     }
 
-    fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) -> Viewpoint {
-        let sdiff = new_scale - self.scale;
-        self.center += (
+    fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) -> EngineSettings {
+        let sdiff = new_scale - self.settings.scale;
+        self.settings.center += (
             sdiff * (self.image.width as f64 / 2.0 - x as f64),
             sdiff * (y as f64 - self.image.height as f64 / 2.0),
         )
             .into();
 
-        self.scale = new_scale;
+        self.settings.scale = new_scale;
         self.update_limits()
     }
 
@@ -576,7 +643,7 @@ impl Engine {
                     let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
                     let c = self.top_left + c_offset;
-                    let escape_count = mandelbrot::check(c, self.iteration_limit, 2.0);
+                    let escape_count = mandelbrot::check(c, self.settings.iteration_limit, 2.0);
                     self.image.escape_counts[i] = escape_count;
 
                     count -= 1;
@@ -591,46 +658,62 @@ impl Engine {
     }
 
     pub fn render(&mut self) {
-        if let Some(gradient) = self.gradient.get_dirty() {
+        if let Some(gradient) = self.settings.gradient.get_dirty() {
             self.image.palette = gradient.make_palette();
         };
-        self.image.render_pixels(self.iteration_limit);
+        self.image.render_pixels(self.settings.iteration_limit);
     }
 
-    pub fn set_iteration_limit(&mut self, iteration_limit: usize) -> usize {
-        if iteration_limit > self.iteration_limit {
+    pub fn set_iteration_limit(&mut self, iteration_limit: usize) -> EngineSettings {
+        if iteration_limit > self.settings.iteration_limit {
             self.dirtify_all();
         }
-        self.iteration_limit = iteration_limit;
-        self.iteration_limit
-    }
-
-    pub fn gradient_set_pivot_value(&mut self, index: usize, value: usize) -> Option<usize> {
-        self.gradient.set_pivot_value(index, value)
-    }
-
-    pub fn gradient_set_pivot_color(&mut self, index: usize, color: &str) -> bool {
-        if let Ok(color) = Color::parse_hex(color) {
-            self.gradient.set_pivot_color(index, color)
-        } else {
-            false
+        if let Some(pivot) = self.settings.gradient.pivots.last_mut() {
+            pivot.value = iteration_limit;
         }
+        self.settings.iteration_limit = iteration_limit;
+        self.settings.clone()
     }
 
-    pub fn gradient_insert_pivot(&mut self, index: usize) -> GradientPivot {
-        self.gradient.insert_pivot(index)
+    pub fn gradient_set_pivot_value(&mut self, index: usize, value: usize) -> EngineSettings {
+        self.settings.gradient.set_pivot_value(index, value);
+        self.settings.clone()
     }
 
-    pub fn gradient_delete_pivot(&mut self, index: usize) {
-        self.gradient.delete_pivot(index)
-    }
-
-    pub fn gradient_set_inside_color(&mut self, color: &str) -> bool {
+    pub fn gradient_set_pivot_color(&mut self, index: usize, color: &str) -> EngineSettings {
         if let Ok(color) = Color::parse_hex(color) {
-            self.gradient.set_inside_color(color);
-            true
+            self.settings.gradient.set_pivot_color(index, color);
+        }
+        self.settings.clone()
+    }
+
+    pub fn gradient_insert_pivot(&mut self, index: usize) -> EngineSettings {
+        self.settings.gradient.insert_pivot(index);
+        self.settings.clone()
+    }
+
+    pub fn gradient_delete_pivot(&mut self, index: usize) -> EngineSettings {
+        self.settings.gradient.delete_pivot(index);
+        self.settings.clone()
+    }
+
+    pub fn gradient_set_inside_color(&mut self, color: &str) -> EngineSettings {
+        if let Ok(color) = Color::parse_hex(color) {
+            self.settings.gradient.set_inside_color(color);
+        }
+        self.settings.clone()
+    }
+
+    pub fn serialize_settings(&self) -> Option<String> {
+        self.settings.try_serialize().ok()
+    }
+
+    pub fn restore_settings(&mut self, serialized: &str) -> Option<EngineSettings> {
+        if self.settings.try_restore(serialized).is_ok() {
+            self.update_limits();
+            Some(self.settings.clone())
         } else {
-            false
+            None
         }
     }
 }
