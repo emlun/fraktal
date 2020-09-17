@@ -36,6 +36,15 @@ impl Color {
         Color { r, g, b, a }
     }
 
+    fn average(&self, other: &Color) -> Color {
+        Color::of(
+            (self.r + other.r) / 2,
+            (self.g + other.g) / 2,
+            (self.b + other.b) / 2,
+            (self.a + other.a) / 2,
+        )
+    }
+
     fn parse_hex(hex: &str) -> Result<Color, std::num::ParseIntError> {
         Ok(Color {
             r: u8::from_str_radix(&hex[1..3], 16)?,
@@ -65,12 +74,7 @@ impl GradientPivot {
     fn average(&self, other: &Self) -> Self {
         GradientPivot {
             value: (self.value + other.value) / 2,
-            color: Color::of(
-                (self.color.r + other.color.r) / 2,
-                (self.color.g + other.color.g) / 2,
-                (self.color.b + other.color.b) / 2,
-                (self.color.a + other.color.a) / 2,
-            ),
+            color: self.color.average(&other.color),
         }
     }
 }
