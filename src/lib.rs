@@ -37,11 +37,24 @@ impl Color {
     }
 
     fn average(&self, other: &Color) -> Color {
+        Color::lerp(&self, other, 0, 2, 1)
+    }
+
+    fn lerp(a: &Color, b: &Color, a_value: isize, b_value: isize, target_value: isize) -> Color {
+        let dv = b_value - a_value;
+
+        let dr = b.r as isize - a.r as isize;
+        let dg = b.g as isize - a.g as isize;
+        let db = b.b as isize - a.b as isize;
+        let da = b.a as isize - a.a as isize;
+
+        let tv = target_value - a_value;
+
         Color::of(
-            self.r / 2 + other.r / 2,
-            self.g / 2 + other.g / 2,
-            self.b / 2 + other.b / 2,
-            self.a / 2 + other.a / 2,
+            (a.r as isize + dr * tv / dv) as u8,
+            (a.g as isize + dg * tv / dv) as u8,
+            (a.b as isize + db * tv / dv) as u8,
+            (a.a as isize + da * tv / dv) as u8,
         )
     }
 
@@ -157,19 +170,13 @@ impl Gradient {
             color,
         } in &self.pivots
         {
-            let r_diff: i16 = color.r as i16 - prev_color.r as i16;
-            let g_diff: i16 = color.g as i16 - prev_color.g as i16;
-            let b_diff: i16 = color.b as i16 - prev_color.b as i16;
-            let a_diff: i16 = color.a as i16 - prev_color.a as i16;
-            let i_diff: i16 = *escape_count as i16 - prev_i as i16;
-
             for i in prev_i..*escape_count {
-                let di = (i - prev_i) as i16;
-                values.push(Color::of(
-                    prev_color.r + (r_diff * di / i_diff) as u8,
-                    prev_color.g + (g_diff * di / i_diff) as u8,
-                    prev_color.b + (b_diff * di / i_diff) as u8,
-                    prev_color.a + (a_diff * di / i_diff) as u8,
+                values.push(Color::lerp(
+                    prev_color,
+                    color,
+                    prev_i as isize,
+                    *escape_count as isize,
+                    i as isize,
                 ));
             }
 
