@@ -23,12 +23,9 @@ pub struct Pristine<T> {
 }
 
 impl<T> Pristine<T> {
-    /// Wrap the given value in a new container. The value is initially clean.
+    /// Wrap the given value in a new container. The value is initially dirty.
     pub fn new(inner: T) -> Self {
-        Pristine {
-            inner,
-            dirty: false,
-        }
+        Pristine { inner, dirty: true }
     }
 
     /// Access the contained value, without making it dirty.
