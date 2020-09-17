@@ -460,12 +460,26 @@ impl EngineSettings {
         self.gradient.get().clone()
     }
 
-    fn try_serialize(&self) -> Result<Vec<u8>, bincode::Error> {
-        bincode::serialize(self)
+    fn try_serialize(&self) -> Result<String, bincode::Error> {
+        let bin = bincode::serialize(self)?;
+
+        use std::io::Write;
+        let mut encoder = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+        encoder.write_all(&bin)?;
+        let zip = encoder.finish()?;
+
+        Ok(base64::encode(zip))
     }
 
-    fn try_restore(&mut self, serialized: &[u8]) -> Result<(), bincode::Error> {
-        let deserialized: EngineSettings = bincode::deserialize(serialized)?;
+    fn try_restore(&mut self, serialized: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let zip = base64::decode(serialized)?;
+
+        use std::io::Read;
+        let mut decoder = flate2::read::ZlibDecoder::new(&zip[..]);
+        let mut bin = Vec::new();
+        decoder.read_to_end(&mut bin)?;
+
+        let deserialized: EngineSettings = bincode::deserialize(&bin)?;
         *self = deserialized;
         Ok(())
     }
@@ -705,17 +719,13 @@ impl Engine {
     }
 
     pub fn serialize_settings(&self) -> Option<String> {
-        self.settings.try_serialize().ok().map(base64::encode)
+        self.settings.try_serialize().ok()
     }
 
     pub fn restore_settings(&mut self, serialized: &str) -> Option<EngineSettings> {
-        if let Ok(b) = base64::decode(serialized) {
-            if self.settings.try_restore(&b).is_ok() {
-                self.update_limits();
-                Some(self.settings.clone())
-            } else {
-                None
-            }
+        if self.settings.try_restore(serialized).is_ok() {
+            self.update_limits();
+            Some(self.settings.clone())
         } else {
             None
         }
