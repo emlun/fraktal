@@ -119,7 +119,7 @@ function Controls({ engine }: Props) {
     <form onSubmit={ onSubmit }>
       <div>
         <p>
-          Number of color values:
+          Precision:
         </p>
         <p>
           <input
