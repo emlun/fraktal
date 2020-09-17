@@ -438,6 +438,10 @@ pub struct EngineSettings {
 
 impl EngineSettings {
     const SERIAL_VERSION_PREFIX: &'static str = "0:";
+
+    fn base64_config() -> base64::Config {
+        base64::Config::new(base64::CharacterSet::UrlSafe, false)
+    }
 }
 
 #[wasm_bindgen]
@@ -475,13 +479,16 @@ impl EngineSettings {
         Ok(format!(
             "{}{}",
             Self::SERIAL_VERSION_PREFIX,
-            base64::encode(zip)
+            base64::encode_config(zip, Self::base64_config())
         ))
     }
 
     fn try_restore(&mut self, serialized: &str) -> Result<(), Box<dyn std::error::Error>> {
         if serialized.starts_with(Self::SERIAL_VERSION_PREFIX) {
-            let zip = base64::decode(&serialized[Self::SERIAL_VERSION_PREFIX.len()..])?;
+            let zip = base64::decode_config(
+                &serialized[Self::SERIAL_VERSION_PREFIX.len()..],
+                Self::base64_config(),
+            )?;
 
             use std::io::Read;
             let mut decoder = flate2::read::ZlibDecoder::new(&zip[..]);
