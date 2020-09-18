@@ -549,6 +549,7 @@ impl Engine {
 
     pub fn set_size(&mut self, width: usize, height: usize) -> EngineSettings {
         self.image = Image::new(width, height, &self.settings.gradient);
+        self.dirtify_all();
         self.update_limits()
     }
 
@@ -560,7 +561,6 @@ impl Engine {
             .into();
         self.top_left = self.settings.center - view_center;
         self.btm_right = self.settings.center + view_center;
-        self.dirtify_all();
         self.get_settings()
     }
 
@@ -579,6 +579,7 @@ impl Engine {
     pub fn set_viewpoint(&mut self, viewpoint: Viewpoint) -> EngineSettings {
         self.settings.center = (viewpoint.center.x, viewpoint.center.y).into();
         self.settings.scale = viewpoint.scale;
+        self.dirtify_all();
         self.update_limits()
     }
 
@@ -624,11 +625,13 @@ impl Engine {
 
     pub fn zoom_in(&mut self) -> EngineSettings {
         self.settings.scale /= 2.0;
+        self.dirtify_all();
         self.update_limits()
     }
 
     pub fn zoom_out(&mut self) -> EngineSettings {
         self.settings.scale *= 2.0;
+        self.dirtify_all();
         self.update_limits()
     }
 
@@ -649,6 +652,7 @@ impl Engine {
             .into();
 
         self.settings.scale = new_scale;
+        self.dirtify_all();
         self.update_limits()
     }
 
@@ -742,6 +746,7 @@ impl Engine {
 
     pub fn restore_settings(&mut self, serialized: &str) -> Option<EngineSettings> {
         if self.settings.try_restore(serialized).is_ok() {
+            self.dirtify_all();
             self.update_limits();
             Some(self.settings.clone())
         } else {
