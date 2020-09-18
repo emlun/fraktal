@@ -173,6 +173,18 @@ function Controls({ engine, settings, updateSettings }: Props) {
           />
         </p>
 
+        <div className={ styles['Controls-Legend'] }>
+          <p>
+            Pan: Click and drag
+          </p>
+          <p>
+            Zoom around pointer: Mouse wheel
+          </p>
+          <p>
+            Static zoom: <kbd>Shift</kbd> + Mouse wheel
+          </p>
+        </div>
+
         <div style={{ textAlign: 'center' }}>
           <a className={ sidebarStyles['button'] } href={ stateHref }>Share this view</a>
         </div>
