@@ -161,7 +161,7 @@ function Canvas({
 
         let stopRenderLoop: any;
         const renderLoop = () => {
-          engine.compute(100000);
+          engine.compute(10000000);
           engine.render();
           drawPixels();
           stopRenderLoop = window.requestAnimationFrame(renderLoop);

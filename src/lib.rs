@@ -660,7 +660,9 @@ impl Engine {
         self.image.image_data()
     }
 
-    pub fn compute(&mut self, mut count: usize) {
+    pub fn compute(&mut self, work_limit: usize) -> usize {
+        let mut total_work = 0;
+
         while let Some(dirty_region) = self.dirty_regions.front_mut() {
             let corner_diff = self.btm_right - self.top_left;
             let re_span = corner_diff.re;
@@ -681,16 +683,18 @@ impl Engine {
                     let c = self.top_left + c_offset;
                     let escape_count = mandelbrot::check(c, self.settings.iteration_limit, 2.0);
                     self.image.escape_counts[i] = escape_count;
+                    total_work += escape_count;
 
-                    count -= 1;
-                    if count == 0 {
-                        return;
+                    if total_work > work_limit {
+                        return total_work;
                     }
                 }
             }
 
             self.dirty_regions.pop_front();
         }
+
+        total_work
     }
 
     pub fn render(&mut self) {
