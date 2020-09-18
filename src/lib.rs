@@ -6,12 +6,15 @@ mod utils;
 
 use complex::Complex;
 use math::NextCoprime;
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::VecDeque;
 use std::ops::Add;
 use std::ops::Div;
 use std::ops::Mul;
 use std::ops::Rem;
 use std::ops::Sub;
+use utils::Pristine;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -21,7 +24,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Color {
     r: u8,
     g: u8,
@@ -33,6 +36,28 @@ pub struct Color {
 impl Color {
     fn of(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
+    }
+
+    fn average(&self, other: &Color) -> Color {
+        Color::lerp(&self, other, 0, 2, 1)
+    }
+
+    fn lerp(a: &Color, b: &Color, a_value: isize, b_value: isize, target_value: isize) -> Color {
+        let dv = b_value - a_value;
+
+        let dr = b.r as isize - a.r as isize;
+        let dg = b.g as isize - a.g as isize;
+        let db = b.b as isize - a.b as isize;
+        let da = b.a as isize - a.a as isize;
+
+        let tv = target_value - a_value;
+
+        Color::of(
+            (a.r as isize + dr * tv / dv) as u8,
+            (a.g as isize + dg * tv / dv) as u8,
+            (a.b as isize + db * tv / dv) as u8,
+            (a.a as isize + da * tv / dv) as u8,
+        )
     }
 
     fn parse_hex(hex: &str) -> Result<Color, std::num::ParseIntError> {
@@ -50,7 +75,7 @@ impl Color {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GradientPivot {
     pub value: usize,
     pub color: Color,
@@ -64,16 +89,13 @@ impl GradientPivot {
     fn average(&self, other: &Self) -> Self {
         GradientPivot {
             value: (self.value + other.value) / 2,
-            color: Color::of(
-                (self.color.r + other.color.r) / 2,
-                (self.color.g + other.color.g) / 2,
-                (self.color.b + other.color.b) / 2,
-                (self.color.a + other.color.a) / 2,
-            ),
+            color: self.color.average(&other.color),
         }
     }
 }
 
+#[wasm_bindgen]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Gradient {
     inside: Color,
     root: Color,
@@ -92,6 +114,21 @@ impl Default for Gradient {
             ],
             max_value: 50,
         }
+    }
+}
+
+#[wasm_bindgen]
+impl Gradient {
+    pub fn len_pivots(&self) -> usize {
+        self.pivots.len()
+    }
+
+    pub fn get_pivot(&self, index: usize) -> Option<GradientPivot> {
+        self.pivots.get(index).cloned()
+    }
+
+    pub fn get_inside_color(&self) -> Color {
+        self.inside.clone()
     }
 }
 
@@ -152,19 +189,13 @@ impl Gradient {
             color,
         } in &self.pivots
         {
-            let r_diff: i16 = color.r as i16 - prev_color.r as i16;
-            let g_diff: i16 = color.g as i16 - prev_color.g as i16;
-            let b_diff: i16 = color.b as i16 - prev_color.b as i16;
-            let a_diff: i16 = color.a as i16 - prev_color.a as i16;
-            let i_diff: i16 = *escape_count as i16 - prev_i as i16;
-
             for i in prev_i..*escape_count {
-                let di = (i - prev_i) as i16;
-                values.push(Color::of(
-                    prev_color.r + (r_diff * di / i_diff) as u8,
-                    prev_color.g + (g_diff * di / i_diff) as u8,
-                    prev_color.b + (b_diff * di / i_diff) as u8,
-                    prev_color.a + (a_diff * di / i_diff) as u8,
+                values.push(Color::lerp(
+                    prev_color,
+                    color,
+                    prev_i as isize,
+                    *escape_count as isize,
+                    i as isize,
                 ));
             }
 
@@ -189,12 +220,13 @@ pub struct Palette {
 }
 
 impl Palette {
-    fn get_color(&self, escape_count: usize) -> &Color {
-        let len = self.escape_values.len();
-        if escape_count >= len {
+    fn get_color(&self, escape_count: usize, max_value: usize) -> &Color {
+        if escape_count >= max_value {
             &self.inside_color
         } else {
-            &self.escape_values[escape_count]
+            self.escape_values
+                .get(escape_count)
+                .unwrap_or(&self.inside_color)
         }
     }
 }
@@ -208,11 +240,11 @@ pub struct Image {
 }
 
 impl Image {
-    fn new(width: usize, height: usize) -> Image {
+    fn new(width: usize, height: usize, gradient: &Gradient) -> Image {
         Image {
             width,
             height,
-            palette: Gradient::default().make_palette(),
+            palette: gradient.make_palette(),
             escape_counts: vec![0; width * height],
             pixels: vec![0; width * height * 4],
         }
@@ -256,10 +288,10 @@ impl Image {
         }
     }
 
-    pub fn render_pixels(&mut self) {
+    pub fn render_pixels(&mut self, max_value: usize) {
         for i in 0..self.escape_counts.len() {
             let pixel_index = i * 4;
-            let color = self.palette.get_color(self.escape_counts[i]);
+            let color = self.palette.get_color(self.escape_counts[i], max_value);
             self.pixels[pixel_index] = color.r;
             self.pixels[pixel_index + 1] = color.g;
             self.pixels[pixel_index + 2] = color.b;
@@ -343,12 +375,151 @@ where
 }
 
 #[wasm_bindgen]
-pub struct Engine {
+#[derive(Clone, Copy)]
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[wasm_bindgen]
+pub struct Viewpoint {
+    pub center: Point,
+    pub scale: f64,
+}
+
+#[wasm_bindgen]
+impl Viewpoint {
+    pub fn serialize(&self) -> String {
+        let x = self.center.x.to_be_bytes();
+        let y = self.center.y.to_be_bytes();
+        let s = self.scale.to_be_bytes();
+
+        format!(
+            "{}.{}.{}",
+            base64::encode(x),
+            base64::encode(y),
+            base64::encode(s)
+        )
+    }
+
+    pub fn deserialize(s: &str) -> Option<Viewpoint> {
+        use std::convert::TryInto;
+        let parts: Result<Vec<Vec<u8>>, _> = s.split(".").map(|s| base64::decode(s)).collect();
+
+        match parts {
+            Ok(parts) if parts.len() == 3 => {
+                let x: Result<[u8; 8], _> = parts[0].as_slice().try_into();
+                let y: Result<[u8; 8], _> = parts[1].as_slice().try_into();
+                let s: Result<[u8; 8], _> = parts[2].as_slice().try_into();
+                match (x, y, s) {
+                    (Ok(x), Ok(y), Ok(s)) => Some(Viewpoint {
+                        center: Point {
+                            x: f64::from_be_bytes(x),
+                            y: f64::from_be_bytes(y),
+                        },
+                        scale: f64::from_be_bytes(s),
+                    }),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Deserialize, Serialize)]
+pub struct EngineSettings {
     center: Complex<f64>,
+    scale: f64,
+    iteration_limit: usize,
+    gradient: Pristine<Gradient>,
+}
+
+impl EngineSettings {
+    const SERIAL_VERSION_PREFIX: &'static str = "0:";
+
+    fn base64_config() -> base64::Config {
+        base64::Config::new(base64::CharacterSet::UrlSafe, false)
+    }
+}
+
+#[wasm_bindgen]
+impl EngineSettings {
+    pub fn get_viewpoint(&self) -> Viewpoint {
+        Viewpoint {
+            center: Point {
+                x: self.center.re,
+                y: self.center.im,
+            },
+            scale: self.scale,
+        }
+    }
+
+    pub fn get_scale(&self) -> f64 {
+        self.scale
+    }
+
+    pub fn get_iteration_limit(&self) -> usize {
+        self.iteration_limit
+    }
+
+    pub fn get_gradient(&self) -> Gradient {
+        self.gradient.get().clone()
+    }
+
+    fn try_serialize(&self) -> Result<String, bincode::Error> {
+        let bin = bincode::serialize(self)?;
+
+        use std::io::Write;
+        let mut encoder = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+        encoder.write_all(&bin)?;
+        let zip = encoder.finish()?;
+
+        Ok(format!(
+            "{}{}",
+            Self::SERIAL_VERSION_PREFIX,
+            base64::encode_config(zip, Self::base64_config())
+        ))
+    }
+
+    fn try_restore(&mut self, serialized: &str) -> Result<(), Box<dyn std::error::Error>> {
+        if serialized.starts_with(Self::SERIAL_VERSION_PREFIX) {
+            let zip = base64::decode_config(
+                &serialized[Self::SERIAL_VERSION_PREFIX.len()..],
+                Self::base64_config(),
+            )?;
+
+            use std::io::Read;
+            let mut decoder = flate2::read::ZlibDecoder::new(&zip[..]);
+            let mut bin = Vec::new();
+            decoder.read_to_end(&mut bin)?;
+
+            let deserialized: EngineSettings = bincode::deserialize(&bin)?;
+            *self = deserialized;
+            Ok(())
+        } else {
+            Err("Unsupported state version")?
+        }
+    }
+}
+
+impl Default for EngineSettings {
+    fn default() -> Self {
+        Self {
+            scale: 4.0,
+            center: Complex::from((0, 0)),
+            iteration_limit: 50,
+            gradient: Default::default(),
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub struct Engine {
+    settings: EngineSettings,
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
-    scale: f64,
-    gradient: Gradient,
     image: Image,
     dirty_regions: VecDeque<RangeRect<i32>>,
 }
@@ -357,14 +528,13 @@ impl Default for Engine {
     fn default() -> Self {
         utils::set_panic_hook();
 
+        let settings = EngineSettings::default();
         let mut e = Self {
-            scale: 4.0,
-            center: Complex::from((0, 0)),
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
-            gradient: Gradient::default(),
-            image: Image::new(1, 1),
+            image: Image::new(1, 1, &settings.gradient),
             dirty_regions: VecDeque::new(),
+            settings,
         };
         e.set_size(1, 1);
         e
@@ -377,21 +547,21 @@ impl Engine {
         Self::default()
     }
 
-    pub fn set_size(&mut self, width: usize, height: usize) {
-        self.scale = self.scale * self.image.width as f64 / width as f64;
-        self.image = Image::new(width, height);
-        self.update_limits();
+    pub fn set_size(&mut self, width: usize, height: usize) -> EngineSettings {
+        self.image = Image::new(width, height, &self.settings.gradient);
         self.dirtify_all();
+        self.update_limits()
     }
 
-    fn update_limits(&mut self) {
+    fn update_limits(&mut self) -> EngineSettings {
         let view_center: Complex<f64> = (
-            self.image.width as f64 / 2.0 * self.scale,
-            -(self.image.height as f64) / 2.0 * self.scale,
+            self.image.width as f64 / 2.0 * self.settings.scale,
+            -(self.image.height as f64) / 2.0 * self.settings.scale,
         )
             .into();
-        self.top_left = self.center - view_center;
-        self.btm_right = self.center + view_center;
+        self.top_left = self.settings.center - view_center;
+        self.btm_right = self.settings.center + view_center;
+        self.get_settings()
     }
 
     fn dirtify_all(&mut self) {
@@ -402,10 +572,21 @@ impl Engine {
         ));
     }
 
-    pub fn pan(&mut self, dx: i32, dy: i32) {
-        let dre = self.scale * dx as f64;
-        let dim = self.scale * (-dy) as f64;
-        self.center += (dre, dim).into();
+    pub fn get_settings(&self) -> EngineSettings {
+        self.settings.clone()
+    }
+
+    pub fn set_viewpoint(&mut self, viewpoint: Viewpoint) -> EngineSettings {
+        self.settings.center = (viewpoint.center.x, viewpoint.center.y).into();
+        self.settings.scale = viewpoint.scale;
+        self.dirtify_all();
+        self.update_limits()
+    }
+
+    pub fn pan(&mut self, dx: i32, dy: i32) -> EngineSettings {
+        let dre = self.settings.scale * dx as f64;
+        let dim = self.settings.scale * (-dy) as f64;
+        self.settings.center += (dre, dim).into();
         self.update_limits();
         self.image.pan(-dx, -dy);
 
@@ -438,46 +619,50 @@ impl Engine {
             },
             (dirty_y_min, dirty_y_max),
         ));
+
+        self.settings.clone()
     }
 
-    pub fn zoom_in(&mut self) {
-        self.scale /= 2.0;
-        self.update_limits();
+    pub fn zoom_in(&mut self) -> EngineSettings {
+        self.settings.scale /= 2.0;
         self.dirtify_all();
+        self.update_limits()
     }
 
-    pub fn zoom_out(&mut self) {
-        self.scale *= 2.0;
-        self.update_limits();
+    pub fn zoom_out(&mut self) -> EngineSettings {
+        self.settings.scale *= 2.0;
         self.dirtify_all();
+        self.update_limits()
     }
 
-    pub fn zoom_in_around(&mut self, x: usize, y: usize) {
-        self.zoom_around(self.scale / 2.0, x, y);
+    pub fn zoom_in_around(&mut self, x: usize, y: usize) -> EngineSettings {
+        self.zoom_around(self.settings.scale / 2.0, x, y)
     }
 
-    pub fn zoom_out_around(&mut self, x: usize, y: usize) {
-        self.zoom_around(self.scale * 2.0, x, y);
+    pub fn zoom_out_around(&mut self, x: usize, y: usize) -> EngineSettings {
+        self.zoom_around(self.settings.scale * 2.0, x, y)
     }
 
-    fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) {
-        let sdiff = new_scale - self.scale;
-        self.center += (
+    fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) -> EngineSettings {
+        let sdiff = new_scale - self.settings.scale;
+        self.settings.center += (
             sdiff * (self.image.width as f64 / 2.0 - x as f64),
             sdiff * (y as f64 - self.image.height as f64 / 2.0),
         )
             .into();
 
-        self.scale = new_scale;
-        self.update_limits();
+        self.settings.scale = new_scale;
         self.dirtify_all();
+        self.update_limits()
     }
 
     pub fn image_data(&self) -> *const u8 {
         self.image.image_data()
     }
 
-    pub fn compute(&mut self, mut count: usize) {
+    pub fn compute(&mut self, work_limit: usize) -> usize {
+        let mut total_work = 0;
+
         while let Some(dirty_region) = self.dirty_regions.front_mut() {
             let corner_diff = self.btm_right - self.top_left;
             let re_span = corner_diff.re;
@@ -496,63 +681,80 @@ impl Engine {
                     let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
                     let c = self.top_left + c_offset;
-                    let escape_count =
-                        mandelbrot::check(c, self.image.palette.escape_values.len(), 2.0);
+                    let escape_count = mandelbrot::check(c, self.settings.iteration_limit, 2.0);
                     self.image.escape_counts[i] = escape_count;
+                    total_work += escape_count;
 
-                    count -= 1;
-                    if count == 0 {
-                        return;
+                    if total_work > work_limit {
+                        return total_work;
                     }
                 }
             }
 
             self.dirty_regions.pop_front();
         }
+
+        total_work
     }
 
     pub fn render(&mut self) {
-        self.image.render_pixels();
+        if let Some(gradient) = self.settings.gradient.get_dirty() {
+            self.image.palette = gradient.make_palette();
+        };
+        self.image.render_pixels(self.settings.iteration_limit);
     }
 
-    fn update_palette(&mut self) {
-        self.image.palette = self.gradient.make_palette();
-    }
-
-    pub fn gradient_set_pivot_value(&mut self, index: usize, value: usize) -> Option<usize> {
-        let result = self.gradient.set_pivot_value(index, value);
-        self.update_palette();
-        result
-    }
-
-    pub fn gradient_set_pivot_color(&mut self, index: usize, color: &str) -> bool {
-        if let Ok(color) = Color::parse_hex(color) {
-            self.gradient.set_pivot_color(index, color);
-            self.update_palette();
-            true
-        } else {
-            false
+    pub fn set_iteration_limit(&mut self, iteration_limit: usize) -> EngineSettings {
+        if iteration_limit > self.settings.iteration_limit {
+            self.dirtify_all();
         }
+        if let Some(pivot) = self.settings.gradient.pivots.last_mut() {
+            pivot.value = iteration_limit;
+        }
+        self.settings.iteration_limit = iteration_limit;
+        self.settings.clone()
     }
 
-    pub fn gradient_insert_pivot(&mut self, index: usize) -> GradientPivot {
-        let pivot = self.gradient.insert_pivot(index);
-        self.update_palette();
-        pivot
+    pub fn gradient_set_pivot_value(&mut self, index: usize, value: usize) -> EngineSettings {
+        self.settings.gradient.set_pivot_value(index, value);
+        self.settings.clone()
     }
 
-    pub fn gradient_delete_pivot(&mut self, index: usize) {
-        self.gradient.delete_pivot(index);
-        self.update_palette();
-    }
-
-    pub fn gradient_set_inside_color(&mut self, color: &str) -> bool {
+    pub fn gradient_set_pivot_color(&mut self, index: usize, color: &str) -> EngineSettings {
         if let Ok(color) = Color::parse_hex(color) {
-            self.gradient.set_inside_color(color);
-            self.update_palette();
-            true
+            self.settings.gradient.set_pivot_color(index, color);
+        }
+        self.settings.clone()
+    }
+
+    pub fn gradient_insert_pivot(&mut self, index: usize) -> EngineSettings {
+        self.settings.gradient.insert_pivot(index);
+        self.settings.clone()
+    }
+
+    pub fn gradient_delete_pivot(&mut self, index: usize) -> EngineSettings {
+        self.settings.gradient.delete_pivot(index);
+        self.settings.clone()
+    }
+
+    pub fn gradient_set_inside_color(&mut self, color: &str) -> EngineSettings {
+        if let Ok(color) = Color::parse_hex(color) {
+            self.settings.gradient.set_inside_color(color);
+        }
+        self.settings.clone()
+    }
+
+    pub fn serialize_settings(&self) -> Option<String> {
+        self.settings.try_serialize().ok()
+    }
+
+    pub fn restore_settings(&mut self, serialized: &str) -> Option<EngineSettings> {
+        if self.settings.try_restore(serialized).is_ok() {
+            self.dirtify_all();
+            self.update_limits();
+            Some(self.settings.clone())
         } else {
-            false
+            None
         }
     }
 }

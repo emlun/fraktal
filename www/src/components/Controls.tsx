@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import _ from 'underscore';
 
-import { Color, Engine } from 'fraktal-wasm/fraktal';
+import { Engine, EngineSettings, GradientPivot } from 'fraktal-wasm/fraktal';
 
 import styles from './Controls.module.css';
+import sidebarStyles from './Sidebar.module.css';
 
 
 function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -14,87 +14,80 @@ function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 
 interface Props {
   engine: Engine,
+  settings: EngineSettings,
+  updateSettings: (settings: EngineSettings) => void,
 }
 
-interface GradientPivot {
-  value: number,
-  color: string,
-  id: string,
-}
+function Controls({ engine, settings, updateSettings }: Props) {
 
-function Controls({ engine }: Props) {
+  const [maxPrecision, setMaxPrecision] = useState(100);
+  const [serializedSettings, setSerializedSettings] = useState("");
+  const [restoreError, setRestoreError] = useState("");
 
-  const [numColors, setNumColors] = useState(50);
-  const [insideColor, setInsideColor] = useState<string>('#000000');
-  const [gradient, setGradient] = useState<GradientPivot[]>([
-    { id: _.uniqueId('gradient-pivot-'), value: 0, color: '#000000' },
-    { id: _.uniqueId('gradient-pivot-'), value: numColors, color: '#ff00ff' },
-  ]);
+  const gradient = settings.get_gradient();
+  const numColors = settings.get_iteration_limit();
+
+  const stateHref = window.location.origin + window.location.pathname + '?state=' + engine.serialize_settings();
 
   const setPivotValue = useCallback(
     (index, value) => {
-      const updated = engine.gradient_set_pivot_value(index, value);
-      if (updated) {
-        setGradient([
-          ...gradient.slice(0, index),
-          {
-            ...gradient[index],
-            value: updated,
-          },
-          ...gradient.slice(index + 1),
-        ]);
+      updateSettings(engine.gradient_set_pivot_value(index, value));
+    },
+    [engine],
+  );
+
+  const onSetNumColors = useCallback(
+    (numColors: number) => {
+      updateSettings(engine.set_iteration_limit(numColors));
+    },
+    [engine],
+  );
+
+  const onReduceMaxPrecision = useCallback(
+    () => {
+      setMaxPrecision(maxPrecision / 2);
+      onSetNumColors(numColors / 2);
+    },
+    [numColors, onSetNumColors]
+  );
+
+  const onIncreaseMaxPrecision = useCallback(
+    () => {
+      if (numColors >= maxPrecision) {
+        const newMax = maxPrecision * 2;
+        setMaxPrecision(newMax);
+        onSetNumColors(newMax);
+      } else {
+        onSetNumColors(maxPrecision);
       }
     },
-    [engine, gradient],
+    [maxPrecision, numColors, onSetNumColors]
   );
 
   const setPivotColor = useCallback(
     (index, color) => {
-      if (engine.gradient_set_pivot_color(index, color)) {
-        setGradient([
-          ...gradient.slice(0, index),
-          {
-            ...gradient[index],
-            color,
-          },
-          ...gradient.slice(index + 1),
-        ]);
-      }
+      updateSettings(engine.gradient_set_pivot_color(index, color));
     },
-    [engine, gradient],
+    [engine],
   );
 
   const addGradientPivot = useCallback(
     (index) => {
-      const pivot = engine.gradient_insert_pivot(index);
-      setGradient([
-        ...gradient.slice(0, index + 1),
-        {
-          id: _.uniqueId('gradient-pivot-'),
-          value: pivot.value,
-          color: pivot.color.as_hex(),
-        },
-        ...gradient.slice(index + 1),
-      ]);
+      updateSettings(engine.gradient_insert_pivot(index));
     },
-    [engine, gradient],
+    [engine],
   );
 
   const deleteGradientPivot = useCallback(
     (index) => {
-      const pivot = engine.gradient_delete_pivot(index);
-      setGradient([
-        ...gradient.slice(0, index),
-        ...gradient.slice(index + 1),
-      ]);
+      updateSettings(engine.gradient_delete_pivot(index));
     },
-    [engine, gradient],
+    [engine],
   );
 
   const onSetInsideColor = useCallback(
     (color) => {
-      engine.gradient_set_inside_color(color);
-      setInsideColor(color);
+      updateSettings(engine.gradient_set_inside_color(color));
     },
     [engine],
   );
@@ -103,28 +96,45 @@ function Controls({ engine }: Props) {
     <form onSubmit={ onSubmit }>
       <div>
         <p>
-          Number of color values:
+          Precision:
         </p>
-        <p>
+
+        <div className={ styles['Precision-Slider'] }>
+          <button
+            type="button"
+            disabled={ maxPrecision <= 100 }
+            onClick={ onReduceMaxPrecision }
+          >
+            -
+          </button>
           <input
-            max={ 1000 }
+            max={ maxPrecision }
             min={ 10 }
-            onChange={ ({ target: { value } }) => setNumColors(parseInt(value, 10)) }
-            step={ 10 }
+            onChange={ ({ target: { value } }) => onSetNumColors(parseInt(value, 10)) }
+            step={ Math.max(maxPrecision / 100, 10) }
             type="range"
             value={ numColors }
           />
-          { numColors }
-        </p>
+          <button
+            type="button"
+            onClick={ onIncreaseMaxPrecision }
+          >
+            +
+          </button>
+          <span>
+            { numColors }
+          </span>
+        </div>
 
         <p>
           Gradient:
         </p>
-        { gradient.map((pivot, index) => {
-          const colorHex = pivot.color;
+        { Array.from(Array(gradient.len_pivots()).keys()).map((index: number) => {
+          const pivot = gradient.get_pivot(index) as GradientPivot;
+          const colorHex = pivot.color.as_hex();
 
           return <div
-            key={ pivot.id }
+            key={ index }
             className={ styles['Gradient-Row'] }
           >
             <input
@@ -159,9 +169,25 @@ function Controls({ engine }: Props) {
           <input
             onChange={ ({ target: { value } }) => onSetInsideColor(value) }
             type="color"
-            value={ insideColor }
+            value={ gradient.get_inside_color().as_hex() }
           />
         </p>
+
+        <div className={ styles['Controls-Legend'] }>
+          <p>
+            Pan: Click and drag
+          </p>
+          <p>
+            Zoom around pointer: Mouse wheel
+          </p>
+          <p>
+            Static zoom: <kbd>Shift</kbd> + Mouse wheel
+          </p>
+        </div>
+
+        <div style={{ textAlign: 'center' }}>
+          <a className={ sidebarStyles['button'] } href={ stateHref }>Share this view</a>
+        </div>
       </div>
     </form>
   </div>;

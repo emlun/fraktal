@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import _ from 'underscore';
 
 import { debug } from 'logging';
 
-import { Engine } from 'fraktal-wasm/fraktal';
-import { memory } from 'fraktal-wasm/fraktal_bg';
+import { Engine, EngineSettings } from 'fraktal-wasm/fraktal';
+import { memory } from 'fraktal-wasm/fraktal_bg.wasm';
 
 import styles from './Canvas.module.css';
 
 
 interface Props {
-  engine: Engine,
-
+  readonly engine: Engine,
+  readonly settings: EngineSettings,
+  readonly updateSettings: (settings: EngineSettings) => void,
   readonly panTriggerThreshold?: number,
 };
 
@@ -22,93 +22,114 @@ interface Pos {
 
 function Canvas({
   engine,
+  settings,
+  updateSettings,
   panTriggerThreshold = 10,
 }: Props) {
 
   const mousePos = useRef<Pos | null>(null);
   const scrollStartPos = useRef<Pos | null>(null);
   const [ctx, setContext] = useState<CanvasRenderingContext2D>();
+  const [wrapper, setWrapper] = useState<HTMLElement | null>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement>();
   const imageData = useRef(new ImageData(100, 100));
 
-  const getScrollOffset = () => {
-    if (scrollStartPos.current && mousePos.current) {
-      return {
-        x: mousePos.current.x - scrollStartPos.current.x,
-        y: mousePos.current.y - scrollStartPos.current.y,
-      };
-    } else {
-      return { x: 0, y: 0 };
-    }
-  };
-  const getRenderOffset = () => getScrollOffset();
-
-  const onMouseDown = (event: MouseEvent) => {
-    const pos = { x: event.offsetX, y: event.offsetY };
-    scrollStartPos.current = pos;
-    mousePos.current = pos;
-  };
-
-  const onMouseMove = (event: MouseEvent) => {
-    if (scrollStartPos.current) {
-      mousePos.current = { x: event.offsetX, y: event.offsetY };
-    }
-  };
-
-  const onMouseUp = (event: MouseEvent) => {
-    const scrollOffset = getScrollOffset();
-
-    if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= panTriggerThreshold) {
-      const { x, y } = getRenderOffset();
-      engine.pan(-x, -y);
-    }
-
-    scrollStartPos.current = null;
-  }
-
-  const onWheel = (event: WheelEvent) => {
-    if (event.deltaY > 0) {
-      if (event.shiftKey) {
-        engine.zoom_out_around(event.clientX, event.clientY);
+  const getScrollOffset = useCallback(
+    () => {
+      if (scrollStartPos.current && mousePos.current) {
+        return {
+          x: mousePos.current.x - scrollStartPos.current.x,
+          y: mousePos.current.y - scrollStartPos.current.y,
+        };
       } else {
-        engine.zoom_out();
-      }
-    } else if (event.shiftKey) {
-      engine.zoom_in_around(event.clientX, event.clientY);
-    } else {
-      engine.zoom_in();
-    }
-  };
-
-  const updateCanvas = useCallback(
-    (node) => {
-      if (node) {
-        setCanvas(node);
-        setContext(node.getContext('2d'));
+        return { x: 0, y: 0 };
       }
     },
-    []
+    [engine]
+  );
+  const getRenderOffset = getScrollOffset;
+
+  const onMouseDown = useCallback(
+    (event: MouseEvent) => {
+      const pos = { x: event.offsetX, y: event.offsetY };
+      scrollStartPos.current = pos;
+      mousePos.current = pos;
+    },
+    [engine]
   );
 
-  const updateWasmPointer = () => {
-    if (canvas) {
-      const imd = new Uint8ClampedArray(
-        memory.buffer,
-        engine.image_data(),
-        canvas.width * canvas.height * 4
-      );
-      imageData.current = new ImageData(imd, canvas.width);
+  const onMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (scrollStartPos.current) {
+        mousePos.current = { x: event.offsetX, y: event.offsetY };
+      }
+    },
+    [engine, panTriggerThreshold]
+  );
+
+  const onMouseUp = useCallback(
+    (event: MouseEvent) => {
+      const scrollOffset = getScrollOffset();
+
+      if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= panTriggerThreshold) {
+        const { x, y } = getRenderOffset();
+        updateSettings(engine.pan(-x, -y));
+      }
+
+      scrollStartPos.current = null;
+    },
+    [engine, panTriggerThreshold]
+  );
+
+  const onWheel = useCallback(
+    (event: WheelEvent) => {
+      if (event.deltaY > 0) {
+        if (event.shiftKey) {
+          updateSettings(engine.zoom_out());
+        } else {
+          updateSettings(engine.zoom_out_around(event.clientX, event.clientY));
+        }
+      } else if (event.shiftKey) {
+        updateSettings(engine.zoom_in());
+      } else {
+        updateSettings(engine.zoom_in_around(event.clientX, event.clientY));
+      }
+    },
+    [engine]
+  );
+
+  const updateCanvas = (node: HTMLCanvasElement) => {
+    if (node) {
+      setCanvas(node);
+      setContext(node.getContext('2d') || undefined);
     }
   };
 
-  const resizeCanvas = () => {
-    if (canvas) {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      engine.set_size(canvas.width, canvas.height);
-      updateWasmPointer();
-    }
-  };
+  const updateWasmPointer = useCallback(
+    () => {
+      if (canvas) {
+        const imd = new Uint8ClampedArray(
+          memory.buffer,
+          engine.image_data(),
+          canvas.width * canvas.height * 4
+        );
+        imageData.current = new ImageData(imd, canvas.width);
+      }
+    },
+    [canvas, engine]
+  );
+
+  const resizeCanvas = useCallback(
+    () => {
+      if (canvas) {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        updateSettings(engine.set_size(canvas.width, canvas.height));
+        updateWasmPointer();
+      }
+    },
+    [canvas, engine, updateWasmPointer]
+  );
   useEffect(
     () => {
       if (canvas) {
@@ -120,19 +141,7 @@ function Canvas({
         };
       }
     },
-    [canvas]
-  );
-
-  const updateWrapper = useCallback(
-    (node) => {
-      if (node) {
-        node.addEventListener('mousedown', onMouseDown, true);
-        node.addEventListener('mousemove', onMouseMove, true);
-        node.addEventListener('mouseup', onMouseUp, true);
-        node.addEventListener('wheel', onWheel, true);
-      }
-    },
-    []
+    [canvas, engine, resizeCanvas]
   );
 
   useEffect(
@@ -150,24 +159,55 @@ function Canvas({
           ctx.putImageData(imageData.current, x, y);
         };
 
+        let computeLimit = 100000;
+        let stopRenderLoop: any;
         const renderLoop = () => {
-          engine.compute(100000);
+
+          const t0 = performance.now();
+          const computed = engine.compute(computeLimit);
+          const dt = performance.now() - t0;
+          if (dt > 1000/60) {
+            computeLimit /= 1.5;
+          } else if (dt < 1000/100 && computed >= computeLimit) {
+            computeLimit *= 1.5;
+          }
+
           engine.render();
           drawPixels();
-          window.requestAnimationFrame(renderLoop);
+          stopRenderLoop = window.requestAnimationFrame(renderLoop);
         };
-        const stopRenderLoop = window.requestAnimationFrame(renderLoop);
+        stopRenderLoop = window.requestAnimationFrame(renderLoop);
 
         return () => {
-          window.cancelAnimationFrame(stopRenderLoop);
+          if (stopRenderLoop) {
+            window.cancelAnimationFrame(stopRenderLoop);
+          }
         };
       }
     },
-    [ctx, canvas, imageData]
+    [ctx, canvas, engine, imageData, updateWasmPointer]
+  );
+
+  useEffect(
+    () => {
+      if (wrapper) {
+        wrapper.addEventListener('mousedown', onMouseDown, true);
+        wrapper.addEventListener('mousemove', onMouseMove, true);
+        wrapper.addEventListener('mouseup', onMouseUp, true);
+        wrapper.addEventListener('wheel', onWheel, true);
+        return () => {
+          wrapper.removeEventListener('mousedown', onMouseDown, true);
+          wrapper.removeEventListener('mousemove', onMouseMove, true);
+          wrapper.removeEventListener('mouseup', onMouseUp, true);
+          wrapper.removeEventListener('wheel', onWheel, true);
+        };
+      }
+    },
+    [wrapper, onMouseDown, onMouseMove, onMouseUp, onWheel]
   );
 
   return <div
-    ref={ updateWrapper }
+    ref={ setWrapper }
     className={ styles['Canvas-Container'] }
   >
     <canvas

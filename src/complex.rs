@@ -1,10 +1,12 @@
+use serde::Deserialize;
+use serde::Serialize;
 use std::fmt::Display;
 use std::ops::Add;
 use std::ops::AddAssign;
 use std::ops::Mul;
 use std::ops::Sub;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Deserialize, Serialize)]
 pub struct Complex<Num> {
     pub re: Num,
     pub im: Num,
