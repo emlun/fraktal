@@ -85,14 +85,14 @@ function Canvas({
     (event: WheelEvent) => {
       if (event.deltaY > 0) {
         if (event.shiftKey) {
-          updateSettings(engine.zoom_out_around(event.clientX, event.clientY));
-        } else {
           updateSettings(engine.zoom_out());
+        } else {
+          updateSettings(engine.zoom_out_around(event.clientX, event.clientY));
         }
       } else if (event.shiftKey) {
-        updateSettings(engine.zoom_in_around(event.clientX, event.clientY));
-      } else {
         updateSettings(engine.zoom_in());
+      } else {
+        updateSettings(engine.zoom_in_around(event.clientX, event.clientY));
       }
     },
     [engine]
