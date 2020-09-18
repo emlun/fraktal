@@ -14,12 +14,3 @@
   margin-left: 0.5em;
   margin-top: 0.2em;
 }
-
-.Restore-Error {
-  color: #AA0000;
-}
-
-.State-Blob {
-  overflow: hidden;
-  white-space: pre-wrap;
-}

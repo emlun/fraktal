@@ -70,7 +70,7 @@
   border: 1px solid rgba(128, 128, 128, 0.5);
 }
 
-button, select, input {
+button, select, input, a.button {
   background: transparent;
   border-radius: 0.3em;
   border: 1px solid rgba(128, 128, 128, 0.5);
@@ -78,17 +78,19 @@ button, select, input {
   padding: 0.2em 0.5em;
 }
 
-button {
+button, a.button {
   background: rgba(128, 128, 128, 0.2);
   cursor: pointer;
+  font-weight: normal;
 }
 
-button::-moz-focus-inner {
+button::-moz-focus-inner, a.button::-moz-focus-inner {
   border: none;
 }
 
-button:hover {
+button:hover, a.button:hover {
   background: rgba(128, 128, 128, 0.4);
+  color: inherit;
 }
 
 select {

@@ -28,7 +28,16 @@ function App() {
   useEffect(
     () => {
       const eng = Engine.new();
-      let settings = eng.get_settings();
+
+      if (window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        const state = params.get('state');
+        if (state) {
+          eng.restore_settings(state);
+        }
+      }
+
+      const settings = eng.get_settings();
       setEngine(eng);
       setSettings(settings);
     },

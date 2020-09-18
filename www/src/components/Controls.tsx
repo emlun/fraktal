@@ -3,6 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { Engine, EngineSettings, GradientPivot } from 'fraktal-wasm/fraktal';
 
 import styles from './Controls.module.css';
+import sidebarStyles from './Sidebar.module.css';
 
 
 function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -25,6 +26,8 @@ function Controls({ engine, settings, updateSettings }: Props) {
 
   const gradient = settings.get_gradient();
   const numColors = settings.get_iteration_limit();
+
+  const stateHref = window.location.origin + window.location.pathname + '?state=' + engine.serialize_settings();
 
   const setPivotValue = useCallback(
     (index, value) => {
@@ -170,34 +173,9 @@ function Controls({ engine, settings, updateSettings }: Props) {
           />
         </p>
 
-        <p>State:</p>
-        <pre className={ styles['State-Blob'] }>{ engine.serialize_settings() }</pre>
-        <p>
-          <input
-            type="text"
-            value={ serializedSettings }
-            onChange={ ({ target: { value } }) => setSerializedSettings(value) }
-          />
-          <button
-            type="button"
-            onClick={ () => {
-              const settings = engine.restore_settings(serializedSettings);
-              if (settings) {
-                updateSettings(settings);
-                setRestoreError("");
-              } else {
-                setRestoreError('Restore failed');
-              }
-            }}
-          >
-            Restore
-          </button>
-        </p>
-        { restoreError
-          && <p className={ styles['Restore-Error'] }>
-            { restoreError }
-          </p>
-        }
+        <div style={{ textAlign: 'center' }}>
+          <a className={ sidebarStyles['button'] } href={ stateHref }>Share this view</a>
+        </div>
       </div>
     </form>
   </div>;
