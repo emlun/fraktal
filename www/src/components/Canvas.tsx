@@ -159,9 +159,19 @@ function Canvas({
           ctx.putImageData(imageData.current, x, y);
         };
 
+        let computeLimit = 100000;
         let stopRenderLoop: any;
         const renderLoop = () => {
-          engine.compute(10000000);
+
+          const t0 = performance.now();
+          const computed = engine.compute(computeLimit);
+          const dt = performance.now() - t0;
+          if (dt > 1000/60) {
+            computeLimit /= 1.5;
+          } else if (dt < 1000/100 && computed >= computeLimit) {
+            computeLimit *= 1.5;
+          }
+
           engine.render();
           drawPixels();
           stopRenderLoop = window.requestAnimationFrame(renderLoop);
