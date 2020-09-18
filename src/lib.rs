@@ -507,7 +507,7 @@ impl EngineSettings {
 impl Default for EngineSettings {
     fn default() -> Self {
         Self {
-            scale: 4.0,
+            scale: 0.0078125,
             center: Complex::from((0, 0)),
             iteration_limit: 50,
             gradient: Default::default(),
