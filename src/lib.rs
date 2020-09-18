@@ -548,7 +548,6 @@ impl Engine {
     }
 
     pub fn set_size(&mut self, width: usize, height: usize) -> EngineSettings {
-        self.settings.scale = self.settings.scale * self.image.width as f64 / width as f64;
         self.image = Image::new(width, height, &self.settings.gradient);
         self.update_limits()
     }
