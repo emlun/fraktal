@@ -428,6 +428,32 @@ impl RectRegion {
             None
         }
     }
+
+    fn trisect(&self) -> Option<(RectRegion, RectRegion, RectRegion)> {
+        if self.interior_len() > 0 {
+            Some(if self.w >= self.h {
+                let w1 = (self.w - 2) / 3;
+                let w2 = ((self.w - 2) - w1) / 2;
+                let w3 = (self.w - 2) - w1 - w2;
+                (
+                    RectRegion::new(self.x0 + 1, self.y0 + 1, w1, self.h - 2),
+                    RectRegion::new(self.x0 + 1 + w1, self.y0 + 1, w2, self.h - 2),
+                    RectRegion::new(self.x0 + 1 + w1 + w2, self.y0 + 1, w3, self.h - 2),
+                )
+            } else {
+                let h1 = (self.h - 2) / 3;
+                let h2 = ((self.h - 2) - h1) / 2;
+                let h3 = (self.h - 2) - h1 - h2;
+                (
+                    RectRegion::new(self.x0 + 1, self.y0 + 1, self.w - 2, h1),
+                    RectRegion::new(self.x0 + 1, self.y0 + 1 + h1, self.w - 2, h2),
+                    RectRegion::new(self.x0 + 1, self.y0 + 1 + h1 + h2, self.w - 2, h3),
+                )
+            })
+        } else {
+            None
+        }
+    }
 }
 struct RectRegionBorder<'parent> {
     parent: &'parent RectRegion,
@@ -981,7 +1007,8 @@ pub struct Engine {
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     image: Image,
-    dirty_regions: VecDeque<RectRegion>,
+    dirty_regions_stack: Vec<RectRegion>,
+    dirty_regions_queue: VecDeque<RectRegion>,
 }
 
 impl Default for Engine {
@@ -993,7 +1020,8 @@ impl Default for Engine {
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
             image: Image::new(1, 1, &settings.gradient),
-            dirty_regions: VecDeque::new(),
+            dirty_regions_stack: Vec::new(),
+            dirty_regions_queue: VecDeque::new(),
             settings,
         };
         e.set_size(1, 1);
@@ -1025,8 +1053,9 @@ impl Engine {
     }
 
     fn dirtify_all(&mut self) {
-        self.dirty_regions.clear();
-        self.dirty_regions.push_back(RectRegion::new(
+        self.dirty_regions_stack.clear();
+        self.dirty_regions_queue.clear();
+        self.dirty_regions_stack.push(RectRegion::new(
             0,
             0,
             self.image.width as i32,
@@ -1064,18 +1093,23 @@ impl Engine {
             (self.image.height as i32 - dy, self.image.height as i32)
         };
 
-        for region in &mut self.dirty_regions {
+        for region in &mut self.dirty_regions_stack {
             region.x0 -= dx;
             region.y0 -= dy;
         }
 
-        self.dirty_regions.push_back(RectRegion::new(
+        for region in &mut self.dirty_regions_queue {
+            region.x0 -= dx;
+            region.y0 -= dy;
+        }
+
+        self.dirty_regions_queue.push_back(RectRegion::new(
             dirty_x_min,
             0,
             dirty_x_max,
             self.image.height as i32,
         ));
-        self.dirty_regions.push_back({
+        self.dirty_regions_queue.push_back({
             let (x0, w) = if dx < 0 {
                 (dirty_x_max, self.image.width as i32)
             } else {
@@ -1127,7 +1161,7 @@ impl Engine {
     pub fn compute(&mut self, work_limit: usize) -> usize {
         let mut total_work = 0;
 
-        while let Some(dirty_region) = self.dirty_regions.front_mut() {
+        while let Some(dirty_region) = self.dirty_regions_stack.pop() {
             let corner_diff = self.btm_right - self.top_left;
             let re_span = corner_diff.re;
             let im_span = corner_diff.im;
@@ -1168,16 +1202,21 @@ impl Engine {
                     }
                 }
                 total_work += dirty_region.interior_len();
-            } else if let Some((r1, r2)) = dirty_region.bisect() {
-                self.dirty_regions.push_back(r1);
-                self.dirty_regions.push_back(r2);
+            } else if let Some((r1, r2, r3)) = dirty_region.trisect() {
+                self.dirty_regions_stack.push(r3);
+                self.dirty_regions_stack.push(r1);
+                self.dirty_regions_stack.push(r2);
             }
 
             if total_work > work_limit {
                 return total_work;
             }
+        }
 
-            self.dirty_regions.pop_front();
+        if self.dirty_regions_stack.is_empty() {
+            if let Some(dirty_region) = self.dirty_regions_queue.pop_front() {
+                self.dirty_regions_stack.push(dirty_region);
+            }
         }
 
         total_work
