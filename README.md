@@ -16,13 +16,3 @@ $ npm install
 $ npm start
 $ $BROWSER http://localhost:8080
 ```
-
-
-Controls
----
-
-The following is subject to change.
-
-- Mouse drag: Pan view
-- Mouse wheel: Zoom around pointer
-- Shift + mouse wheel: Zoom around center
