@@ -24,6 +24,5 @@ Controls
 The following is subject to change.
 
 - Mouse drag: Pan view
-- Mouse wheel up: Zoom in
-- Mouse wheel down: Zoom out
-- Shift + mouse wheel: Zoom around mouse pointer
+- Mouse wheel: Zoom around pointer
+- Shift + mouse wheel: Zoom around center

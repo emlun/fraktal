@@ -1,19 +1,16 @@
 pub mod complex;
 pub mod mandelbrot;
 pub mod math;
+mod rect;
+
 #[macro_use]
 mod utils;
 
 use complex::Complex;
-use math::NextCoprime;
+use rect::RectRegion;
 use serde::Deserialize;
 use serde::Serialize;
-use std::collections::VecDeque;
-use std::ops::Add;
-use std::ops::Div;
-use std::ops::Mul;
-use std::ops::Rem;
-use std::ops::Sub;
+use std::collections::BinaryHeap;
 use utils::Pristine;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -306,74 +303,6 @@ impl Image {
     }
 }
 
-#[derive(Debug)]
-struct RangeRect<T> {
-    x0: T,
-    y0: T,
-    w: T,
-    h: T,
-    len: T,
-    step: T,
-    i: T,
-    exhausted: bool,
-}
-
-impl<T> RangeRect<T>
-where
-    T: Copy,
-    T: Div<T, Output = T>,
-    T: From<u8>,
-    T: Mul<T, Output = T>,
-    T: NextCoprime,
-    T: Sub<T, Output = T>,
-{
-    fn new((x0, w): (T, T), (y0, h): (T, T)) -> RangeRect<T> {
-        let len = w * h;
-        RangeRect {
-            x0,
-            y0,
-            w,
-            h,
-            len,
-            step: (len / 100.into()).next_coprime(len),
-            i: 0.into(),
-            exhausted: false,
-        }
-    }
-}
-
-impl<T> RangeRect<T> {
-    fn is_exhausted(&self) -> bool {
-        self.exhausted
-    }
-}
-
-impl<T> Iterator for RangeRect<T>
-where
-    T: Add<T, Output = T>,
-    T: Copy,
-    T: Div<T, Output = T>,
-    T: Eq,
-    T: From<u8>,
-    T: Mul<T, Output = T>,
-    T: Rem<T, Output = T>,
-{
-    type Item = (T, T);
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.is_exhausted() || self.len == 0.into() {
-            None
-        } else {
-            let y = self.y0 + self.i / self.w;
-            let x = self.x0 + self.i % self.w;
-            self.i = (self.i + self.step) % self.len;
-            if self.i == 0.into() {
-                self.exhausted = true;
-            }
-            Some((x, y))
-        }
-    }
-}
-
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct Point {
@@ -515,13 +444,55 @@ impl Default for EngineSettings {
     }
 }
 
+#[derive(Eq, PartialEq)]
+struct DistanceToImageCenter {
+    d: i32,
+    value: RectRegion,
+}
+impl DistanceToImageCenter {
+    fn of(value: RectRegion, (focus_x, focus_y): &(usize, usize)) -> Self {
+        Self {
+            d: -value.squared_distance_to((*focus_x as i32, *focus_y as i32)),
+            value,
+        }
+    }
+
+    fn pan(mut self, dx: i32, dy: i32, img: &Image) -> Self {
+        self.value.x0 -= dx;
+        self.value.y0 -= dy;
+        Self::of(self.value, &(img.width / 2, img.height / 2))
+    }
+}
+impl PartialOrd for DistanceToImageCenter {
+    fn partial_cmp(&self, other: &DistanceToImageCenter) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for DistanceToImageCenter {
+    fn cmp(&self, other: &DistanceToImageCenter) -> std::cmp::Ordering {
+        self.d.cmp(&other.d)
+    }
+}
+impl std::ops::Deref for DistanceToImageCenter {
+    type Target = RectRegion;
+    fn deref(&self) -> &<Self as std::ops::Deref>::Target {
+        &self.value
+    }
+}
+impl std::ops::DerefMut for DistanceToImageCenter {
+    fn deref_mut(&mut self) -> &mut <Self as std::ops::Deref>::Target {
+        &mut self.value
+    }
+}
+
 #[wasm_bindgen]
 pub struct Engine {
     settings: EngineSettings,
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     image: Image,
-    dirty_regions: VecDeque<RangeRect<i32>>,
+    dirty_regions: BinaryHeap<DistanceToImageCenter>,
+    last_zoom_focus: (usize, usize),
 }
 
 impl Default for Engine {
@@ -533,8 +504,9 @@ impl Default for Engine {
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
             image: Image::new(1, 1, &settings.gradient),
-            dirty_regions: VecDeque::new(),
+            dirty_regions: BinaryHeap::new(),
             settings,
+            last_zoom_focus: (0, 0),
         };
         e.set_size(1, 1);
         e
@@ -549,6 +521,7 @@ impl Engine {
 
     pub fn set_size(&mut self, width: usize, height: usize) -> EngineSettings {
         self.image = Image::new(width, height, &self.settings.gradient);
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.dirtify_all();
         self.update_limits()
     }
@@ -566,9 +539,9 @@ impl Engine {
 
     fn dirtify_all(&mut self) {
         self.dirty_regions.clear();
-        self.dirty_regions.push_back(RangeRect::new(
-            (0, self.image.width as i32),
-            (0, self.image.height as i32),
+        self.dirty_regions.push(DistanceToImageCenter::of(
+            RectRegion::new(0, 0, self.image.width as i32, self.image.height as i32),
+            &self.last_zoom_focus,
         ));
     }
 
@@ -579,6 +552,7 @@ impl Engine {
     pub fn set_viewpoint(&mut self, viewpoint: Viewpoint) -> EngineSettings {
         self.settings.center = (viewpoint.center.x, viewpoint.center.y).into();
         self.settings.scale = viewpoint.scale;
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.dirtify_all();
         self.update_limits()
     }
@@ -587,6 +561,7 @@ impl Engine {
         let dre = self.settings.scale * dx as f64;
         let dim = self.settings.scale * (-dy) as f64;
         self.settings.center += (dre, dim).into();
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.update_limits();
         self.image.pan(-dx, -dy);
 
@@ -602,23 +577,28 @@ impl Engine {
             (self.image.height as i32 - dy, self.image.height as i32)
         };
 
-        for region in &mut self.dirty_regions {
-            region.x0 -= dx;
-            region.y0 -= dy;
-        }
+        let heap_elems: Vec<DistanceToImageCenter> = self.dirty_regions.drain().collect();
+        let reheap = heap_elems
+            .into_iter()
+            .map(|elem| elem.pan(dx, dy, &self.image))
+            .collect();
+        self.dirty_regions = reheap;
 
-        self.dirty_regions.push_back(RangeRect::new(
-            (dirty_x_min, dirty_x_max),
-            (0, self.image.height as i32),
+        self.dirty_regions.push(DistanceToImageCenter::of(
+            RectRegion::new(dirty_x_min, 0, dirty_x_max, self.image.height as i32),
+            &self.last_zoom_focus,
         ));
-        self.dirty_regions.push_back(RangeRect::new(
-            if dx < 0 {
+        self.dirty_regions.push({
+            let (x0, w) = if dx < 0 {
                 (dirty_x_max, self.image.width as i32)
             } else {
                 (0, dirty_x_min)
-            },
-            (dirty_y_min, dirty_y_max),
-        ));
+            };
+            DistanceToImageCenter::of(
+                RectRegion::new(x0, dirty_y_min, w, dirty_y_max),
+                &self.last_zoom_focus,
+            )
+        });
 
         self.settings.clone()
     }
@@ -626,12 +606,14 @@ impl Engine {
     pub fn zoom_in(&mut self) -> EngineSettings {
         self.settings.scale /= 2.0;
         self.dirtify_all();
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.update_limits()
     }
 
     pub fn zoom_out(&mut self) -> EngineSettings {
         self.settings.scale *= 2.0;
         self.dirtify_all();
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.update_limits()
     }
 
@@ -651,6 +633,7 @@ impl Engine {
         )
             .into();
 
+        self.last_zoom_focus = (x, y);
         self.settings.scale = new_scale;
         self.dirtify_all();
         self.update_limits()
@@ -663,12 +646,14 @@ impl Engine {
     pub fn compute(&mut self, work_limit: usize) -> usize {
         let mut total_work = 0;
 
-        while let Some(dirty_region) = self.dirty_regions.front_mut() {
+        while let Some(dirty_region) = self.dirty_regions.pop() {
             let corner_diff = self.btm_right - self.top_left;
             let re_span = corner_diff.re;
             let im_span = corner_diff.im;
 
-            for (x, y) in dirty_region {
+            let mut none_escaped = true;
+
+            for (x, y) in dirty_region.border() {
                 if x >= 0
                     && x < (self.image.width as i32)
                     && y >= 0
@@ -683,15 +668,37 @@ impl Engine {
                     let c = self.top_left + c_offset;
                     let escape_count = mandelbrot::check(c, self.settings.iteration_limit, 2.0);
                     self.image.escape_counts[i] = escape_count;
-                    total_work += escape_count;
-
-                    if total_work > work_limit {
-                        return total_work;
+                    if escape_count < self.settings.iteration_limit {
+                        none_escaped = false;
                     }
+                    total_work += escape_count;
                 }
             }
 
-            self.dirty_regions.pop_front();
+            if none_escaped {
+                for (x, y) in dirty_region.interior() {
+                    if x >= 0
+                        && x < (self.image.width as i32)
+                        && y >= 0
+                        && y < (self.image.height as i32)
+                    {
+                        let i = x as usize + y as usize * self.image.width;
+                        self.image.escape_counts[i] = self.settings.iteration_limit;
+                    }
+                }
+                total_work += dirty_region.interior_len();
+            } else if let Some((r1, r2, r3)) = dirty_region.trisect() {
+                self.dirty_regions
+                    .push(DistanceToImageCenter::of(r1, &self.last_zoom_focus));
+                self.dirty_regions
+                    .push(DistanceToImageCenter::of(r2, &self.last_zoom_focus));
+                self.dirty_regions
+                    .push(DistanceToImageCenter::of(r3, &self.last_zoom_focus));
+            }
+
+            if total_work > work_limit {
+                return total_work;
+            }
         }
 
         total_work
@@ -756,5 +763,15 @@ impl Engine {
         } else {
             None
         }
+    }
+
+    pub fn describe_range(&self) -> String {
+        let center = self.top_left + self.btm_right * 0.5;
+        let range =
+            (self.btm_right - ((self.top_left + self.btm_right) * 0.5)) * Complex::from((0, 1));
+        format!(
+            "{:e} ±{:e} {:+e} i ±{:e} i",
+            center.re, range.re, center.im, range.im
+        )
     }
 }

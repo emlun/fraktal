@@ -20,12 +20,12 @@ interface Props {
 
 function Controls({ engine, settings, updateSettings }: Props) {
 
-  const [maxPrecision, setMaxPrecision] = useState(100);
-  const [serializedSettings, setSerializedSettings] = useState("");
-  const [restoreError, setRestoreError] = useState("");
-
   const gradient = settings.get_gradient();
   const numColors = settings.get_iteration_limit();
+
+  const [maxPrecision, setMaxPrecision] = useState(Math.max(100, numColors));
+  const [serializedSettings, setSerializedSettings] = useState("");
+  const [restoreError, setRestoreError] = useState("");
 
   const stateHref = window.location.origin + window.location.pathname + '?state=' + engine.serialize_settings();
 
@@ -173,12 +173,29 @@ function Controls({ engine, settings, updateSettings }: Props) {
           />
         </p>
 
+        <p style={{ textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={ () => engine.zoom_out() }
+            style={{ marginRight: '1em' }}
+          >
+            Zoom out
+          </button>
+          <button type="button" onClick={ () => engine.zoom_in() }>
+            Zoom in
+          </button>
+        </p>
+
+        <p>
+          Viewing range: <pre style={{ whiteSpace: 'break-spaces' }}>{ engine.describe_range() }</pre>
+        </p>
+
         <div className={ styles['Controls-Legend'] }>
           <p>
             Pan: Click and drag
           </p>
           <p>
-            Zoom around pointer: Mouse wheel
+            Zoom around pointer: Mouse wheel, double click
           </p>
           <p>
             Static zoom: <kbd>Shift</kbd> + Mouse wheel
