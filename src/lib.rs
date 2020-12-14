@@ -1029,9 +1029,9 @@ struct DistanceToImageCenter {
     value: RectRegion,
 }
 impl DistanceToImageCenter {
-    fn of(value: RectRegion, img: &Image) -> Self {
+    fn of(value: RectRegion, (focus_x, focus_y): &(usize, usize)) -> Self {
         Self {
-            d: -value.squared_distance_to(((img.width / 2) as i32, (img.height / 2) as i32)),
+            d: -value.squared_distance_to((*focus_x as i32, *focus_y as i32)),
             value,
         }
     }
@@ -1039,7 +1039,7 @@ impl DistanceToImageCenter {
     fn pan(mut self, dx: i32, dy: i32, img: &Image) -> Self {
         self.value.x0 -= dx;
         self.value.y0 -= dy;
-        Self::of(self.value, img)
+        Self::of(self.value, &(img.width / 2, img.height / 2))
     }
 }
 impl PartialOrd for DistanceToImageCenter {
@@ -1071,6 +1071,7 @@ pub struct Engine {
     btm_right: Complex<f64>,
     image: Image,
     dirty_regions: BinaryHeap<DistanceToImageCenter>,
+    last_zoom_focus: (usize, usize),
 }
 
 impl Default for Engine {
@@ -1084,6 +1085,7 @@ impl Default for Engine {
             image: Image::new(1, 1, &settings.gradient),
             dirty_regions: BinaryHeap::new(),
             settings,
+            last_zoom_focus: (0, 0),
         };
         e.set_size(1, 1);
         e
@@ -1098,6 +1100,7 @@ impl Engine {
 
     pub fn set_size(&mut self, width: usize, height: usize) -> EngineSettings {
         self.image = Image::new(width, height, &self.settings.gradient);
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.dirtify_all();
         self.update_limits()
     }
@@ -1117,7 +1120,7 @@ impl Engine {
         self.dirty_regions.clear();
         self.dirty_regions.push(DistanceToImageCenter::of(
             RectRegion::new(0, 0, self.image.width as i32, self.image.height as i32),
-            &self.image,
+            &self.last_zoom_focus,
         ));
     }
 
@@ -1128,6 +1131,7 @@ impl Engine {
     pub fn set_viewpoint(&mut self, viewpoint: Viewpoint) -> EngineSettings {
         self.settings.center = (viewpoint.center.x, viewpoint.center.y).into();
         self.settings.scale = viewpoint.scale;
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.dirtify_all();
         self.update_limits()
     }
@@ -1136,6 +1140,7 @@ impl Engine {
         let dre = self.settings.scale * dx as f64;
         let dim = self.settings.scale * (-dy) as f64;
         self.settings.center += (dre, dim).into();
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.update_limits();
         self.image.pan(-dx, -dy);
 
@@ -1160,7 +1165,7 @@ impl Engine {
 
         self.dirty_regions.push(DistanceToImageCenter::of(
             RectRegion::new(dirty_x_min, 0, dirty_x_max, self.image.height as i32),
-            &self.image,
+            &self.last_zoom_focus,
         ));
         self.dirty_regions.push({
             let (x0, w) = if dx < 0 {
@@ -1170,7 +1175,7 @@ impl Engine {
             };
             DistanceToImageCenter::of(
                 RectRegion::new(x0, dirty_y_min, w, dirty_y_max),
-                &self.image,
+                &self.last_zoom_focus,
             )
         });
 
@@ -1180,12 +1185,14 @@ impl Engine {
     pub fn zoom_in(&mut self) -> EngineSettings {
         self.settings.scale /= 2.0;
         self.dirtify_all();
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.update_limits()
     }
 
     pub fn zoom_out(&mut self) -> EngineSettings {
         self.settings.scale *= 2.0;
         self.dirtify_all();
+        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.update_limits()
     }
 
@@ -1205,6 +1212,7 @@ impl Engine {
         )
             .into();
 
+        self.last_zoom_focus = (x, y);
         self.settings.scale = new_scale;
         self.dirtify_all();
         self.update_limits()
@@ -1260,11 +1268,11 @@ impl Engine {
                 total_work += dirty_region.interior_len();
             } else if let Some((r1, r2, r3)) = dirty_region.trisect() {
                 self.dirty_regions
-                    .push(DistanceToImageCenter::of(r1, &self.image));
+                    .push(DistanceToImageCenter::of(r1, &self.last_zoom_focus));
                 self.dirty_regions
-                    .push(DistanceToImageCenter::of(r2, &self.image));
+                    .push(DistanceToImageCenter::of(r2, &self.last_zoom_focus));
                 self.dirty_regions
-                    .push(DistanceToImageCenter::of(r3, &self.image));
+                    .push(DistanceToImageCenter::of(r3, &self.last_zoom_focus));
             }
 
             if total_work > work_limit {
