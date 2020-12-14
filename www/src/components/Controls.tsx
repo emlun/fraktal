@@ -173,8 +173,12 @@ function Controls({ engine, settings, updateSettings }: Props) {
           />
         </p>
 
-        <p>
-          <button type="button" onClick={ () => engine.zoom_out() }>
+        <p style={{ textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={ () => engine.zoom_out() }
+            style={{ marginRight: '1em' }}
+          >
             Zoom out
           </button>
           <button type="button" onClick={ () => engine.zoom_in() }>
