@@ -7,8 +7,7 @@ set -e
 set -x
 
 cargo test
-cd www && npm run lint && cd -
-./www/node_modules/.bin/wasm-pack build
 cd www
+npm run lint
 npm run build
 rsync -avP --delete build/ emlun.se:/srv/http/public/fraktal/

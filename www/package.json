@@ -5,7 +5,7 @@
   "description": "Fractal rendering sandbox",
   "main": "src/index.js",
   "scripts": {
-    "build": "NODE_ENV=production webpack --optimize-minimize",
+    "build": "rm -rf build && wasm-pack build .. && NODE_ENV=production webpack --optimize-minimize",
     "build-wasm": "wasm-pack build ..",
     "lint": "tsc --noEmit && eslint src",
     "start": "webpack-dev-server",
