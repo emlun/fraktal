@@ -8,7 +8,7 @@ use complex::Complex;
 use math::NextCoprime;
 use serde::Deserialize;
 use serde::Serialize;
-use std::collections::VecDeque;
+use std::collections::BinaryHeap;
 use std::convert::TryInto;
 use std::ops::Add;
 use std::ops::Div;
@@ -375,7 +375,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 struct RectRegion {
     x0: i32,
     y0: i32,
@@ -389,6 +389,28 @@ impl RectRegion {
             y0,
             w: std::cmp::max(0, w),
             h: std::cmp::max(0, h),
+        }
+    }
+
+    fn squared_distance_to(&self, (x, y): (i32, i32)) -> i32 {
+        if x >= self.x0 && x - self.x0 < self.w && y >= self.y0 && y - self.y0 < self.h {
+            0
+        } else {
+            let dx = if x < self.x0 {
+                self.x0 - x
+            } else if x > self.x0 + self.w {
+                x - self.x0 - self.w
+            } else {
+                0
+            };
+            let dy = if y < self.y0 {
+                self.y0 - y
+            } else if y >= self.y0 + self.h {
+                y - self.y0 - self.h
+            } else {
+                0
+            };
+            dx * dx + dy * dy
         }
     }
 
@@ -1001,14 +1023,54 @@ impl Default for EngineSettings {
     }
 }
 
+#[derive(Eq, PartialEq)]
+struct DistanceToImageCenter {
+    d: i32,
+    value: RectRegion,
+}
+impl DistanceToImageCenter {
+    fn of(value: RectRegion, img: &Image) -> Self {
+        Self {
+            d: -value.squared_distance_to(((img.width / 2) as i32, (img.height / 2) as i32)),
+            value,
+        }
+    }
+
+    fn pan(mut self, dx: i32, dy: i32, img: &Image) -> Self {
+        self.value.x0 -= dx;
+        self.value.y0 -= dy;
+        Self::of(self.value, img)
+    }
+}
+impl PartialOrd for DistanceToImageCenter {
+    fn partial_cmp(&self, other: &DistanceToImageCenter) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for DistanceToImageCenter {
+    fn cmp(&self, other: &DistanceToImageCenter) -> std::cmp::Ordering {
+        self.d.cmp(&other.d)
+    }
+}
+impl std::ops::Deref for DistanceToImageCenter {
+    type Target = RectRegion;
+    fn deref(&self) -> &<Self as std::ops::Deref>::Target {
+        &self.value
+    }
+}
+impl std::ops::DerefMut for DistanceToImageCenter {
+    fn deref_mut(&mut self) -> &mut <Self as std::ops::Deref>::Target {
+        &mut self.value
+    }
+}
+
 #[wasm_bindgen]
 pub struct Engine {
     settings: EngineSettings,
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     image: Image,
-    dirty_regions_stack: Vec<RectRegion>,
-    dirty_regions_queue: VecDeque<RectRegion>,
+    dirty_regions: BinaryHeap<DistanceToImageCenter>,
 }
 
 impl Default for Engine {
@@ -1020,8 +1082,7 @@ impl Default for Engine {
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
             image: Image::new(1, 1, &settings.gradient),
-            dirty_regions_stack: Vec::new(),
-            dirty_regions_queue: VecDeque::new(),
+            dirty_regions: BinaryHeap::new(),
             settings,
         };
         e.set_size(1, 1);
@@ -1053,13 +1114,10 @@ impl Engine {
     }
 
     fn dirtify_all(&mut self) {
-        self.dirty_regions_stack.clear();
-        self.dirty_regions_queue.clear();
-        self.dirty_regions_stack.push(RectRegion::new(
-            0,
-            0,
-            self.image.width as i32,
-            self.image.height as i32,
+        self.dirty_regions.clear();
+        self.dirty_regions.push(DistanceToImageCenter::of(
+            RectRegion::new(0, 0, self.image.width as i32, self.image.height as i32),
+            &self.image,
         ));
     }
 
@@ -1093,29 +1151,27 @@ impl Engine {
             (self.image.height as i32 - dy, self.image.height as i32)
         };
 
-        for region in &mut self.dirty_regions_stack {
-            region.x0 -= dx;
-            region.y0 -= dy;
-        }
+        let heap_elems: Vec<DistanceToImageCenter> = self.dirty_regions.drain().collect();
+        let reheap = heap_elems
+            .into_iter()
+            .map(|elem| elem.pan(dx, dy, &self.image))
+            .collect();
+        self.dirty_regions = reheap;
 
-        for region in &mut self.dirty_regions_queue {
-            region.x0 -= dx;
-            region.y0 -= dy;
-        }
-
-        self.dirty_regions_queue.push_back(RectRegion::new(
-            dirty_x_min,
-            0,
-            dirty_x_max,
-            self.image.height as i32,
+        self.dirty_regions.push(DistanceToImageCenter::of(
+            RectRegion::new(dirty_x_min, 0, dirty_x_max, self.image.height as i32),
+            &self.image,
         ));
-        self.dirty_regions_queue.push_back({
+        self.dirty_regions.push({
             let (x0, w) = if dx < 0 {
                 (dirty_x_max, self.image.width as i32)
             } else {
                 (0, dirty_x_min)
             };
-            RectRegion::new(x0, dirty_y_min, w, dirty_y_max)
+            DistanceToImageCenter::of(
+                RectRegion::new(x0, dirty_y_min, w, dirty_y_max),
+                &self.image,
+            )
         });
 
         self.settings.clone()
@@ -1161,7 +1217,7 @@ impl Engine {
     pub fn compute(&mut self, work_limit: usize) -> usize {
         let mut total_work = 0;
 
-        while let Some(dirty_region) = self.dirty_regions_stack.pop() {
+        while let Some(dirty_region) = self.dirty_regions.pop() {
             let corner_diff = self.btm_right - self.top_left;
             let re_span = corner_diff.re;
             let im_span = corner_diff.im;
@@ -1203,19 +1259,16 @@ impl Engine {
                 }
                 total_work += dirty_region.interior_len();
             } else if let Some((r1, r2, r3)) = dirty_region.trisect() {
-                self.dirty_regions_stack.push(r3);
-                self.dirty_regions_stack.push(r1);
-                self.dirty_regions_stack.push(r2);
+                self.dirty_regions
+                    .push(DistanceToImageCenter::of(r1, &self.image));
+                self.dirty_regions
+                    .push(DistanceToImageCenter::of(r2, &self.image));
+                self.dirty_regions
+                    .push(DistanceToImageCenter::of(r3, &self.image));
             }
 
             if total_work > work_limit {
                 return total_work;
-            }
-        }
-
-        if self.dirty_regions_stack.is_empty() {
-            if let Some(dirty_region) = self.dirty_regions_queue.pop_front() {
-                self.dirty_regions_stack.push(dirty_region);
             }
         }
 
