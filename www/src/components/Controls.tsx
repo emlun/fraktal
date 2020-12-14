@@ -20,12 +20,12 @@ interface Props {
 
 function Controls({ engine, settings, updateSettings }: Props) {
 
-  const [maxPrecision, setMaxPrecision] = useState(100);
-  const [serializedSettings, setSerializedSettings] = useState("");
-  const [restoreError, setRestoreError] = useState("");
-
   const gradient = settings.get_gradient();
   const numColors = settings.get_iteration_limit();
+
+  const [maxPrecision, setMaxPrecision] = useState(Math.max(100, numColors));
+  const [serializedSettings, setSerializedSettings] = useState("");
+  const [restoreError, setRestoreError] = useState("");
 
   const stateHref = window.location.origin + window.location.pathname + '?state=' + engine.serialize_settings();
 
