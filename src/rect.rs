@@ -240,17 +240,20 @@ mod tests {
                 "Failed for region: {:?}",
                 region
             );
+            assert_eq!(
+                region.interior().collect::<Vec<(i32, i32)>>(),
+                vec![],
+                "Failed for region: {:?}",
+                region
+            );
         }
     }
 
     #[test]
     fn rect_region_single_point() {
-        assert_eq!(
-            RectRegion::new(0, 0, 1, 1)
-                .border()
-                .collect::<Vec<(i32, i32)>>(),
-            vec![(0, 0)]
-        );
+        let region = RectRegion::new(0, 0, 1, 1);
+        assert_eq!(region.border().collect::<Vec<(i32, i32)>>(), vec![(0, 0)]);
+        assert_eq!(region.interior().collect::<Vec<(i32, i32)>>(), vec![],);
     }
 
     #[test]
