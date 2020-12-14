@@ -98,6 +98,13 @@ function Canvas({
     [engine]
   );
 
+  const onDoubleClick = useCallback(
+    (event: MouseEvent) => {
+      updateSettings(engine.zoom_in_around(event.clientX, event.clientY));
+    },
+    [engine]
+  );
+
   const updateCanvas = (node: HTMLCanvasElement) => {
     if (node) {
       setCanvas(node);
@@ -191,11 +198,13 @@ function Canvas({
   useEffect(
     () => {
       if (wrapper) {
+        wrapper.addEventListener('dblclick', onDoubleClick, true);
         wrapper.addEventListener('mousedown', onMouseDown, true);
         wrapper.addEventListener('mousemove', onMouseMove, true);
         wrapper.addEventListener('mouseup', onMouseUp, true);
         wrapper.addEventListener('wheel', onWheel, true);
         return () => {
+          wrapper.removeEventListener('dblclick', onDoubleClick, true);
           wrapper.removeEventListener('mousedown', onMouseDown, true);
           wrapper.removeEventListener('mousemove', onMouseMove, true);
           wrapper.removeEventListener('mouseup', onMouseUp, true);

@@ -173,12 +173,21 @@ function Controls({ engine, settings, updateSettings }: Props) {
           />
         </p>
 
+        <p>
+          <button type="button" onClick={ () => engine.zoom_out() }>
+            Zoom out
+          </button>
+          <button type="button" onClick={ () => engine.zoom_in() }>
+            Zoom in
+          </button>
+        </p>
+
         <div className={ styles['Controls-Legend'] }>
           <p>
             Pan: Click and drag
           </p>
           <p>
-            Zoom around pointer: Mouse wheel
+            Zoom around pointer: Mouse wheel, double click
           </p>
           <p>
             Static zoom: <kbd>Shift</kbd> + Mouse wheel
