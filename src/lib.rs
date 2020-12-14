@@ -387,11 +387,11 @@ impl Default for EngineSettings {
 }
 
 #[derive(Eq, PartialEq)]
-struct DistanceToImageCenter {
+struct ByDistToFocus {
     d: i32,
     value: RectRegion,
 }
-impl DistanceToImageCenter {
+impl ByDistToFocus {
     fn of(value: RectRegion, (focus_x, focus_y): &(usize, usize)) -> Self {
         Self {
             d: -value.squared_distance_to((*focus_x as i32, *focus_y as i32)),
@@ -405,17 +405,17 @@ impl DistanceToImageCenter {
         Self::of(self.value, &(img.width / 2, img.height / 2))
     }
 }
-impl PartialOrd for DistanceToImageCenter {
-    fn partial_cmp(&self, other: &DistanceToImageCenter) -> Option<std::cmp::Ordering> {
+impl PartialOrd for ByDistToFocus {
+    fn partial_cmp(&self, other: &ByDistToFocus) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
-impl Ord for DistanceToImageCenter {
-    fn cmp(&self, other: &DistanceToImageCenter) -> std::cmp::Ordering {
+impl Ord for ByDistToFocus {
+    fn cmp(&self, other: &ByDistToFocus) -> std::cmp::Ordering {
         self.d.cmp(&other.d)
     }
 }
-impl std::ops::Deref for DistanceToImageCenter {
+impl std::ops::Deref for ByDistToFocus {
     type Target = RectRegion;
     fn deref(&self) -> &<Self as std::ops::Deref>::Target {
         &self.value
@@ -428,7 +428,7 @@ pub struct Engine {
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     image: Image,
-    dirty_regions: BinaryHeap<DistanceToImageCenter>,
+    dirty_regions: BinaryHeap<ByDistToFocus>,
     last_zoom_focus: (usize, usize),
 }
 
@@ -476,7 +476,7 @@ impl Engine {
 
     fn dirtify_all(&mut self) {
         self.dirty_regions.clear();
-        self.dirty_regions.push(DistanceToImageCenter::of(
+        self.dirty_regions.push(ByDistToFocus::of(
             RectRegion::new(0, 0, self.image.width as i32, self.image.height as i32),
             &self.last_zoom_focus,
         ));
@@ -506,14 +506,14 @@ impl Engine {
             (self.image.height as i32 - dy, self.image.height as i32)
         };
 
-        let heap_elems: Vec<DistanceToImageCenter> = self.dirty_regions.drain().collect();
+        let heap_elems: Vec<ByDistToFocus> = self.dirty_regions.drain().collect();
         let reheap = heap_elems
             .into_iter()
             .map(|elem| elem.pan(dx, dy, &self.image))
             .collect();
         self.dirty_regions = reheap;
 
-        self.dirty_regions.push(DistanceToImageCenter::of(
+        self.dirty_regions.push(ByDistToFocus::of(
             RectRegion::new(dirty_x_min, 0, dirty_x_max, self.image.height as i32),
             &self.last_zoom_focus,
         ));
@@ -523,7 +523,7 @@ impl Engine {
             } else {
                 (0, dirty_x_min)
             };
-            DistanceToImageCenter::of(
+            ByDistToFocus::of(
                 RectRegion::new(x0, dirty_y_min, w, dirty_y_max),
                 &self.last_zoom_focus,
             )
@@ -618,11 +618,11 @@ impl Engine {
                 total_work += dirty_region.interior_len();
             } else if let Some((r1, r2, r3)) = dirty_region.trisect() {
                 self.dirty_regions
-                    .push(DistanceToImageCenter::of(r1, &self.last_zoom_focus));
+                    .push(ByDistToFocus::of(r1, &self.last_zoom_focus));
                 self.dirty_regions
-                    .push(DistanceToImageCenter::of(r2, &self.last_zoom_focus));
+                    .push(ByDistToFocus::of(r2, &self.last_zoom_focus));
                 self.dirty_regions
-                    .push(DistanceToImageCenter::of(r3, &self.last_zoom_focus));
+                    .push(ByDistToFocus::of(r3, &self.last_zoom_focus));
             }
 
             if total_work > work_limit {
