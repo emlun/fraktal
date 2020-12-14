@@ -130,26 +130,6 @@ impl RectRegion {
             .unwrap()
     }
 
-    pub fn bisect(&self) -> Option<(RectRegion, RectRegion)> {
-        if self.interior_len() > 0 {
-            Some(if self.w >= self.h {
-                let w1 = (self.w - 2) / 2;
-                (
-                    RectRegion::new(self.x0 + 1, self.y0 + 1, w1, self.h - 2),
-                    RectRegion::new(self.x0 + 1 + w1, self.y0 + 1, self.w - 2 - w1, self.h - 2),
-                )
-            } else {
-                let h1 = (self.h - 2) / 2;
-                (
-                    RectRegion::new(self.x0 + 1, self.y0 + 1, self.w - 2, h1),
-                    RectRegion::new(self.x0 + 1, self.y0 + 1 + h1, self.w - 2, self.h - 2 - h1),
-                )
-            })
-        } else {
-            None
-        }
-    }
-
     pub fn trisect(&self) -> Option<(RectRegion, RectRegion, RectRegion)> {
         if self.interior_len() > 0 {
             Some(if self.w >= self.h {
@@ -503,80 +483,69 @@ mod tests {
     }
 
     #[test]
-    fn rect_region_bisect_h() {
-        let region = RectRegion {
-            x0: 1000,
-            y0: 100,
-            w: 17,
-            h: 23,
-        };
-        let (r1, r2) = region.bisect().unwrap();
+    fn rect_region_trisect() {
+        for region in &[
+            RectRegion {
+                x0: 1000,
+                y0: 100,
+                w: 17,
+                h: 23,
+            },
+            RectRegion {
+                x0: 1000,
+                y0: 100,
+                w: 23,
+                h: 17,
+            },
+        ] {
+            let (r1, r2, r3) = region.trisect().unwrap();
 
-        let r1_border = r1.border().collect::<HashSet<(i32, i32)>>();
-        let r1_interior = r1.interior().collect::<HashSet<(i32, i32)>>();
-        let r2_border = r2.border().collect::<HashSet<(i32, i32)>>();
-        let r2_interior = r2.interior().collect::<HashSet<(i32, i32)>>();
+            let r1_border = r1.border().collect::<HashSet<(i32, i32)>>();
+            let r1_interior = r1.interior().collect::<HashSet<(i32, i32)>>();
+            let r2_border = r2.border().collect::<HashSet<(i32, i32)>>();
+            let r2_interior = r2.interior().collect::<HashSet<(i32, i32)>>();
+            let r3_border = r3.border().collect::<HashSet<(i32, i32)>>();
+            let r3_interior = r3.interior().collect::<HashSet<(i32, i32)>>();
 
-        assert_eq!(
-            r1_border
-                .union(&r1_interior)
-                .copied()
-                .collect::<HashSet<(i32, i32)>>()
-                .union(&r2_border)
-                .copied()
-                .collect::<HashSet<(i32, i32)>>()
-                .union(&r2_interior)
-                .copied()
-                .collect::<HashSet<(i32, i32)>>(),
-            region.interior().collect::<HashSet<(i32, i32)>>()
-        );
+            assert_eq!(
+                r1_border
+                    .union(&r1_interior)
+                    .copied()
+                    .collect::<HashSet<(i32, i32)>>()
+                    .union(&r2_border)
+                    .copied()
+                    .collect::<HashSet<(i32, i32)>>()
+                    .union(&r2_interior)
+                    .copied()
+                    .collect::<HashSet<(i32, i32)>>()
+                    .union(&r3_border)
+                    .copied()
+                    .collect::<HashSet<(i32, i32)>>()
+                    .union(&r3_interior)
+                    .copied()
+                    .collect::<HashSet<(i32, i32)>>(),
+                region.interior().collect::<HashSet<(i32, i32)>>()
+            );
 
-        assert_eq!(0, r1_border.intersection(&r1_interior).count());
-        assert_eq!(0, r1_border.intersection(&r2_border).count());
-        assert_eq!(0, r1_border.intersection(&r2_interior).count());
+            assert_eq!(0, r1_border.intersection(&r1_interior).count());
+            assert_eq!(0, r1_border.intersection(&r2_border).count());
+            assert_eq!(0, r1_border.intersection(&r2_interior).count());
+            assert_eq!(0, r1_border.intersection(&r3_border).count());
+            assert_eq!(0, r1_border.intersection(&r3_interior).count());
 
-        assert_eq!(0, r1_interior.intersection(&r2_border).count());
-        assert_eq!(0, r1_interior.intersection(&r2_interior).count());
+            assert_eq!(0, r1_interior.intersection(&r2_border).count());
+            assert_eq!(0, r1_interior.intersection(&r2_interior).count());
+            assert_eq!(0, r1_interior.intersection(&r3_border).count());
+            assert_eq!(0, r1_interior.intersection(&r3_interior).count());
 
-        assert_eq!(0, r2_border.intersection(&r2_interior).count());
-    }
+            assert_eq!(0, r2_border.intersection(&r2_interior).count());
+            assert_eq!(0, r2_border.intersection(&r3_border).count());
+            assert_eq!(0, r2_border.intersection(&r3_interior).count());
 
-    #[test]
-    fn rect_region_bisect_w() {
-        let region = RectRegion {
-            x0: 1000,
-            y0: 100,
-            w: 23,
-            h: 17,
-        };
-        let (r1, r2) = region.bisect().unwrap();
+            assert_eq!(0, r2_interior.intersection(&r3_border).count());
+            assert_eq!(0, r2_interior.intersection(&r3_interior).count());
 
-        let r1_border = r1.border().collect::<HashSet<(i32, i32)>>();
-        let r1_interior = r1.interior().collect::<HashSet<(i32, i32)>>();
-        let r2_border = r2.border().collect::<HashSet<(i32, i32)>>();
-        let r2_interior = r2.interior().collect::<HashSet<(i32, i32)>>();
-
-        assert_eq!(
-            r1_border
-                .union(&r1_interior)
-                .copied()
-                .collect::<HashSet<(i32, i32)>>()
-                .union(&r2_border)
-                .copied()
-                .collect::<HashSet<(i32, i32)>>()
-                .union(&r2_interior)
-                .copied()
-                .collect::<HashSet<(i32, i32)>>(),
-            region.interior().collect::<HashSet<(i32, i32)>>()
-        );
-
-        assert_eq!(0, r1_border.intersection(&r1_interior).count());
-        assert_eq!(0, r1_border.intersection(&r2_border).count());
-        assert_eq!(0, r1_border.intersection(&r2_interior).count());
-
-        assert_eq!(0, r1_interior.intersection(&r2_border).count());
-        assert_eq!(0, r1_interior.intersection(&r2_interior).count());
-
-        assert_eq!(0, r2_border.intersection(&r2_interior).count());
+            assert_eq!(0, r3_border.intersection(&r3_interior).count());
+        }
     }
 }

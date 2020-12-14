@@ -298,7 +298,7 @@ impl Image {
 }
 
 impl Image {
-    pub fn image_data(&self) -> *const u8 {
+    fn image_data(&self) -> *const u8 {
         self.pixels.as_ptr()
     }
 }
@@ -310,50 +310,9 @@ pub struct Point {
     pub y: f64,
 }
 
-#[wasm_bindgen]
 pub struct Viewpoint {
     pub center: Point,
     pub scale: f64,
-}
-
-#[wasm_bindgen]
-impl Viewpoint {
-    pub fn serialize(&self) -> String {
-        let x = self.center.x.to_be_bytes();
-        let y = self.center.y.to_be_bytes();
-        let s = self.scale.to_be_bytes();
-
-        format!(
-            "{}.{}.{}",
-            base64::encode(x),
-            base64::encode(y),
-            base64::encode(s)
-        )
-    }
-
-    pub fn deserialize(s: &str) -> Option<Viewpoint> {
-        use std::convert::TryInto;
-        let parts: Result<Vec<Vec<u8>>, _> = s.split(".").map(|s| base64::decode(s)).collect();
-
-        match parts {
-            Ok(parts) if parts.len() == 3 => {
-                let x: Result<[u8; 8], _> = parts[0].as_slice().try_into();
-                let y: Result<[u8; 8], _> = parts[1].as_slice().try_into();
-                let s: Result<[u8; 8], _> = parts[2].as_slice().try_into();
-                match (x, y, s) {
-                    (Ok(x), Ok(y), Ok(s)) => Some(Viewpoint {
-                        center: Point {
-                            x: f64::from_be_bytes(x),
-                            y: f64::from_be_bytes(y),
-                        },
-                        scale: f64::from_be_bytes(s),
-                    }),
-                    _ => None,
-                }
-            }
-            _ => None,
-        }
-    }
 }
 
 #[wasm_bindgen]
@@ -375,20 +334,6 @@ impl EngineSettings {
 
 #[wasm_bindgen]
 impl EngineSettings {
-    pub fn get_viewpoint(&self) -> Viewpoint {
-        Viewpoint {
-            center: Point {
-                x: self.center.re,
-                y: self.center.im,
-            },
-            scale: self.scale,
-        }
-    }
-
-    pub fn get_scale(&self) -> f64 {
-        self.scale
-    }
-
     pub fn get_iteration_limit(&self) -> usize {
         self.iteration_limit
     }
@@ -479,11 +424,6 @@ impl std::ops::Deref for DistanceToImageCenter {
         &self.value
     }
 }
-impl std::ops::DerefMut for DistanceToImageCenter {
-    fn deref_mut(&mut self) -> &mut <Self as std::ops::Deref>::Target {
-        &mut self.value
-    }
-}
 
 #[wasm_bindgen]
 pub struct Engine {
@@ -547,14 +487,6 @@ impl Engine {
 
     pub fn get_settings(&self) -> EngineSettings {
         self.settings.clone()
-    }
-
-    pub fn set_viewpoint(&mut self, viewpoint: Viewpoint) -> EngineSettings {
-        self.settings.center = (viewpoint.center.x, viewpoint.center.y).into();
-        self.settings.scale = viewpoint.scale;
-        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
-        self.dirtify_all();
-        self.update_limits()
     }
 
     pub fn pan(&mut self, dx: i32, dy: i32) -> EngineSettings {
