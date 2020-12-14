@@ -397,7 +397,10 @@ impl RectRegion {
     }
 
     fn interior(&self) -> RangeRect<i32> {
-        RangeRect::new((self.x0 + 1, self.w - 2), (self.y0 + 1, self.h - 2))
+        RangeRect::new(
+            (self.x0 + 1, std::cmp::max(0, self.w - 2)),
+            (self.y0 + 1, std::cmp::max(0, self.h - 2)),
+        )
     }
 
     fn interior_len(&self) -> usize {
@@ -429,16 +432,16 @@ impl RectRegion {
 struct RectRegionBorder<'parent> {
     parent: &'parent RectRegion,
     i: i32,
-    w: i32,
-    h: i32,
+    maxi_w: i32,
+    maxi_h: i32,
 }
 impl<'parent> RectRegionBorder<'parent> {
     fn new(parent: &'parent RectRegion) -> Self {
         Self {
             parent,
             i: 0,
-            w: parent.w - 1,
-            h: parent.h - 1,
+            maxi_w: std::cmp::max(0, parent.w - 1),
+            maxi_h: std::cmp::max(0, parent.h - 1),
         }
     }
 }
@@ -446,38 +449,43 @@ impl<'parent> RectRegionBorder<'parent> {
 impl<'parent> Iterator for RectRegionBorder<'parent> {
     type Item = (i32, i32);
     fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-        if self.w == 0 {
-            if self.i <= self.h {
+        if self.parent.w == 0 || self.parent.h == 0 {
+            None
+        } else if self.parent.w == 1 {
+            if self.i < self.parent.h {
                 let i = self.i;
                 self.i += 1;
                 Some((self.parent.x0, self.parent.y0 + i))
             } else {
                 None
             }
-        } else if self.h == 0 {
-            if self.i <= self.w {
+        } else if self.parent.h == 1 {
+            if self.i < self.parent.w {
                 let i = self.i;
                 self.i += 1;
                 Some((self.parent.x0 + i, self.parent.y0))
             } else {
                 None
             }
-        } else if self.i < self.w {
+        } else if self.i < self.maxi_w {
             let i = self.i;
             self.i += 1;
             Some((self.parent.x0 + i, self.parent.y0))
-        } else if self.i < self.w + self.h {
-            let i = self.i - self.w;
+        } else if self.i < self.maxi_w + self.maxi_h {
+            let i = self.i - self.maxi_w;
             self.i += 1;
-            Some((self.parent.x0 + self.w, self.parent.y0 + i))
-        } else if self.i < self.w + self.h + self.w {
-            let i = self.i - self.w - self.h;
+            Some((self.parent.x0 + self.maxi_w, self.parent.y0 + i))
+        } else if self.i < self.maxi_w + self.maxi_h + self.maxi_w {
+            let i = self.i - self.maxi_w - self.maxi_h;
             self.i += 1;
-            Some((self.parent.x0 + self.w - i, self.parent.y0 + self.h))
-        } else if self.i < self.w + self.h + self.w + self.h {
-            let i = self.i - self.w - self.h - self.w;
+            Some((
+                self.parent.x0 + self.maxi_w - i,
+                self.parent.y0 + self.maxi_h,
+            ))
+        } else if self.i < self.maxi_w + self.maxi_h + self.maxi_w + self.maxi_h {
+            let i = self.i - self.maxi_w - self.maxi_h - self.maxi_w;
             self.i += 1;
-            Some((self.parent.x0, self.parent.y0 + self.h - i))
+            Some((self.parent.x0, self.parent.y0 + self.maxi_h - i))
         } else {
             None
         }
@@ -491,18 +499,21 @@ mod rect_region_tests {
 
     #[test]
     fn rect_region_empty() {
-        assert_eq!(
-            RectRegion::new(0, 0, 0, 1)
-                .border()
-                .collect::<Vec<(i32, i32)>>(),
-            vec![]
-        );
-        assert_eq!(
-            RectRegion::new(0, 0, 1, 0)
-                .border()
-                .collect::<Vec<(i32, i32)>>(),
-            vec![]
-        );
+        for region in &[
+            RectRegion::new(0, 0, 0, 0),
+            RectRegion::new(0, 0, 0, 1),
+            RectRegion::new(0, 0, 0, 1),
+            RectRegion::new(0, 0, 1, 0),
+            RectRegion::new(0, 0, 0, 10),
+            RectRegion::new(0, 0, 10, 0),
+        ] {
+            assert_eq!(
+                region.border().collect::<Vec<(i32, i32)>>(),
+                vec![],
+                "Failed for region: {:?}",
+                region
+            );
+        }
     }
 
     #[test]
@@ -1157,11 +1168,9 @@ impl Engine {
                     }
                 }
                 total_work += dirty_region.interior_len();
-            } else {
-                if let Some((r1, r2)) = dirty_region.bisect() {
-                    self.dirty_regions.push_back(r1);
-                    self.dirty_regions.push_back(r2);
-                }
+            } else if let Some((r1, r2)) = dirty_region.bisect() {
+                self.dirty_regions.push_back(r1);
+                self.dirty_regions.push_back(r2);
             }
 
             if total_work > work_limit {
