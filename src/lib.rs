@@ -125,7 +125,7 @@ impl Gradient {
     }
 
     pub fn get_inside_color(&self) -> Color {
-        self.inside.clone()
+        self.inside
     }
 }
 
@@ -358,11 +358,8 @@ impl EngineSettings {
     }
 
     fn try_restore(&mut self, serialized: &str) -> Result<(), Box<dyn std::error::Error>> {
-        if serialized.starts_with(Self::SERIAL_VERSION_PREFIX) {
-            let zip = base64::decode_config(
-                &serialized[Self::SERIAL_VERSION_PREFIX.len()..],
-                Self::base64_config(),
-            )?;
+        if let Some(unprefixed) = serialized.strip_prefix(Self::SERIAL_VERSION_PREFIX) {
+            let zip = base64::decode_config(unprefixed, Self::base64_config())?;
 
             use std::io::Read;
             let mut decoder = flate2::read::ZlibDecoder::new(&zip[..]);
@@ -373,7 +370,7 @@ impl EngineSettings {
             *self = deserialized;
             Ok(())
         } else {
-            Err("Unsupported state version")?
+            Err("Unsupported state version".into())
         }
     }
 }
