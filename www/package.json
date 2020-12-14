@@ -1,6 +1,7 @@
 {
   "name": "fraktal",
   "version": "1.0.0",
+  "private": true,
   "description": "Fractal rendering sandbox",
   "main": "src/index.js",
   "scripts": {
