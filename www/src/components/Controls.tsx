@@ -186,6 +186,10 @@ function Controls({ engine, settings, updateSettings }: Props) {
           </button>
         </p>
 
+        <p>
+          Viewing range: <pre style={{ whiteSpace: 'break-spaces' }}>{ engine.describe_range() }</pre>
+        </p>
+
         <div className={ styles['Controls-Legend'] }>
           <p>
             Pan: Click and drag
