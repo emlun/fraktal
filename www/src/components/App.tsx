@@ -6,6 +6,7 @@ import Sidebar from 'components/Sidebar';
 import GithubCorner from 'components/GithubCorner';
 
 import { Engine, EngineSettings } from 'fraktal-wasm';
+import { presets } from 'presets';
 
 import styles from './App.module.module.css';
 
@@ -35,6 +36,9 @@ function App() {
         if (state) {
           eng.restore_settings(state);
         }
+      } else {
+        const r = Math.floor(Math.random() * presets.length);
+        eng.restore_settings(presets[r].state);
       }
 
       const settings = eng.get_settings();
