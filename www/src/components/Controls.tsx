@@ -2,6 +2,9 @@ import React, { useCallback, useState } from 'react';
 
 import { Engine, EngineSettings, GradientPivot } from 'fraktal-wasm/fraktal';
 
+import CollapseBox from 'components/CollapseBox';
+import Presets from 'components/Presets';
+
 import styles from './Controls.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
@@ -27,7 +30,8 @@ function Controls({ engine, settings, updateSettings }: Props) {
   const [serializedSettings, setSerializedSettings] = useState("");
   const [restoreError, setRestoreError] = useState("");
 
-  const stateHref = window.location.origin + window.location.pathname + '?state=' + engine.serialize_settings();
+  const stateString = engine.serialize_settings();
+  const stateHref = window.location.origin + window.location.pathname + '?state=' + stateString;
 
   const setPivotValue = useCallback(
     (index, value) => {
@@ -185,6 +189,10 @@ function Controls({ engine, settings, updateSettings }: Props) {
             Zoom in
           </button>
         </p>
+
+        <CollapseBox title="Presets">
+          <Presets current={ stateString } />
+        </CollapseBox>
 
         <p>
           Viewing range: <pre style={{ whiteSpace: 'break-spaces' }}>{ engine.describe_range() }</pre>
