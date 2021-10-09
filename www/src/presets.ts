@@ -14,6 +14,10 @@ function compareBy<T>(f: (arg: T) => any) {
 
 export const presets = [
   {
+    name: "Classic",
+    state: "0:eNptikENACAMA_vAAz4wgAFM4ACZc3WEZMBja9Lk2pyUZXX7g9MSJarDEMx7IuwxNOcNBmUPLg",
+  },
+  {
     name: "Singularity",
     state: "0:eNplii0KgDAAhWfYol0PYBabxZnE4HE07wjiKcyeQBGMRkG7Ybd429hP2QcPPj7e-dFukc9-p9N41D8v-jUr861pGfHAjJIIzN6EwBsqMCRWL-2chYzKXRQs2B1m",
   },
