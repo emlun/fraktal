@@ -4,6 +4,7 @@ const childProcess = require('child_process');
 const path = require('path');
 
 const webpack = require('webpack');
+const ESLintPlugin = require('eslint-webpack-plugin');
 const ForkTsCheckerPlugin = require('fork-ts-checker-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
@@ -28,7 +29,6 @@ const devConfig = {
 };
 
 const devPlugins = [
-  new webpack.HotModuleReplacementPlugin(),
   new ForkTsCheckerPlugin({
     typescript: {
       configFile: path.resolve(__dirname, 'tsconfig.json'),
@@ -50,6 +50,10 @@ const prodPlugins = [
 
 module.exports = {
   context,
+
+  experiments: {
+    asyncWebAssembly: true,
+  },
 
   entry: {
     index: ['react-hot-loader/patch', path.resolve(SRC_DIR, 'bootstrap')],
@@ -82,13 +86,6 @@ module.exports = {
 
   module: {
     rules: [
-      {
-        test: /\.jsx?$/,
-        enforce: 'pre',
-        exclude: [/node_modules/, /fraktal\/pkg/],
-        loader: 'eslint-loader',
-      },
-
       {
         test: /\.(ts|js)x?$/,
         exclude: /node_modules/,
@@ -138,6 +135,7 @@ module.exports = {
       ? prodPlugins
       : devPlugins
     ),
+    new ESLintPlugin({}),
   ],
 
   ...(process.env.NODE_ENV === 'production'
