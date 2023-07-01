@@ -12,18 +12,21 @@ pub struct Complex<Num> {
     pub im: Num,
 }
 
+impl<Num> PartialEq for Complex<Num>
+where
+    Num: PartialEq,
+{
+    fn eq(&self, rhs: &Self) -> bool {
+        self.re == rhs.re && self.im == rhs.im
+    }
+}
+
 impl<Num> Display for Complex<Num>
 where
     Num: Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(f, "{}+{}i", self.re, self.im)
-    }
-}
-
-impl<Num> Complex<Num> {
-    pub fn as_tuple(&self) -> (&Num, &Num) {
-        (&self.re, &self.im)
     }
 }
 
@@ -183,10 +186,10 @@ mod test_add {
     #[test]
     fn zero() -> Result<(), ()> {
         let sum = Complex::<f64>::from((0, 0)) + Complex::<f64>::from((0, 0));
-        assert_eq!(sum.as_tuple(), (&0.0, &0.0));
+        assert_eq!(sum, Complex::from((0, 0)));
 
         let sum = Complex::<i32>::from((0, 0)) + Complex::<i32>::from((1, 2));
-        assert_eq!(sum.as_tuple(), (&1, &2));
+        assert_eq!(sum, Complex::from((1, 2)));
 
         Ok(())
     }

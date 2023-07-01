@@ -1,5 +1,5 @@
-pub mod complex;
-pub mod mandelbrot;
+mod complex;
+mod mandelbrot;
 pub mod math;
 mod rect;
 
