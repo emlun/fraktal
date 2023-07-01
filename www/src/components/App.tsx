@@ -76,7 +76,6 @@ function App() {
         title="Settings"
       >
         <Controls
-          engine={ engine }
           settings={ settings }
           updateSettings={ setSettings }
         />

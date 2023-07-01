@@ -488,6 +488,16 @@ impl EngineSettings {
         }
         self
     }
+
+    pub fn describe_range(&self) -> String {
+        let center = self.center.current();
+        let (w, h) = *self.size.current();
+        let range = Complex::from((w as f64, h as f64)) * *self.scale.current();
+        format!(
+            "{:e} ±{:e} {:+e} i ±{:e} i",
+            center.re, range.re, center.im, range.im
+        )
+    }
 }
 
 impl Default for EngineSettings {
@@ -791,14 +801,5 @@ impl Engine {
             self.image.palette = gradient.make_palette();
         };
         self.image.render_pixels(self.iteration_limit);
-    }
-
-    pub fn describe_range(&self) -> String {
-        let center = (self.top_left + self.btm_right) * 0.5;
-        let range = self.btm_right - self.top_left;
-        format!(
-            "{:e} ±{:e} {:+e} i ±{:e} i",
-            center.re, range.re, center.im, -range.im
-        )
     }
 }

@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 
-import { Engine, EngineSettings, GradientPivot } from 'fraktal-wasm/fraktal';
+import { EngineSettings, GradientPivot } from 'fraktal-wasm/fraktal';
 
 import CollapseBox from 'components/CollapseBox';
 import Presets from 'components/Presets';
@@ -16,12 +16,11 @@ function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 }
 
 interface Props {
-  engine: Engine,
   settings: EngineSettings,
   updateSettings: (settings: EngineSettings) => void,
 }
 
-function Controls({ engine, settings, updateSettings }: Props) {
+function Controls({ settings, updateSettings }: Props) {
 
   const gradient = settings.get_gradient();
   const numColors = settings.get_iteration_limit();
@@ -197,7 +196,7 @@ function Controls({ engine, settings, updateSettings }: Props) {
         <p>
           Viewing range:
         </p>
-        <pre style={{ whiteSpace: 'break-spaces' }}>{ engine.describe_range() }</pre>
+        <pre style={{ whiteSpace: 'break-spaces' }}>{ settings.describe_range() }</pre>
 
         <div className={ styles['Controls-Legend'] }>
           <p>
