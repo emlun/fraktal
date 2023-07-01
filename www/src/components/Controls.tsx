@@ -195,8 +195,9 @@ function Controls({ engine, settings, updateSettings }: Props) {
         </CollapseBox>
 
         <p>
-          Viewing range: <pre style={{ whiteSpace: 'break-spaces' }}>{ engine.describe_range() }</pre>
+          Viewing range:
         </p>
+        <pre style={{ whiteSpace: 'break-spaces' }}>{ engine.describe_range() }</pre>
 
         <div className={ styles['Controls-Legend'] }>
           <p>
