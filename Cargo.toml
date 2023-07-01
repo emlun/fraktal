@@ -17,7 +17,7 @@ bincode = "^1.3.1"
 flate2 = "^1.0"
 serde = { version = "^1.0", features = ["derive"] }
 wasm-bindgen = "^0.2.65"
-web-sys = {version = "^0.3", features = ["console"] }
+web-sys = { version = "^0.3.61", features = ["console", "Location", "Window", "UrlSearchParams"] }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -31,6 +31,13 @@ console_error_panic_hook = { version = "^0.1.1", optional = true }
 #
 # Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
 wee_alloc = { version = "^0.4.2", optional = true }
+yew = { version = "^0.20.0", features = ["csr"] }
+stylist = { version = "^0.12.0", features = ["macros", "yew_integration"] }
+rand = "^0.8.5"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Transitive dependency of rand
+getrandom = { version = "^0.2.10", features = ["js"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "^0.2"
