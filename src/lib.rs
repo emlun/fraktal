@@ -11,8 +11,10 @@ use rect::RectRegion;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::BinaryHeap;
-use utils::Pristine;
 use wasm_bindgen::prelude::wasm_bindgen;
+
+use crate::utils::Pristine;
+use crate::utils::Ratchet;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -92,7 +94,7 @@ impl GradientPivot {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Gradient {
     inside: Color,
     root: Color,
@@ -316,12 +318,16 @@ pub struct Viewpoint {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct EngineSettings {
-    center: Complex<f64>,
-    scale: f64,
-    iteration_limit: usize,
+    #[serde(skip)]
+    size: Ratchet<(usize, usize)>,
+    center: Ratchet<Complex<f64>>,
+    scale: Ratchet<f64>,
+    iteration_limit: Ratchet<usize>,
     gradient: Pristine<Gradient>,
+    #[serde(skip)]
+    zoom_focus: Ratchet<Option<(usize, usize)>>,
 }
 
 impl EngineSettings {
@@ -329,17 +335,6 @@ impl EngineSettings {
 
     fn base64_config() -> base64::Config {
         base64::Config::new(base64::CharacterSet::UrlSafe, false)
-    }
-}
-
-#[wasm_bindgen]
-impl EngineSettings {
-    pub fn get_iteration_limit(&self) -> usize {
-        self.iteration_limit
-    }
-
-    pub fn get_gradient(&self) -> Gradient {
-        self.gradient.get().clone()
     }
 
     fn try_serialize(&self) -> Result<String, bincode::Error> {
@@ -357,7 +352,7 @@ impl EngineSettings {
         ))
     }
 
-    fn try_restore(&mut self, serialized: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn try_restore(serialized: &str) -> Result<Self, Box<dyn std::error::Error>> {
         if let Some(unprefixed) = serialized.strip_prefix(Self::SERIAL_VERSION_PREFIX) {
             let zip = base64::decode_config(unprefixed, Self::base64_config())?;
 
@@ -367,21 +362,143 @@ impl EngineSettings {
             decoder.read_to_end(&mut bin)?;
 
             let deserialized: EngineSettings = bincode::deserialize(&bin)?;
-            *self = deserialized;
-            Ok(())
+            Ok(deserialized)
         } else {
             Err("Unsupported state version".into())
         }
+    }
+
+    fn zoom_around(mut self, new_scale: f64, x: usize, y: usize) -> Self {
+        let (width, height) = self.size.current();
+        let sdiff = new_scale - *self.scale.current();
+        self.center.update(|next| {
+            *next
+                + Complex::from((
+                    sdiff * (*width as f64 / 2.0 - x as f64),
+                    sdiff * (y as f64 - *height as f64 / 2.0),
+                ))
+        });
+        self.scale.set(new_scale);
+        self.zoom_focus.set(Some((x, y)));
+        self
+    }
+}
+
+#[wasm_bindgen]
+impl EngineSettings {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn throw_if_null(&self) -> bool {
+        true
+    }
+
+    pub fn get_width(&self) -> usize {
+        self.size.current().0
+    }
+
+    pub fn get_height(&self) -> usize {
+        self.size.current().1
+    }
+
+    pub fn get_iteration_limit(&self) -> usize {
+        *self.iteration_limit.current()
+    }
+
+    pub fn get_gradient(&self) -> Gradient {
+        self.gradient.get().clone()
+    }
+
+    pub fn serialize(&self) -> Option<String> {
+        self.try_serialize().ok()
+    }
+
+    pub fn restore(serialized: &str) -> Option<EngineSettings> {
+        Self::try_restore(serialized).ok()
+    }
+
+    pub fn set_size(mut self, width: usize, height: usize) -> Self {
+        self.size.set((width, height));
+        self
+    }
+
+    pub fn pan(mut self, dx: i32, dy: i32) -> Self {
+        let scale = *self.scale.current();
+        self.center
+            .update(|next| *next + Complex::from((dx, -dy)) * scale);
+        self
+    }
+
+    pub fn zoom_in(mut self) -> Self {
+        self.scale.update(|next| next / 2.0);
+        self.zoom_focus.set(None);
+        self
+    }
+
+    pub fn zoom_out(mut self) -> Self {
+        self.scale.update(|next| next * 2.0);
+        self.zoom_focus.set(None);
+        self
+    }
+
+    pub fn zoom_in_around(self, x: usize, y: usize) -> Self {
+        let scale = *self.scale.current();
+        self.zoom_around(scale / 2.0, x, y)
+    }
+
+    pub fn zoom_out_around(self, x: usize, y: usize) -> Self {
+        let scale = *self.scale.current();
+        self.zoom_around(scale * 2.0, x, y)
+    }
+
+    pub fn set_iteration_limit(mut self, iteration_limit: usize) -> Self {
+        if let Some(pivot) = self.gradient.get_mut().pivots.last_mut() {
+            pivot.value = iteration_limit;
+        }
+        self.iteration_limit.set(iteration_limit);
+        self
+    }
+
+    pub fn gradient_set_pivot_value(mut self, index: usize, value: usize) -> Self {
+        self.gradient.set_pivot_value(index, value);
+        self
+    }
+
+    pub fn gradient_set_pivot_color(mut self, index: usize, color: &str) -> Self {
+        if let Ok(color) = Color::parse_hex(color) {
+            self.gradient.set_pivot_color(index, color);
+        }
+        self
+    }
+
+    pub fn gradient_insert_pivot(mut self, index: usize) -> Self {
+        self.gradient.insert_pivot(index);
+        self
+    }
+
+    pub fn gradient_delete_pivot(mut self, index: usize) -> Self {
+        self.gradient.delete_pivot(index);
+        self
+    }
+
+    pub fn gradient_set_inside_color(mut self, color: &str) -> Self {
+        if let Ok(color) = Color::parse_hex(color) {
+            self.gradient.set_inside_color(color);
+        }
+        self
     }
 }
 
 impl Default for EngineSettings {
     fn default() -> Self {
         Self {
-            scale: 0.0078125,
-            center: Complex::from((0, 0)),
-            iteration_limit: 50,
+            size: (1, 1).into(),
+            scale: 0.0078125.into(),
+            center: Complex::from((0, 0)).into(),
+            iteration_limit: 50.into(),
             gradient: Default::default(),
+            zoom_focus: None.into(),
         }
     }
 }
@@ -424,74 +541,148 @@ impl std::ops::Deref for ByDistToFocus {
 
 #[wasm_bindgen]
 pub struct Engine {
-    settings: EngineSettings,
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
     image: Image,
     dirty_regions: BinaryHeap<ByDistToFocus>,
-    last_zoom_focus: (usize, usize),
-}
-
-impl Default for Engine {
-    fn default() -> Self {
-        utils::set_panic_hook();
-
-        let settings = EngineSettings::default();
-        let mut e = Self {
-            top_left: Complex::from((0, 0)),
-            btm_right: Complex::from((0, 0)),
-            image: Image::new(1, 1, &settings.gradient),
-            dirty_regions: BinaryHeap::new(),
-            settings,
-            last_zoom_focus: (0, 0),
-        };
-        e.set_size(1, 1);
-        e
-    }
+    zoom_focus: (usize, usize),
+    iteration_limit: usize,
 }
 
 #[wasm_bindgen]
 impl Engine {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(settings: &EngineSettings) -> Self {
+        utils::set_panic_hook();
+
+        let (width, height) = settings.size.current();
+        let mut e = Self {
+            top_left: Complex::from((0, 0)),
+            btm_right: Complex::from((0, 0)),
+            image: Image::new(*width, *height, &settings.gradient),
+            dirty_regions: BinaryHeap::new(),
+            zoom_focus: (0, 0),
+            iteration_limit: *settings.iteration_limit.current(),
+        };
+        e.update_limits(*settings.scale.current(), settings.center.current());
+        e
     }
 
-    pub fn set_size(&mut self, width: usize, height: usize) -> EngineSettings {
-        self.image = Image::new(width, height, &self.settings.gradient);
-        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
+    pub fn apply_settings(&mut self, settings: &mut EngineSettings) {
+        log!("apply_settings");
+
+        let EngineSettings {
+            size,
+            center,
+            scale,
+            iteration_limit,
+            gradient,
+            zoom_focus,
+        } = settings;
+
+        if let Some((cur_size, (new_width, new_height))) = size.latch() {
+            log!("apply_settings size {cur_size:?} => ({new_width}, {new_height})");
+            self.set_size(
+                *new_width,
+                *new_height,
+                *scale.current(),
+                center.current(),
+                gradient,
+            );
+        }
+
+        match (center.latch(), zoom_focus.latch()) {
+            (Some((_, new_center)), Some((_, Some(zoom_focus)))) => {
+                log!("apply_settings center {new_center:?}, zoom_focus {zoom_focus:?}");
+                self.update_limits(*scale.current(), new_center);
+                self.zoom_focus = *zoom_focus;
+            }
+
+            (None, Some((_, zoom_focus))) => {
+                log!("apply_settings zoom_focus {zoom_focus:?}");
+                self.zoom_focus =
+                    zoom_focus.unwrap_or((self.image.width / 2, self.image.height / 2));
+            }
+
+            (Some((cur_center, new_center)), _) => {
+                log!("apply_settings center {new_center:?}");
+                let scale = *scale.current();
+
+                fn try_i32_from_f64(f: f64) -> Option<i32> {
+                    let f = f.round();
+                    if f <= f64::from(i32::MAX) && f >= f64::from(i32::MIN) {
+                        Some(f as i32)
+                    } else {
+                        None
+                    }
+                }
+
+                let Complex { re: dre, im: dim } = *new_center - cur_center;
+                match (
+                    try_i32_from_f64(dre / scale),
+                    try_i32_from_f64(-dim / scale),
+                ) {
+                    (Some(dx), Some(dy)) => {
+                        self.pan(dx, dy, scale, new_center);
+                    }
+                    (errx, erry) => {
+                        log!("Failed to update center: {:?}, {:?}", errx, erry);
+                    }
+                }
+            }
+
+            (None, None) => {}
+        };
+
+        if let Some((_, new_scale)) = scale.latch() {
+            log!("apply_settings scale {new_scale}");
+            self.dirtify_all();
+            self.update_limits(*new_scale, center.current());
+        }
+
+        if let Some((_, iteration_limit)) = iteration_limit.latch() {
+            log!("apply_settings iteration_limit {iteration_limit}");
+            if *iteration_limit > self.iteration_limit {
+                self.dirtify_all();
+            }
+            self.iteration_limit = *iteration_limit;
+        }
+    }
+
+    fn set_size(
+        &mut self,
+        width: usize,
+        height: usize,
+        scale: f64,
+        center: &Complex<f64>,
+        gradient: &Gradient,
+    ) {
+        self.image = Image::new(width, height, gradient);
+        self.zoom_focus = (self.image.width / 2, self.image.height / 2);
+        self.update_limits(scale, center);
         self.dirtify_all();
-        self.update_limits()
     }
 
-    fn update_limits(&mut self) -> EngineSettings {
+    fn update_limits(&mut self, scale: f64, center: &Complex<f64>) {
         let view_center: Complex<f64> = (
-            self.image.width as f64 / 2.0 * self.settings.scale,
-            -(self.image.height as f64) / 2.0 * self.settings.scale,
+            self.image.width as f64 / 2.0 * scale,
+            -(self.image.height as f64) / 2.0 * scale,
         )
             .into();
-        self.top_left = self.settings.center - view_center;
-        self.btm_right = self.settings.center + view_center;
-        self.get_settings()
+        self.top_left = *center - view_center;
+        self.btm_right = *center + view_center;
     }
 
     fn dirtify_all(&mut self) {
         self.dirty_regions.clear();
         self.dirty_regions.push(ByDistToFocus::of(
             RectRegion::new(0, 0, self.image.width as i32, self.image.height as i32),
-            &self.last_zoom_focus,
+            &self.zoom_focus,
         ));
     }
 
-    pub fn get_settings(&self) -> EngineSettings {
-        self.settings.clone()
-    }
-
-    pub fn pan(&mut self, dx: i32, dy: i32) -> EngineSettings {
-        let dre = self.settings.scale * dx as f64;
-        let dim = self.settings.scale * (-dy) as f64;
-        self.settings.center += (dre, dim).into();
-        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
-        self.update_limits();
+    fn pan(&mut self, dx: i32, dy: i32, scale: f64, new_center: &Complex<f64>) {
+        self.zoom_focus = (self.image.width / 2, self.image.height / 2);
+        self.update_limits(scale, new_center);
         self.image.pan(-dx, -dy);
 
         let (dirty_x_min, dirty_x_max) = if dx < 0 {
@@ -515,7 +706,7 @@ impl Engine {
 
         self.dirty_regions.push(ByDistToFocus::of(
             RectRegion::new(dirty_x_min, 0, dirty_x_max, self.image.height as i32),
-            &self.last_zoom_focus,
+            &self.zoom_focus,
         ));
         self.dirty_regions.push({
             let (x0, w) = if dx < 0 {
@@ -525,47 +716,9 @@ impl Engine {
             };
             ByDistToFocus::of(
                 RectRegion::new(x0, dirty_y_min, w, dirty_y_max),
-                &self.last_zoom_focus,
+                &self.zoom_focus,
             )
         });
-
-        self.settings.clone()
-    }
-
-    pub fn zoom_in(&mut self) -> EngineSettings {
-        self.settings.scale /= 2.0;
-        self.dirtify_all();
-        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
-        self.update_limits()
-    }
-
-    pub fn zoom_out(&mut self) -> EngineSettings {
-        self.settings.scale *= 2.0;
-        self.dirtify_all();
-        self.last_zoom_focus = (self.image.width / 2, self.image.height / 2);
-        self.update_limits()
-    }
-
-    pub fn zoom_in_around(&mut self, x: usize, y: usize) -> EngineSettings {
-        self.zoom_around(self.settings.scale / 2.0, x, y)
-    }
-
-    pub fn zoom_out_around(&mut self, x: usize, y: usize) -> EngineSettings {
-        self.zoom_around(self.settings.scale * 2.0, x, y)
-    }
-
-    fn zoom_around(&mut self, new_scale: f64, x: usize, y: usize) -> EngineSettings {
-        let sdiff = new_scale - self.settings.scale;
-        self.settings.center += (
-            sdiff * (self.image.width as f64 / 2.0 - x as f64),
-            sdiff * (y as f64 - self.image.height as f64 / 2.0),
-        )
-            .into();
-
-        self.last_zoom_focus = (x, y);
-        self.settings.scale = new_scale;
-        self.dirtify_all();
-        self.update_limits()
     }
 
     pub fn image_data(&self) -> *const u8 {
@@ -595,9 +748,9 @@ impl Engine {
                     let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
                     let c = self.top_left + c_offset;
-                    let escape_count = mandelbrot::check(c, self.settings.iteration_limit, 2.0);
+                    let escape_count = mandelbrot::check(c, self.iteration_limit, 2.0);
                     self.image.escape_counts[i] = escape_count;
-                    if escape_count < self.settings.iteration_limit {
+                    if escape_count < self.iteration_limit {
                         none_escaped = false;
                     }
                     total_work += escape_count;
@@ -612,17 +765,17 @@ impl Engine {
                         && y < (self.image.height as i32)
                     {
                         let i = x as usize + y as usize * self.image.width;
-                        self.image.escape_counts[i] = self.settings.iteration_limit;
+                        self.image.escape_counts[i] = self.iteration_limit;
                     }
                 }
                 total_work += dirty_region.interior_len();
             } else if let Some((r1, r2, r3)) = dirty_region.trisect() {
                 self.dirty_regions
-                    .push(ByDistToFocus::of(r1, &self.last_zoom_focus));
+                    .push(ByDistToFocus::of(r1, &self.zoom_focus));
                 self.dirty_regions
-                    .push(ByDistToFocus::of(r2, &self.last_zoom_focus));
+                    .push(ByDistToFocus::of(r2, &self.zoom_focus));
                 self.dirty_regions
-                    .push(ByDistToFocus::of(r3, &self.last_zoom_focus));
+                    .push(ByDistToFocus::of(r3, &self.zoom_focus));
             }
 
             if total_work > work_limit {
@@ -633,65 +786,11 @@ impl Engine {
         total_work
     }
 
-    pub fn render(&mut self) {
-        if let Some(gradient) = self.settings.gradient.get_dirty() {
+    pub fn render(&mut self, settings: &mut EngineSettings) {
+        if let Some(gradient) = settings.gradient.get_dirty() {
             self.image.palette = gradient.make_palette();
         };
-        self.image.render_pixels(self.settings.iteration_limit);
-    }
-
-    pub fn set_iteration_limit(&mut self, iteration_limit: usize) -> EngineSettings {
-        if iteration_limit > self.settings.iteration_limit {
-            self.dirtify_all();
-        }
-        if let Some(pivot) = self.settings.gradient.pivots.last_mut() {
-            pivot.value = iteration_limit;
-        }
-        self.settings.iteration_limit = iteration_limit;
-        self.settings.clone()
-    }
-
-    pub fn gradient_set_pivot_value(&mut self, index: usize, value: usize) -> EngineSettings {
-        self.settings.gradient.set_pivot_value(index, value);
-        self.settings.clone()
-    }
-
-    pub fn gradient_set_pivot_color(&mut self, index: usize, color: &str) -> EngineSettings {
-        if let Ok(color) = Color::parse_hex(color) {
-            self.settings.gradient.set_pivot_color(index, color);
-        }
-        self.settings.clone()
-    }
-
-    pub fn gradient_insert_pivot(&mut self, index: usize) -> EngineSettings {
-        self.settings.gradient.insert_pivot(index);
-        self.settings.clone()
-    }
-
-    pub fn gradient_delete_pivot(&mut self, index: usize) -> EngineSettings {
-        self.settings.gradient.delete_pivot(index);
-        self.settings.clone()
-    }
-
-    pub fn gradient_set_inside_color(&mut self, color: &str) -> EngineSettings {
-        if let Ok(color) = Color::parse_hex(color) {
-            self.settings.gradient.set_inside_color(color);
-        }
-        self.settings.clone()
-    }
-
-    pub fn serialize_settings(&self) -> Option<String> {
-        self.settings.try_serialize().ok()
-    }
-
-    pub fn restore_settings(&mut self, serialized: &str) -> Option<EngineSettings> {
-        if self.settings.try_restore(serialized).is_ok() {
-            self.dirtify_all();
-            self.update_limits();
-            Some(self.settings.clone())
-        } else {
-            None
-        }
+        self.image.render_pixels(self.iteration_limit);
     }
 
     pub fn describe_range(&self) -> String {

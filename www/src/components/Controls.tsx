@@ -30,21 +30,21 @@ function Controls({ engine, settings, updateSettings }: Props) {
   const [serializedSettings, setSerializedSettings] = useState("");
   const [restoreError, setRestoreError] = useState("");
 
-  const stateString = engine.serialize_settings();
+  const stateString = settings.serialize();
   const stateHref = window.location.origin + window.location.pathname + '?state=' + stateString;
 
   const setPivotValue = useCallback(
     (index, value) => {
-      updateSettings(engine.gradient_set_pivot_value(index, value));
+      updateSettings(settings.gradient_set_pivot_value(index, value));
     },
-    [engine],
+    [settings],
   );
 
   const onSetNumColors = useCallback(
     (numColors: number) => {
-      updateSettings(engine.set_iteration_limit(numColors));
+      updateSettings(settings.set_iteration_limit(numColors));
     },
-    [engine],
+    [settings],
   );
 
   const onReduceMaxPrecision = useCallback(
@@ -70,30 +70,30 @@ function Controls({ engine, settings, updateSettings }: Props) {
 
   const setPivotColor = useCallback(
     (index, color) => {
-      updateSettings(engine.gradient_set_pivot_color(index, color));
+      updateSettings(settings.gradient_set_pivot_color(index, color));
     },
-    [engine],
+    [settings],
   );
 
   const addGradientPivot = useCallback(
     (index) => {
-      updateSettings(engine.gradient_insert_pivot(index));
+      updateSettings(settings.gradient_insert_pivot(index));
     },
-    [engine],
+    [settings],
   );
 
   const deleteGradientPivot = useCallback(
     (index) => {
-      updateSettings(engine.gradient_delete_pivot(index));
+      updateSettings(settings.gradient_delete_pivot(index));
     },
-    [engine],
+    [settings],
   );
 
   const onSetInsideColor = useCallback(
     (color) => {
-      updateSettings(engine.gradient_set_inside_color(color));
+      updateSettings(settings.gradient_set_inside_color(color));
     },
-    [engine],
+    [settings],
   );
 
   return <div>
@@ -180,12 +180,12 @@ function Controls({ engine, settings, updateSettings }: Props) {
         <p style={{ textAlign: 'center' }}>
           <button
             type="button"
-            onClick={ () => engine.zoom_out() }
+            onClick={ () => updateSettings(settings.zoom_out()) }
             style={{ marginRight: '1em' }}
           >
             Zoom out
           </button>
-          <button type="button" onClick={ () => engine.zoom_in() }>
+          <button type="button" onClick={ () => updateSettings(settings.zoom_in()) }>
             Zoom in
           </button>
         </p>

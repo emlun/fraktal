@@ -23,32 +23,42 @@ function computeTreeRef() {
 function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
-  const [engine, setEngine] = useState<Engine>();
-  const [settings, setSettings] = useState<EngineSettings>();
-
-  useEffect(
+  const [settings, setSettings_] = useState<EngineSettings>(
     () => {
-      const eng = Engine.new();
-
       if (window.location.search) {
         const params = new URLSearchParams(window.location.search);
         const state = params.get('state');
         if (state) {
-          eng.restore_settings(state);
+          const settings = EngineSettings.restore(state);
+          if (settings) {
+            return settings;
+          }
         }
       } else {
         const r = Math.floor(Math.random() * presets.length);
-        eng.restore_settings(presets[r].state);
+        const settings = EngineSettings.restore(presets[r].state);
+        if (settings) {
+          return settings;
+        }
       }
 
-      const settings = eng.get_settings();
-      setEngine(eng);
-      setSettings(settings);
+      return EngineSettings.new();
+    }
+  );
+  const [engine, ] = useState<Engine>(() => Engine.new(settings));
+
+  const setSettings = useCallback(
+    (settings: EngineSettings) => {
+      console.log('apply_settings', settings);
+      engine.apply_settings(settings);
+      return setSettings_(settings);
     },
-    [Engine]
+    [engine, setSettings_],
   );
 
-  if (engine && settings) {
+  console.log("App", settings);
+
+  if (settings) {
     return <div className={ styles.wrapper }>
       <GithubCorner
         fillColor="#626262"

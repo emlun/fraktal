@@ -32,7 +32,6 @@ function Canvas({
   const [ctx, setContext] = useState<CanvasRenderingContext2D>();
   const [wrapper, setWrapper] = useState<HTMLElement | null>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement>();
-  const imageData = useRef(new ImageData(100, 100));
 
   const getScrollOffset = useCallback(
     () => {
@@ -45,7 +44,7 @@ function Canvas({
         return { x: 0, y: 0 };
       }
     },
-    [engine]
+    []
   );
   const getRenderOffset = getScrollOffset;
 
@@ -55,7 +54,7 @@ function Canvas({
       scrollStartPos.current = pos;
       mousePos.current = pos;
     },
-    [engine]
+    []
   );
 
   const onMouseMove = useCallback(
@@ -64,7 +63,7 @@ function Canvas({
         mousePos.current = { x: event.offsetX, y: event.offsetY };
       }
     },
-    [engine, panTriggerThreshold]
+    [panTriggerThreshold]
   );
 
   const onMouseUp = useCallback(
@@ -73,36 +72,36 @@ function Canvas({
 
       if (Math.sqrt(Math.pow(scrollOffset.x, 2) + Math.pow(scrollOffset.y, 2)) >= panTriggerThreshold) {
         const { x, y } = getRenderOffset();
-        updateSettings(engine.pan(-x, -y));
+        updateSettings(settings.pan(-x, -y));
       }
 
       scrollStartPos.current = null;
     },
-    [engine, panTriggerThreshold]
+    [settings, panTriggerThreshold]
   );
 
   const onWheel = useCallback(
     (event: WheelEvent) => {
       if (event.deltaY > 0) {
         if (event.shiftKey) {
-          updateSettings(engine.zoom_out());
+          updateSettings(settings.zoom_out());
         } else {
-          updateSettings(engine.zoom_out_around(event.clientX, event.clientY));
+          updateSettings(settings.zoom_out_around(event.clientX, event.clientY));
         }
       } else if (event.shiftKey) {
-        updateSettings(engine.zoom_in());
+        updateSettings(settings.zoom_in());
       } else {
-        updateSettings(engine.zoom_in_around(event.clientX, event.clientY));
+        updateSettings(settings.zoom_in_around(event.clientX, event.clientY));
       }
     },
-    [engine]
+    [settings]
   );
 
   const onDoubleClick = useCallback(
     (event: MouseEvent) => {
-      updateSettings(engine.zoom_in_around(event.clientX, event.clientY));
+      updateSettings(settings.zoom_in_around(event.clientX, event.clientY));
     },
-    [engine]
+    [settings]
   );
 
   const updateCanvas = (node: HTMLCanvasElement) => {
@@ -112,64 +111,69 @@ function Canvas({
     }
   };
 
-  const updateWasmPointer = useCallback(
-    () => {
-      if (canvas) {
-        const imd = new Uint8ClampedArray(
-          memory.buffer,
-          engine.image_data(),
-          canvas.width * canvas.height * 4
-        );
-        imageData.current = new ImageData(imd, canvas.width);
-      }
-    },
-    [canvas, engine]
-  );
-
-  const resizeCanvas = useCallback(
-    () => {
-      if (canvas) {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-        updateSettings(engine.set_size(canvas.width, canvas.height));
-        updateWasmPointer();
-      }
-    },
-    [canvas, engine, updateWasmPointer]
-  );
   useEffect(
     () => {
+      console.log('useEffect resizeCanvas', canvas);
       if (canvas) {
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        const resizeCanvas = () => {
+          console.log('resizeCanvas', canvas, canvas?.offsetWidth, canvas?.offsetHeight);
+          if (canvas) {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            if (!(canvas.width === settings.get_width()
+               && canvas.height === settings.get_height())) {
+              updateSettings(settings.set_size(canvas.width, canvas.height));
+            }
+          }
+        };
 
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
         return () => {
           window.removeEventListener('resize', resizeCanvas);
         };
       }
     },
-    [canvas, engine, resizeCanvas]
+    [canvas, settings]
   );
 
   useEffect(
     () => {
-      if (canvas && ctx && imageData.current) {
+      console.log('useEffect render', ctx, canvas, engine, settings);
+
+      let w, h;
+      try {
+        w = settings.get_width();
+      } catch (e) {
+      }
+      try {
+        h = settings.get_height();
+      } catch (e) {
+      }
+
+      console.log('w h', canvas?.width, canvas?.height, w, h);
+
+      if (canvas && ctx && engine && canvas.width === w && canvas.height === h) {
+        console.log('useEffect render proceed');
+
+        const imd = new Uint8ClampedArray(
+          memory.buffer,
+          engine.image_data(),
+          canvas.width * canvas.height * 4
+        );
+        const imageData = new ImageData(imd, canvas.width);
+
         const drawPixels = () => {
           ctx.fillStyle = '#000000';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          if (imageData.current.data.length === 0) {
-            updateWasmPointer();
-          }
-
           const { x, y } = getRenderOffset();
-          ctx.putImageData(imageData.current, x, y);
+          ctx.putImageData(imageData, x, y);
         };
 
         let computeLimit = 100000;
         let stopRenderLoop: any;
         const renderLoop = () => {
-
           const t0 = performance.now();
           const computed = engine.compute(computeLimit);
           const dt = performance.now() - t0;
@@ -179,9 +183,13 @@ function Canvas({
             computeLimit *= 1.5;
           }
 
-          engine.render();
-          drawPixels();
-          stopRenderLoop = window.requestAnimationFrame(renderLoop);
+          try {
+            settings.throw_if_null();
+            engine.render(settings);
+            drawPixels();
+            stopRenderLoop = window.requestAnimationFrame(renderLoop);
+          } catch (_) {
+          }
         };
         stopRenderLoop = window.requestAnimationFrame(renderLoop);
 
@@ -192,7 +200,7 @@ function Canvas({
         };
       }
     },
-    [ctx, canvas, engine, imageData, updateWasmPointer]
+    [ctx, canvas, engine, settings]
   );
 
   useEffect(

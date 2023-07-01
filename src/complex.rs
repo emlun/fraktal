@@ -6,7 +6,7 @@ use std::ops::AddAssign;
 use std::ops::Mul;
 use std::ops::Sub;
 
-#[derive(Copy, Clone, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct Complex<Num> {
     pub re: Num,
     pub im: Num,
