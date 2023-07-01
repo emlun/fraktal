@@ -1,18 +1,25 @@
+include!(concat!(env!("OUT_DIR"), "/version.rs"));
+
 mod complex;
+pub mod components;
+mod crate_info;
 mod mandelbrot;
 pub mod math;
+mod presets;
 mod rect;
+mod yew;
 
 #[macro_use]
 mod utils;
 
-use complex::Complex;
-use rect::RectRegion;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::BinaryHeap;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::Clamped;
 
+use crate::complex::Complex;
+use crate::rect::RectRegion;
 use crate::utils::Pristine;
 use crate::utils::Ratchet;
 
@@ -23,7 +30,7 @@ use crate::utils::Ratchet;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Color {
     r: u8,
     g: u8,
@@ -31,7 +38,6 @@ pub struct Color {
     a: u8,
 }
 
-#[wasm_bindgen]
 impl Color {
     fn of(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
@@ -74,7 +80,7 @@ impl Color {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GradientPivot {
     pub value: usize,
     pub color: Color,
@@ -94,7 +100,7 @@ impl GradientPivot {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Gradient {
     inside: Color,
     root: Color,
@@ -116,14 +122,9 @@ impl Default for Gradient {
     }
 }
 
-#[wasm_bindgen]
 impl Gradient {
-    pub fn len_pivots(&self) -> usize {
-        self.pivots.len()
-    }
-
-    pub fn get_pivot(&self, index: usize) -> Option<GradientPivot> {
-        self.pivots.get(index).cloned()
+    pub fn get_pivots(&self) -> &[GradientPivot] {
+        &self.pivots
     }
 
     pub fn get_inside_color(&self) -> Color {
@@ -213,6 +214,7 @@ impl Gradient {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Palette {
     escape_values: Vec<Color>,
     inside_color: Color,
@@ -230,6 +232,7 @@ impl Palette {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Image {
     width: usize,
     height: usize,
@@ -300,8 +303,8 @@ impl Image {
 }
 
 impl Image {
-    fn image_data(&self) -> *const u8 {
-        self.pixels.as_ptr()
+    fn image_data(&self) -> Clamped<&[u8]> {
+        Clamped(self.pixels.as_slice())
     }
 }
 
@@ -318,7 +321,7 @@ pub struct Viewpoint {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct EngineSettings {
     #[serde(skip)]
     size: Ratchet<(usize, usize)>,
@@ -513,7 +516,7 @@ impl Default for EngineSettings {
     }
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 struct ByDistToFocus {
     d: i32,
     value: RectRegion,
@@ -549,7 +552,7 @@ impl std::ops::Deref for ByDistToFocus {
     }
 }
 
-#[wasm_bindgen]
+#[derive(Debug)]
 pub struct Engine {
     top_left: Complex<f64>,
     btm_right: Complex<f64>,
@@ -559,7 +562,6 @@ pub struct Engine {
     iteration_limit: usize,
 }
 
-#[wasm_bindgen]
 impl Engine {
     pub fn new(settings: &EngineSettings) -> Self {
         utils::set_panic_hook();
@@ -578,8 +580,6 @@ impl Engine {
     }
 
     pub fn apply_settings(&mut self, settings: &mut EngineSettings) {
-        log!("apply_settings");
-
         let EngineSettings {
             size,
             center,
@@ -589,8 +589,7 @@ impl Engine {
             zoom_focus,
         } = settings;
 
-        if let Some((cur_size, (new_width, new_height))) = size.latch() {
-            log!("apply_settings size {cur_size:?} => ({new_width}, {new_height})");
+        if let Some((_, (new_width, new_height))) = size.latch() {
             self.set_size(
                 *new_width,
                 *new_height,
@@ -602,19 +601,16 @@ impl Engine {
 
         match (center.latch(), zoom_focus.latch()) {
             (Some((_, new_center)), Some((_, Some(zoom_focus)))) => {
-                log!("apply_settings center {new_center:?}, zoom_focus {zoom_focus:?}");
                 self.update_limits(*scale.current(), new_center);
                 self.zoom_focus = *zoom_focus;
             }
 
             (None, Some((_, zoom_focus))) => {
-                log!("apply_settings zoom_focus {zoom_focus:?}");
                 self.zoom_focus =
                     zoom_focus.unwrap_or((self.image.width / 2, self.image.height / 2));
             }
 
             (Some((cur_center, new_center)), _) => {
-                log!("apply_settings center {new_center:?}");
                 let scale = *scale.current();
 
                 fn try_i32_from_f64(f: f64) -> Option<i32> {
@@ -635,7 +631,7 @@ impl Engine {
                         self.pan(dx, dy, scale, new_center);
                     }
                     (errx, erry) => {
-                        log!("Failed to update center: {:?}, {:?}", errx, erry);
+                        error_println!("Failed to update center: {:?}, {:?}", errx, erry);
                     }
                 }
             }
@@ -644,18 +640,20 @@ impl Engine {
         };
 
         if let Some((_, new_scale)) = scale.latch() {
-            log!("apply_settings scale {new_scale}");
             self.dirtify_all();
             self.update_limits(*new_scale, center.current());
         }
 
         if let Some((_, iteration_limit)) = iteration_limit.latch() {
-            log!("apply_settings iteration_limit {iteration_limit}");
             if *iteration_limit > self.iteration_limit {
                 self.dirtify_all();
             }
             self.iteration_limit = *iteration_limit;
         }
+
+        if let Some(gradient) = gradient.get_dirty() {
+            self.image.palette = gradient.make_palette();
+        };
     }
 
     fn set_size(
@@ -731,7 +729,7 @@ impl Engine {
         });
     }
 
-    pub fn image_data(&self) -> *const u8 {
+    pub fn image_data(&self) -> Clamped<&[u8]> {
         self.image.image_data()
     }
 
@@ -796,10 +794,7 @@ impl Engine {
         total_work
     }
 
-    pub fn render(&mut self, settings: &mut EngineSettings) {
-        if let Some(gradient) = settings.gradient.get_dirty() {
-            self.image.palette = gradient.make_palette();
-        };
+    pub fn render(&mut self) {
         self.image.render_pixels(self.iteration_limit);
     }
 }

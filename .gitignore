@@ -1,9 +1,2 @@
 /dist/
-/target
-**/*.rs.bk
-bin/
-pkg/
-wasm-pack.log
-
-/www/build/
-/www/node_modules/
+/target/

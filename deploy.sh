@@ -7,7 +7,5 @@ set -e
 set -x
 
 cargo test
-cd www
-npm run lint
-npm run build
-rsync -avP --delete build/ emlun.se:/srv/http/public/fraktal/
+trunk build --release --public-url /fraktal
+rsync -avP --delete dist/ emlun.se:/srv/http/public/fraktal/

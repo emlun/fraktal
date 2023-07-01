@@ -10,7 +10,7 @@ Requirements
 ---
 
 - [Rust][rust-lang]
-- [npm][npm]
+- [trunk][trunk]
 
 
 Usage
@@ -19,25 +19,19 @@ Usage
 To run the development server:
 
 ```
-$ npm --prefix www install
-$ npm --prefix www run build-wasm
-$ npm --prefix www start
+$ cargo install trunk
+$ trunk serve
 $ $BROWSER http://localhost:8080
 ```
-
-Re-run `npm run build-wasm` whenever you edit the Rust code.
 
 To build artifacts:
 
 ```
-$ npm --prefix www install
-$ npm --prefix www run build
+$ trunk build --release
 ```
 
-Then copy the contents of `www/build/` into your favourite web server.
+Then copy the contents of `dist/` into your favourite web server.
 
 
-
-[npm]: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
 [rust-lang]: https://www.rust-lang.org/learn/get-started
-[wasm-pack]: https://rustwasm.github.io/docs/wasm-pack/quickstart.html
+[trunk]: https://trunkrs.dev/

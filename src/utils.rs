@@ -1,3 +1,7 @@
+use std::fmt::Debug;
+use std::ops::Deref;
+use std::rc::Rc;
+
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -15,11 +19,156 @@ pub fn set_panic_hook() {
 }
 
 #[allow(unused_macros)]
-macro_rules! log {
+macro_rules! log_println {
     ( $( $t:tt )* ) => {
-        web_sys::console::log_1(&format!( $( $t )* ).into());
+        web_sys::console::log_1(&format!( $( $t )* ).into())
     }
 }
+#[allow(unused_imports)]
+pub(crate) use log_println;
+
+#[allow(unused_macros)]
+macro_rules! error_println {
+    ( $( $t:tt )* ) => {
+        web_sys::console::error_1(&format!( $( $t )* ).into())
+    }
+}
+pub(crate) use error_println;
+
+#[allow(unused_macros)]
+macro_rules! log {
+    ( $t:expr ) => {
+        web_sys::console::log_1(&$t.into())
+    };
+    ( $t:expr, ) => {
+        web_sys::console::log_1(&$t.into())
+    };
+    ( $t1:expr, $t2:expr ) => {
+        web_sys::console::log_2(&$t1.into(), &$t2.into())
+    };
+    ( $t1:expr, $t2:expr, ) => {
+        web_sys::console::log_2(&$t1.into(), &$t2.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr ) => {
+        web_sys::console::log_3(&$t1.into(), &$t2.into(), &$t3.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, ) => {
+        web_sys::console::log_3(&$t1.into(), &$t2.into(), &$t3.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr ) => {
+        web_sys::console::log_4(&$t1.into(), &$t2.into(), &$t3.into(), &$t4.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, ) => {
+        web_sys::console::log_4(&$t1.into(), &$t2.into(), &$t3.into(), &$t4.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, $t5:expr ) => {
+        web_sys::console::log_5(
+            &$t1.into(),
+            &$t2.into(),
+            &$t3.into(),
+            &$t4.into(),
+            &$t5.into(),
+        )
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, $t5:expr, ) => {
+        web_sys::console::log_5(
+            &$t1.into(),
+            &$t2.into(),
+            &$t3.into(),
+            &$t4.into(),
+            &$t5.into(),
+        )
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, $t5:expr, $t6:expr ) => {
+        web_sys::console::log_6(
+            &$t1.into(),
+            &$t2.into(),
+            &$t3.into(),
+            &$t4.into(),
+            &$t5.into(),
+            &$t6.into(),
+        )
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, $t5:expr, $t6:expr, ) => {
+        web_sys::console::log_6(
+            &$t1.into(),
+            &$t2.into(),
+            &$t3.into(),
+            &$t4.into(),
+            &$t5.into(),
+            &$t6.into(),
+        )
+    };
+}
+#[allow(unused_imports)]
+pub(crate) use log;
+
+#[allow(unused_macros)]
+macro_rules! error_log {
+    ( $t:expr ) => {
+        web_sys::console::error_1(&$t.into())
+    };
+    ( $t:expr, ) => {
+        web_sys::console::error_1(&$t.into())
+    };
+    ( $t1:expr, $t2:expr ) => {
+        web_sys::console::error_2(&$t1.into(), &$t2.into())
+    };
+    ( $t1:expr, $t2:expr, ) => {
+        web_sys::console::error_2(&$t1.into(), &$t2.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr ) => {
+        web_sys::console::error_3(&$t1.into(), &$t2.into(), &$t3.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, ) => {
+        web_sys::console::error_3(&$t1.into(), &$t2.into(), &$t3.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr ) => {
+        web_sys::console::error_4(&$t1.into(), &$t2.into(), &$t3.into(), &$t4.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, ) => {
+        web_sys::console::error_4(&$t1.into(), &$t2.into(), &$t3.into(), &$t4.into())
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, $t5:expr ) => {
+        web_sys::console::error_5(
+            &$t1.into(),
+            &$t2.into(),
+            &$t3.into(),
+            &$t4.into(),
+            &$t5.into(),
+        )
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, $t5:expr, ) => {
+        web_sys::console::error_5(
+            &$t1.into(),
+            &$t2.into(),
+            &$t3.into(),
+            &$t4.into(),
+            &$t5.into(),
+        )
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, $t5:expr, $t6:expr ) => {
+        web_sys::console::error_6(
+            &$t1.into(),
+            &$t2.into(),
+            &$t3.into(),
+            &$t4.into(),
+            &$t5.into(),
+            &$t6.into(),
+        )
+    };
+    ( $t1:expr, $t2:expr, $t3:expr, $t4:expr, $t5:expr, $t6:expr, ) => {
+        web_sys::console::error_6(
+            &$t1.into(),
+            &$t2.into(),
+            &$t3.into(),
+            &$t4.into(),
+            &$t5.into(),
+            &$t6.into(),
+        )
+    };
+}
+pub(crate) use error_log;
 
 /// A container that keeps track of when its contained value has been mutated.
 #[derive(Clone, Debug)]
@@ -75,6 +224,15 @@ impl<T> std::ops::DerefMut for Pristine<T> {
     }
 }
 
+impl<T> PartialEq for Pristine<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, rhs: &Self) -> bool {
+        self.inner == rhs.inner
+    }
+}
+
 impl<T> Default for Pristine<T>
 where
     T: Default,
@@ -112,7 +270,7 @@ where
 /// A container that holds changes to a value until a consumer is ready to
 /// receive them, then presents both the previous value and the new value when
 /// the consumer requests them.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Ratchet<T> {
     current: T,
     next: Option<T>,
@@ -133,7 +291,7 @@ impl<T> Ratchet<T> {
     }
 
     /// If a new value is queued, update the current value to the new value and
-    /// return `(old, new)`.
+    /// return `(old, &new)`.
     pub fn latch(&mut self) -> Option<(T, &T)> {
         if let Some(mut next) = self.next.take() {
             std::mem::swap(&mut self.current, &mut next);
@@ -198,5 +356,27 @@ where
         S: Serializer,
     {
         self.current.serialize(serializer)
+    }
+}
+
+#[derive(Debug)]
+pub struct PtrEq<T>(Rc<T>);
+
+impl<T> PartialEq for PtrEq<T> {
+    fn eq(&self, rhs: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &rhs.0)
+    }
+}
+
+impl<T> Deref for PtrEq<T> {
+    type Target = Rc<T>;
+    fn deref(&self) -> &<Self as Deref>::Target {
+        &self.0
+    }
+}
+
+impl<T> PtrEq<T> {
+    pub fn new(v: Rc<T>) -> Self {
+        Self(v)
     }
 }
