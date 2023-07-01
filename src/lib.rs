@@ -695,12 +695,11 @@ impl Engine {
     }
 
     pub fn describe_range(&self) -> String {
-        let center = self.top_left + self.btm_right * 0.5;
-        let range =
-            (self.btm_right - ((self.top_left + self.btm_right) * 0.5)) * Complex::from((0, 1));
+        let center = (self.top_left + self.btm_right) * 0.5;
+        let range = self.btm_right - self.top_left;
         format!(
             "{:e} ±{:e} {:+e} i ±{:e} i",
-            center.re, range.re, center.im, range.im
+            center.re, range.re, center.im, -range.im
         )
     }
 }
