@@ -1,4 +1,3 @@
-use crate::math::NextCoprime;
 use std::convert::TryInto;
 use std::ops::Add;
 use std::ops::Div;
@@ -12,9 +11,7 @@ pub struct RangeRect<T> {
     y0: T,
     w: T,
     len: T,
-    step: T,
     i: T,
-    exhausted: bool,
 }
 
 impl<T> RangeRect<T>
@@ -23,7 +20,6 @@ where
     T: Div<T, Output = T>,
     T: From<u8>,
     T: Mul<T, Output = T>,
-    T: NextCoprime,
     T: Sub<T, Output = T>,
 {
     fn new((x0, w): (T, T), (y0, h): (T, T)) -> RangeRect<T> {
@@ -33,16 +29,8 @@ where
             y0,
             w,
             len,
-            step: (len / 100.into()).next_coprime(len),
             i: 0.into(),
-            exhausted: false,
         }
-    }
-}
-
-impl<T> RangeRect<T> {
-    fn is_exhausted(&self) -> bool {
-        self.exhausted
     }
 }
 
@@ -58,15 +46,12 @@ where
 {
     type Item = (T, T);
     fn next(&mut self) -> Option<Self::Item> {
-        if self.is_exhausted() || self.len == 0.into() {
+        if self.i == self.len {
             None
         } else {
             let y = self.y0 + self.i / self.w;
             let x = self.x0 + self.i % self.w;
-            self.i = (self.i + self.step) % self.len;
-            if self.i == 0.into() {
-                self.exhausted = true;
-            }
+            self.i = self.i + 1.into();
             Some((x, y))
         }
     }
