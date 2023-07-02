@@ -9,7 +9,6 @@ import styles from './Canvas.module.css';
 
 
 interface Props {
-  readonly engine: Engine,
   readonly settings: EngineSettings,
   readonly updateSettings: (settings: EngineSettings) => void,
   readonly panTriggerThreshold?: number,
@@ -21,7 +20,6 @@ interface Pos {
 }
 
 function Canvas({
-  engine,
   settings,
   updateSettings,
   panTriggerThreshold = 10,
@@ -32,6 +30,15 @@ function Canvas({
   const [ctx, setContext] = useState<CanvasRenderingContext2D>();
   const [wrapper, setWrapper] = useState<HTMLElement | null>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement>();
+  const [engine, ] = useState<Engine>(() => Engine.new(settings));
+
+  useEffect(
+    () => {
+      console.log('apply_settings', settings);
+      engine.apply_settings(settings);
+    },
+    [settings],
+  );
 
   const getScrollOffset = useCallback(
     () => {

@@ -5,7 +5,7 @@ import Controls from 'components/Controls';
 import Sidebar from 'components/Sidebar';
 import GithubCorner from 'components/GithubCorner';
 
-import { Engine, EngineSettings } from 'fraktal-wasm';
+import { EngineSettings } from 'fraktal-wasm';
 import { presets } from 'presets';
 
 import styles from './App.module.module.css';
@@ -23,7 +23,7 @@ function computeTreeRef() {
 function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
-  const [settings, setSettings_] = useState<EngineSettings>(
+  const [settings, setSettings] = useState<EngineSettings>(
     () => {
       if (window.location.search) {
         const params = new URLSearchParams(window.location.search);
@@ -45,16 +45,6 @@ function App() {
       return EngineSettings.new();
     }
   );
-  const [engine, ] = useState<Engine>(() => Engine.new(settings));
-
-  const setSettings = useCallback(
-    (settings: EngineSettings) => {
-      console.log('apply_settings', settings);
-      engine.apply_settings(settings);
-      return setSettings_(settings);
-    },
-    [engine, setSettings_],
-  );
 
   console.log("App", settings);
 
@@ -66,7 +56,6 @@ function App() {
         visible={ sidebarExpanded }
       />
       <Canvas
-        engine={ engine }
         settings={ settings }
         updateSettings={ setSettings }
       />
