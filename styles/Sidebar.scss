@@ -1,5 +1,5 @@
 .Sidebar {
-  background-color: rgba(0, 0, 64, 0.4);
+  background-color: rgba(0, 0, 40, 0.6);
   color: white;
   display: flex;
   flex-direction: column;
@@ -10,6 +10,10 @@
   position: absolute;
   top: 0;
   transition: opacity 0.2s;
+
+  &:hover {
+    background-color: rgba(0, 0, 40, 0.8);
+  }
 
   &:hover, &.expanded {
     opacity: 1;
