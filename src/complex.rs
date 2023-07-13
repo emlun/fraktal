@@ -162,7 +162,7 @@ where
     }
 }
 
-impl<'a, Num> Mul<Num> for Complex<Num>
+impl<Num> Mul<Num> for Complex<Num>
 where
     Num: Mul<Output = Num>,
     Num: Copy,

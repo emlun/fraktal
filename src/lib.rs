@@ -36,7 +36,7 @@ impl Color {
     }
 
     fn average(&self, other: &Color) -> Color {
-        Color::lerp(&self, other, 0, 2, 1)
+        Color::lerp(self, other, 0, 2, 1)
     }
 
     fn lerp(a: &Color, b: &Color, a_value: isize, b_value: isize, target_value: isize) -> Color {
