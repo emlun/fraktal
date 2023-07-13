@@ -2,27 +2,35 @@
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+
+  & > input[type="range"] {
+    flex-grow: 1;
+  }
 }
 
 .Precision-Slider {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-}
 
-.Precision-Slider span {
-  margin-left: 0.5em;
-  margin-top: 0.2em;
+  & > input[type="range"] {
+    flex-grow: 1;
+  }
+
+  span {
+    margin-left: 0.5em;
+    margin-top: 0.2em;
+  }
 }
 
 .Controls-Legend {
   margin: 1.2em 0.3em 1.5em;
-}
 
-.Controls-Legend p {
-  color: #999;
-  font-size: 0.9em;
-  line-height: 1.3;
-  margin: 0;
-  padding: 0;
+  p {
+    color: #999;
+    font-size: 0.9em;
+    line-height: 1.3;
+    margin: 0;
+    padding: 0;
+  }
 }
