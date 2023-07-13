@@ -341,11 +341,14 @@ pub fn Canvas(props: &Props) -> Html {
             let on_double_click = Closure::new({
                 let settings = settings.clone();
                 move |event: MouseEvent| {
+                    let x = event.client_x().try_into().unwrap();
+                    let y = event.client_y().try_into().unwrap();
                     settings.update(|s| {
-                        s.zoom_in_around(
-                            event.client_x().try_into().unwrap(),
-                            event.client_y().try_into().unwrap(),
-                        )
+                        if event.shift_key() {
+                            s.zoom_out_around(x, y)
+                        } else {
+                            s.zoom_in_around(x, y)
+                        }
                     });
                 }
             });

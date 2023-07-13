@@ -283,10 +283,14 @@ pub fn Controls(props: &Props) -> Html {
                         { "Pan: Click and drag" }
                     </p>
                     <p>
-                        { "Zoom around pointer: Mouse wheel, double click" }
+                        { "Zoom around pointer: Mouse\u{00a0}wheel, double\u{00a0}click, " }
+                        <kbd>{ "Shift" }</kbd>
+                        { "\u{00a0}+\u{00a0}double\u{00a0}click" }
                     </p>
                     <p>
-                        { "Static zoom:" } <kbd>{ "Shift" }</kbd> { "+ Mouse wheel" }
+                        { "Static zoom: " }
+                        <kbd>{ "Shift" }</kbd>
+                        { "\u{00a0}+\u{00a0}Mouse\u{00a0}wheel" }
                     </p>
                 </div>
 
