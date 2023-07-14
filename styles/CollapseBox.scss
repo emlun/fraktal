@@ -1,6 +1,9 @@
 .CollapseBox {
+  $transition-duration: 120ms;
+  $border: 1px solid rgba(128, 128, 128, 0.5);
+
   background: transparent;
-  border: 1px solid rgba(128, 128, 128, 0.5);
+  border: $border;
   border-radius: 0.3em;
   display: flex;
   flex-direction: column;
@@ -8,7 +11,7 @@
 
   & > .toggle {
     background: transparent;
-    border-bottom: 1px solid transparent;
+    border-bottom-color: transparent;
     border-radius: 0;
     border: none;
     display: flex;
@@ -16,7 +19,7 @@
     flex-wrap: nowrap;
     font-weight: bold;
     padding: 0.5em 1em;
-    transition: border-bottom 0.22s;
+    transition: border-bottom $transition-duration;
     width: 100%;
   }
 
@@ -28,31 +31,38 @@
   .toggle-icon {
     flex-grow: 0;
     transform: rotate(90deg);
-    transition: transform 0.2s;
+    transition: transform $transition-duration;
 
     &:first-child::before, &:last-child::after {
       content: "»"
     }
   }
 
-  & > .Content {
-    max-height: 0;
+  & > .content-wrapper {
     overflow: hidden;
-    padding: 0 1em;
-    transition: max-height 0.2s;
+    transition-duration: $transition-duration;
+    transition-property: max-height, padding;
+  }
+
+  & > .content-wrapper > .Content {
+    padding: 0.5em 1em;
+  }
+
+  &:not(.expanded) {
+    & > .content-wrapper {
+      max-height: 0;
+      padding-bottom: 0;
+      padding-top: 0;
+    }
   }
 
   &.expanded {
     & > .toggle {
-      border-bottom: 1px solid rgba(128, 128, 128, 0.5);
+      border-bottom: $border;
     }
 
     .toggle-icon {
       transform: rotate(90deg) scaleX(-1);
-    }
-
-    & > .Content {
-      max-height: 10em;
     }
   }
 
