@@ -4,6 +4,7 @@ use wasm_bindgen::JsValue;
 use web_sys::window;
 use web_sys::Event;
 use web_sys::HtmlInputElement;
+use web_sys::InputEvent;
 use web_sys::SubmitEvent;
 use yew::classes;
 use yew::html;
@@ -140,9 +141,9 @@ pub fn Controls(props: &Props) -> Html {
                             class={ classes!("flex-stretch")}
                             max={ ( num_colors - 1 ).to_string() }
                             min={ 0 }
-                            onchange={
+                            oninput={
                                 let set_pivot_value = set_pivot_value.clone();
-                                move |e: Event| {
+                                move |e: InputEvent| {
                                     if let Some(value) = e.target()
                                         .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
                                         .and_then(|el| el.value().parse().ok()) {
@@ -154,9 +155,9 @@ pub fn Controls(props: &Props) -> Html {
                             value={ pivot.value.to_string() }
                         />
                         <input
-                            onchange={
+                            oninput={
                                 let set_pivot_color = set_pivot_color.clone();
-                                move |e: Event| {
+                                move |e: InputEvent| {
                                     if let Some(el) = e.target()
                                         .and_then(|t| t.dyn_into::<HtmlInputElement>().ok()) {
                                         set_pivot_color.emit((index, el.value()));
