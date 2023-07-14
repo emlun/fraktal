@@ -195,9 +195,9 @@ pub fn Controls(props: &Props) -> Html {
     html! {
         <form onsubmit={ on_submit }>
             <div>
-                <p>{ "Precision:" }</p>
-
                 <div class={ classes!("Precision-Slider") }>
+                    <span>{ "Precision:" }</span>
+
                     <button
                         type="button"
                         disabled={ *max_precision <= 100 }

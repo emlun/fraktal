@@ -9,17 +9,22 @@
 }
 
 .Precision-Slider {
+  align-items: center;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  margin-top: 0.5em;
 
   & > input[type="range"] {
     flex-grow: 1;
   }
 
-  span {
+  span:not(:last-child) {
+    margin-right: 0.5em;
+  }
+
+  span:not(:first-child) {
     margin-left: 0.5em;
-    margin-top: 0.2em;
   }
 }
 
