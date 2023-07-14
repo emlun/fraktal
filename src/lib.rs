@@ -150,8 +150,8 @@ impl Gradient {
         let new_value = std::cmp::max(std::cmp::min(value, max_value), 0);
 
         if let Some(i) = index.checked_sub(1) {
-            if new_value <= self.pivots[i].value {
-                self.set_pivot_value(i, new_value - 1, max_value);
+            if new_value > 0 && new_value <= self.pivots[i].value {
+                self.set_pivot_value(i, new_value.saturating_sub(1), max_value);
             }
         }
 
