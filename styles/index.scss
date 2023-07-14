@@ -24,6 +24,17 @@ a:hover {
   width: 100%;
 }
 
+.flex-stretch {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.Sidebar-Content {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
 .footer {
   border-top: 1px solid rgba(128, 128, 128, 0.5);
   color: #aaa;

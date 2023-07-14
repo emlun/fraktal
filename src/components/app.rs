@@ -75,11 +75,16 @@ pub fn App() -> Html {
             />
             <Canvas settings={ settings.clone() } />
             <Sidebar
+                content_classes={ vec!["Sidebar-Content"]}
                 expanded={ *sidebar_expanded }
+                max_height={ settings.get_height() }
                 on_toggle={ on_toggle_sidebar }
                 title="Settings"
             >
                 <Controls settings={ settings.clone() } />
+
+                <div class={ classes!("flex-stretch") }/>
+
                 <footer class={ classes!("footer") }>
                     <div>
                         { crate_name() }
