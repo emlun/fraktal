@@ -105,7 +105,6 @@ pub struct Gradient {
     inside: Color,
     root: Color,
     pivots: Vec<GradientPivot>,
-    max_value: usize,
 }
 
 impl Default for Gradient {
@@ -117,7 +116,6 @@ impl Default for Gradient {
                 GradientPivot::new(0, Color::of(0, 0, 0, 255)),
                 GradientPivot::new(50, Color::of(255, 0, 255, 255)),
             ],
-            max_value: 50,
         }
     }
 }
@@ -154,13 +152,13 @@ impl Gradient {
         self.pivots.remove(index);
     }
 
-    fn set_pivot_value(&mut self, index: usize, value: usize) -> Option<usize> {
+    fn set_pivot_value(&mut self, index: usize, value: usize, max_value: usize) -> Option<usize> {
         let min_value = self.pivots.get(index - 1).map(|p| p.value + 1).unwrap_or(0);
         let max_value = self
             .pivots
             .get(index + 1)
             .map(|p| p.value - 1)
-            .unwrap_or(usize::max_value());
+            .unwrap_or(max_value);
 
         self.pivots.get_mut(index).map(|pivot| {
             let v = std::cmp::max(std::cmp::min(value, max_value), min_value);
@@ -178,7 +176,7 @@ impl Gradient {
         }
     }
 
-    fn make_palette(&self) -> Palette {
+    fn make_palette(&self, max_value: usize) -> Palette {
         let mut values: Vec<Color> = Vec::with_capacity(self.pivots.last().unwrap().value + 1);
         values.push(self.root);
         let mut prev_i = 0;
@@ -203,7 +201,7 @@ impl Gradient {
             prev_color = color;
         }
 
-        while values.len() <= self.max_value {
+        while values.len() <= max_value {
             values.push(self.pivots.last().unwrap().color);
         }
 
@@ -242,11 +240,11 @@ pub struct Image {
 }
 
 impl Image {
-    fn new(width: usize, height: usize, gradient: &Gradient) -> Image {
+    fn new(width: usize, height: usize, palette: Palette) -> Image {
         Image {
             width,
             height,
-            palette: gradient.make_palette(),
+            palette,
             escape_counts: vec![0; width * height],
             pixels: vec![0; width * height * 4],
         }
@@ -464,7 +462,8 @@ impl EngineSettings {
     }
 
     pub fn gradient_set_pivot_value(mut self, index: usize, value: usize) -> Self {
-        self.gradient.set_pivot_value(index, value);
+        self.gradient
+            .set_pivot_value(index, value, *self.iteration_limit.current());
         self
     }
 
@@ -570,7 +569,13 @@ impl Engine {
         let mut e = Self {
             top_left: Complex::from((0, 0)),
             btm_right: Complex::from((0, 0)),
-            image: Image::new(*width, *height, &settings.gradient),
+            image: Image::new(
+                *width,
+                *height,
+                settings
+                    .gradient
+                    .make_palette(settings.get_iteration_limit()),
+            ),
             dirty_regions: BinaryHeap::new(),
             zoom_focus: (0, 0),
             iteration_limit: *settings.iteration_limit.current(),
@@ -652,7 +657,7 @@ impl Engine {
         }
 
         if let Some(gradient) = gradient.get_dirty() {
-            self.image.palette = gradient.make_palette();
+            self.image.palette = gradient.make_palette(*iteration_limit.current());
         };
     }
 
@@ -664,7 +669,7 @@ impl Engine {
         center: &Complex<f64>,
         gradient: &Gradient,
     ) {
-        self.image = Image::new(width, height, gradient);
+        self.image = Image::new(width, height, gradient.make_palette(self.iteration_limit));
         self.zoom_focus = (self.image.width / 2, self.image.height / 2);
         self.update_limits(scale, center);
         self.dirtify_all();
