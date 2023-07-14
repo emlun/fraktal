@@ -156,9 +156,7 @@ impl Gradient {
         }
 
         if let Some(i) = index.checked_add(1).filter(|i| *i < self.pivots.len()) {
-            log!("if let", i, new_value, self.pivots[i].value);
             if new_value >= self.pivots[i].value {
-                log!("increase", i, "to", new_value + 1);
                 self.set_pivot_value(i, new_value + 1, max_value);
             }
         }
