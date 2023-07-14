@@ -18,7 +18,7 @@ Usage
 
 To run the development server:
 
-```
+```sh
 $ cargo install trunk
 $ trunk serve
 $ $BROWSER http://localhost:8080
@@ -26,7 +26,7 @@ $ $BROWSER http://localhost:8080
 
 To build artifacts:
 
-```
+```sh
 $ trunk build --release
 ```
 
