@@ -1,9 +1,12 @@
 use stylist::yew::styled_component;
 use web_sys::HtmlElement;
+use web_sys::MouseEvent;
 use yew::classes;
 use yew::html;
+use yew::use_callback;
 use yew::use_node_ref;
 use yew::use_state;
+use yew::Callback;
 use yew::Children;
 use yew::Html;
 use yew::Properties;
@@ -18,18 +21,24 @@ pub struct Props {
     #[prop_or_default]
     pub content_classes: Option<Vec<&'static str>>,
 
+    #[prop_or_default]
+    pub expanded: Option<bool>,
+
     #[prop_or(false)]
     pub icon_left: bool,
 
     #[prop_or(true)]
     pub icon_right: bool,
 
+    pub on_toggle: Option<Callback<MouseEvent>>,
     pub title: &'static str,
 }
 
 #[styled_component]
 pub fn CollapseBox(props: &Props) -> Html {
-    let expanded = use_state(|| true);
+    let expanded = use_state(|| props.expanded.unwrap_or(true));
+    let is_expanded: bool = props.expanded.unwrap_or(*expanded);
+
     let content_ref = use_node_ref();
     let content_height = content_ref
         .cast::<HtmlElement>()
@@ -45,14 +54,21 @@ pub fn CollapseBox(props: &Props) -> Html {
         _ => css! { text-align: left; },
     };
 
+    let on_toggle = use_callback(
+        move |_, expanded| {
+            expanded.set(!**expanded);
+        },
+        expanded,
+    );
+
     html! {
         <div
-            class={ classes!("CollapseBox", Some("expanded").filter(|_| *expanded), &props.classes) }
+            class={ classes!("CollapseBox", Some("expanded").filter(|_| is_expanded), &props.classes) }
         >
             <button
                 class={ classes!("toggle") }
+                onclick={ props.on_toggle.as_ref().unwrap_or(&on_toggle) }
                 type="button"
-                onclick={ move |_| {expanded.set(!*expanded); } }
             >
                 { toggle_icon_left }
                 <span class={ classes!("toggle-text", title_align) }>
