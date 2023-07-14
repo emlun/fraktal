@@ -292,8 +292,8 @@ pub fn Canvas(props: &Props) -> Html {
         move |(settings, wrapper, pan_trigger_threshold)| {
             let wrapper: HtmlElement = wrapper.clone().cast().unwrap();
 
-            fn get_zoom_factor(ctrl: bool) -> f64 {
-                if ctrl {
+            fn get_zoom_factor(shift: bool) -> f64 {
+                if shift {
                     1.05
                 } else {
                     2_f64
@@ -351,9 +351,9 @@ pub fn Canvas(props: &Props) -> Html {
                 move |event: MouseEvent| {
                     let x = event.client_x().try_into().unwrap();
                     let y = event.client_y().try_into().unwrap();
-                    let zoom_factor = get_zoom_factor(event.ctrl_key());
+                    let zoom_factor = get_zoom_factor(event.shift_key());
                     settings.update(|s| {
-                        if event.shift_key() {
+                        if event.ctrl_key() {
                             s.zoom_out_around(x, y, zoom_factor)
                         } else {
                             s.zoom_in_around(x, y, zoom_factor)
@@ -365,10 +365,10 @@ pub fn Canvas(props: &Props) -> Html {
             let on_wheel: Closure<dyn Fn(WheelEvent)> = Closure::new({
                 let settings = settings.clone();
                 move |event: WheelEvent| {
-                    let zoom_factor = get_zoom_factor(event.ctrl_key());
+                    let zoom_factor = get_zoom_factor(event.shift_key());
 
                     if event.delta_y() > 0_f64 {
-                        if event.shift_key() {
+                        if event.ctrl_key() && event.alt_key() {
                             settings.update(|s| s.zoom_out(zoom_factor));
                         } else {
                             settings.update(|s| {
@@ -379,7 +379,7 @@ pub fn Canvas(props: &Props) -> Html {
                                 )
                             });
                         }
-                    } else if event.shift_key() {
+                    } else if event.ctrl_key() && event.alt_key() {
                         settings.update(|s| s.zoom_in(zoom_factor));
                     } else {
                         settings.update(|s| {

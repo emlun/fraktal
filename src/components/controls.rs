@@ -287,15 +287,15 @@ pub fn Controls(props: &Props) -> Html {
                     </p>
                     <p>
                         { "Zoom around pointer: Mouse\u{00a0}wheel, double\u{00a0}click, " }
-                        <kbd>{ "Shift" }</kbd>
+                        <kbd>{ "Ctrl" }</kbd>
                         { "\u{00a0}+\u{00a0}double\u{00a0}click" }
                     </p>
                     <p>
                         { "Static zoom: " }
-                        <kbd>{ "Shift" }</kbd>
+                        <kbd>{ "Ctrl" }</kbd>{ "\u{00a0}+\u{00a0}" }<kbd>{ "Alt" }</kbd>
                         { "\u{00a0}+\u{00a0}Mouse\u{00a0}wheel" }
                     </p>
-                    <p> { "Zoom less: " } <kbd>{ "Ctrl" }</kbd> { "\u{00a0}+\u{00a0}zoom" } </p>
+                    <p> { "Zoom less: " } <kbd>{ "Shift" }</kbd> { "\u{00a0}+\u{00a0}zoom" } </p>
                 </div>
 
                 <div class={ css!{ text-align: center; }}>
