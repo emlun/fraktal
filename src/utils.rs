@@ -271,12 +271,12 @@ where
 /// receive them, then presents both the previous value and the new value when
 /// the consumer requests them.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Ratchet<T> {
+pub struct Latch<T> {
     current: T,
     next: Option<T>,
 }
 
-impl<T> Ratchet<T> {
+impl<T> Latch<T> {
     /// Wrap the given value in a new container.
     pub fn new(value: T) -> Self {
         Self {
@@ -319,13 +319,13 @@ impl<T> Ratchet<T> {
     }
 }
 
-impl<T> From<T> for Ratchet<T> {
+impl<T> From<T> for Latch<T> {
     fn from(value: T) -> Self {
         Self::new(value)
     }
 }
 
-impl<T> Default for Ratchet<T>
+impl<T> Default for Latch<T>
 where
     T: Default,
 {
@@ -334,7 +334,7 @@ where
     }
 }
 
-impl<'de, T> Deserialize<'de> for Ratchet<T>
+impl<'de, T> Deserialize<'de> for Latch<T>
 where
     T: Deserialize<'de>,
 {
@@ -347,7 +347,7 @@ where
     }
 }
 
-impl<T> Serialize for Ratchet<T>
+impl<T> Serialize for Latch<T>
 where
     T: Serialize,
 {

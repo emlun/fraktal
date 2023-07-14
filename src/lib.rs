@@ -20,8 +20,8 @@ use wasm_bindgen::Clamped;
 
 use crate::complex::Complex;
 use crate::rect::RectRegion;
+use crate::utils::Latch;
 use crate::utils::Pristine;
-use crate::utils::Ratchet;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -324,13 +324,13 @@ pub struct Viewpoint {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct EngineSettings {
     #[serde(skip)]
-    size: Ratchet<(usize, usize)>,
-    center: Ratchet<Complex<f64>>,
-    scale: Ratchet<f64>,
-    iteration_limit: Ratchet<usize>,
+    size: Latch<(usize, usize)>,
+    center: Latch<Complex<f64>>,
+    scale: Latch<f64>,
+    iteration_limit: Latch<usize>,
     gradient: Pristine<Gradient>,
     #[serde(skip)]
-    zoom_focus: Ratchet<Option<(usize, usize)>>,
+    zoom_focus: Latch<Option<(usize, usize)>>,
 }
 
 impl EngineSettings {
