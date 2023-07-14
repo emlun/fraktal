@@ -45,18 +45,15 @@
     }
   }
 
-  & > .content-wrapper {
+  & > .Content {
     overflow: hidden;
+    padding: 0.5em 1em;
     transition-duration: $transition-duration;
     transition-property: max-height, padding;
   }
 
-  & > .content-wrapper > .Content {
-    padding: 0.5em 1em;
-  }
-
   &:not(.expanded) {
-    & > .content-wrapper {
+    & > .Content {
       max-height: 0;
       padding-bottom: 0;
       padding-top: 0;
@@ -70,6 +67,10 @@
       & > .toggle-icon {
         transform: rotate(90deg) scaleX(-1);
       }
+    }
+
+    & > .Content {
+      max-height: 10em;
     }
   }
 }

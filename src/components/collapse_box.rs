@@ -1,10 +1,8 @@
 use stylist::yew::styled_component;
-use web_sys::HtmlElement;
 use web_sys::MouseEvent;
 use yew::classes;
 use yew::html;
 use yew::use_callback;
-use yew::use_node_ref;
 use yew::use_state;
 use yew::Callback;
 use yew::Children;
@@ -39,12 +37,6 @@ pub fn CollapseBox(props: &Props) -> Html {
     let expanded = use_state(|| props.expanded.unwrap_or(true));
     let is_expanded: bool = props.expanded.unwrap_or(*expanded);
 
-    let content_ref = use_node_ref();
-    let content_height = content_ref
-        .cast::<HtmlElement>()
-        .map(|el| el.client_height().to_string());
-    let content_height_unit = content_height.as_ref().map(|_| "px").unwrap_or("initial");
-
     let toggle_icon = html! { <span class={ classes!("toggle-icon") }/> };
     let toggle_icon_left = Some(toggle_icon.clone()).filter(|_| props.icon_left);
     let toggle_icon_right = Some(toggle_icon).filter(|_| props.icon_right);
@@ -76,15 +68,8 @@ pub fn CollapseBox(props: &Props) -> Html {
                 </span>
                 { toggle_icon_right }
             </button>
-            <div class={
-                classes!(
-                    "content-wrapper",
-                    css!{ max-height: ${content_height.as_deref().unwrap_or("")}${content_height_unit}; }
-                )
-            }>
-                <div ref={content_ref} class={ classes!("Content", &props.content_classes) }>
-                    { for props.children.iter() }
-                </div>
+            <div class={ classes!("Content", &props.content_classes) }>
+                { for props.children.iter() }
             </div>
         </div>
     }
