@@ -431,26 +431,26 @@ impl EngineSettings {
         self
     }
 
-    pub fn zoom_in(mut self) -> Self {
-        self.scale.update(|next| next / 2.0);
+    pub fn zoom_in(mut self, factor: f64) -> Self {
+        self.scale.update(|next| next / factor);
         self.zoom_focus.set(None);
         self
     }
 
-    pub fn zoom_out(mut self) -> Self {
-        self.scale.update(|next| next * 2.0);
+    pub fn zoom_out(mut self, factor: f64) -> Self {
+        self.scale.update(|next| next * factor);
         self.zoom_focus.set(None);
         self
     }
 
-    pub fn zoom_in_around(self, x: usize, y: usize) -> Self {
+    pub fn zoom_in_around(self, x: usize, y: usize, factor: f64) -> Self {
         let scale = *self.scale.current();
-        self.zoom_around(scale / 2.0, x, y)
+        self.zoom_around(scale / factor, x, y)
     }
 
-    pub fn zoom_out_around(self, x: usize, y: usize) -> Self {
+    pub fn zoom_out_around(self, x: usize, y: usize, factor: f64) -> Self {
         let scale = *self.scale.current();
-        self.zoom_around(scale * 2.0, x, y)
+        self.zoom_around(scale * factor, x, y)
     }
 
     pub fn set_iteration_limit(mut self, iteration_limit: usize) -> Self {

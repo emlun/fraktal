@@ -115,14 +115,14 @@ pub fn Controls(props: &Props) -> Html {
 
     let on_zoom_in = use_callback(
         |_, settings| {
-            settings.update(|s| s.zoom_in());
+            settings.update(|s| s.zoom_in(2_f64));
         },
         props.settings.clone(),
     );
 
     let on_zoom_out = use_callback(
         |_, settings| {
-            settings.update(|s| s.zoom_out());
+            settings.update(|s| s.zoom_out(2_f64));
         },
         props.settings.clone(),
     );
@@ -295,6 +295,7 @@ pub fn Controls(props: &Props) -> Html {
                         <kbd>{ "Shift" }</kbd>
                         { "\u{00a0}+\u{00a0}Mouse\u{00a0}wheel" }
                     </p>
+                    <p> { "Zoom less: " } <kbd>{ "Ctrl" }</kbd> { "\u{00a0}+\u{00a0}zoom" } </p>
                 </div>
 
                 <div class={ css!{ text-align: center; }}>

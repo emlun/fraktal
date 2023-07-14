@@ -292,6 +292,14 @@ pub fn Canvas(props: &Props) -> Html {
         move |(settings, wrapper, pan_trigger_threshold)| {
             let wrapper: HtmlElement = wrapper.clone().cast().unwrap();
 
+            fn get_zoom_factor(ctrl: bool) -> f64 {
+                if ctrl {
+                    1.05
+                } else {
+                    2_f64
+                }
+            }
+
             let on_mouse_down: Closure<dyn Fn(MouseEvent)> = Closure::new({
                 let scroll_start_pos = Rc::clone(&scroll_start_pos);
                 let mouse_pos = Rc::clone(&mouse_pos);
@@ -343,11 +351,12 @@ pub fn Canvas(props: &Props) -> Html {
                 move |event: MouseEvent| {
                     let x = event.client_x().try_into().unwrap();
                     let y = event.client_y().try_into().unwrap();
+                    let zoom_factor = get_zoom_factor(event.ctrl_key());
                     settings.update(|s| {
                         if event.shift_key() {
-                            s.zoom_out_around(x, y)
+                            s.zoom_out_around(x, y, zoom_factor)
                         } else {
-                            s.zoom_in_around(x, y)
+                            s.zoom_in_around(x, y, zoom_factor)
                         }
                     });
                 }
@@ -356,24 +365,28 @@ pub fn Canvas(props: &Props) -> Html {
             let on_wheel: Closure<dyn Fn(WheelEvent)> = Closure::new({
                 let settings = settings.clone();
                 move |event: WheelEvent| {
+                    let zoom_factor = get_zoom_factor(event.ctrl_key());
+
                     if event.delta_y() > 0_f64 {
                         if event.shift_key() {
-                            settings.update(|s| s.zoom_out());
+                            settings.update(|s| s.zoom_out(zoom_factor));
                         } else {
                             settings.update(|s| {
                                 s.zoom_out_around(
                                     event.client_x().try_into().unwrap(),
                                     event.client_y().try_into().unwrap(),
+                                    zoom_factor,
                                 )
                             });
                         }
                     } else if event.shift_key() {
-                        settings.update(|s| s.zoom_in());
+                        settings.update(|s| s.zoom_in(zoom_factor));
                     } else {
                         settings.update(|s| {
                             s.zoom_in_around(
                                 event.client_x().try_into().unwrap(),
                                 event.client_y().try_into().unwrap(),
+                                zoom_factor,
                             )
                         });
                     }
