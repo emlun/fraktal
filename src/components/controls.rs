@@ -233,7 +233,7 @@ pub fn Controls(props: &Props) -> Html {
                     </span>
                 </div>
 
-                <p>{ "Gradient:" }</p>
+                <p class={ css!{ margin-bottom: ${"0.2em"}; }}>{ "Color map:" }</p>
 
                 { gradient_html }
 
