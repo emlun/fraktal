@@ -255,29 +255,30 @@ pub fn Controls(props: &Props) -> Html {
                     />
                 </div>
 
-                <p class={ css!{ text-align: center; } }>
-                    <button
-                        type="button"
-                        onclick={ on_zoom_out  }
-                        class={ css!{ margin-right: ${"1em"}; }}
-                    >
-                        { "Zoom out" }
-                    </button>
-                    <button type="button" onclick={ on_zoom_in }>
-                        { "Zoom in" }
-                    </button>
-                </p>
-
                 <CollapseBox title="Presets">
                     <Presets current={ state_string.map(AttrValue::from) } />
                 </CollapseBox>
 
-                <p>
-                    { "Viewing range:" }
+                <div class={ css!{ margin-top: ${"1em"}; } }>
+                    <div class={ classes!("flex-row", "flex-align-baseline") }>
+                        <span class={ classes!("flex-stretch") }>{ "Viewing range:" }</span>
+                        <div class={ classes!("flex-stretch") }>
+                            <button
+                                type="button"
+                                onclick={ on_zoom_out  }
+                                class={ css!{ margin-right: ${"0.5em"}; }}
+                            >
+                                { "Zoom out" }
+                            </button>
+                            <button type="button" onclick={ on_zoom_in }>
+                                { "Zoom in" }
+                            </button>
+                        </div>
+                    </div>
                     <pre class={ css!{ white-space: break-spaces; }}>
                         { props.settings.describe_range() }
                     </pre>
-                </p>
+                </div>
 
                 <div class={ classes!("Controls-Legend") }>
                     <p>
