@@ -135,11 +135,9 @@ pub fn Controls(props: &Props) -> Html {
                 let color_hex = pivot.color.as_hex();
 
                 html! {
-                    <div
-                        key={ index }
-                        class={ classes!("Gradient-Row") }
-                    >
+                    < key={ index }>
                         <input
+                            class={ classes!("flex-stretch")}
                             max={ ( num_colors - 1 ).to_string() }
                             min={ 0 }
                             onchange={
@@ -186,16 +184,19 @@ pub fn Controls(props: &Props) -> Html {
                         >
                             { "-" }
                         </button>
-                    </div>
+                    </>
                 }
             })
             .collect()
     };
 
     html! {
-        <form onsubmit={ on_submit }>
+        <form
+            class={ classes!("Controls") }
+            onsubmit={ on_submit }
+        >
             <div>
-                <div class={ classes!("Precision-Slider") }>
+                <div class={ classes!("Precision-Slider", "flex-row", "flex-align-center") }>
                     <span>{ "Precision:" }</span>
 
                     <button
@@ -206,6 +207,7 @@ pub fn Controls(props: &Props) -> Html {
                         { "-" }
                     </button>
                     <input
+                        class={ classes!("flex-stretch")}
                         max={ max_precision.to_string() }
                         min={ 10 }
                         onchange={
@@ -234,11 +236,10 @@ pub fn Controls(props: &Props) -> Html {
                 </div>
 
                 <p class={ css!{ margin-bottom: ${"0.2em"}; }}>{ "Color map:" }</p>
+                <div class={ classes!("Gradient") }>
+                    { gradient_html }
 
-                { gradient_html }
-
-                <p>
-                    { "Color inside set: " }
+                    <span>{ "Color inside set: " }</span>
                     <input
                         onchange={
                             let on_set_inside_color = on_set_inside_color.clone();
@@ -252,7 +253,7 @@ pub fn Controls(props: &Props) -> Html {
                         type="color"
                         value={ gradient.get_inside_color().as_hex() }
                     />
-                </p>
+                </div>
 
                 <p class={ css!{ text-align: center; } }>
                     <button

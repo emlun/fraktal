@@ -1,23 +1,13 @@
-.Gradient-Row {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-
-  & > input[type="range"] {
-    flex-grow: 1;
+.Controls {
+  .Gradient {
+    align-items: center;
+    display: grid;
+    grid-template-columns: auto min-content min-content min-content;
   }
 }
 
 .Precision-Slider {
-  align-items: center;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
   margin-top: 0.5em;
-
-  & > input[type="range"] {
-    flex-grow: 1;
-  }
 
   span:not(:last-child) {
     margin-right: 0.5em;
