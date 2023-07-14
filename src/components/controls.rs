@@ -197,7 +197,7 @@ pub fn Controls(props: &Props) -> Html {
         >
             <div>
                 <div class={ classes!("Precision-Slider", "flex-row", "flex-align-center") }>
-                    <span>{ "Detail level:" }</span>
+                    <span class={ css!{ white-space: nowrap; } }>{ "Level of detail:" }</span>
 
                     <button
                         type="button"
