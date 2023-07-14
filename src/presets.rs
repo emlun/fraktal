@@ -38,3 +38,28 @@ pub static PRESETS: [Preset; 8] = [
         state: "0:eNpljLsNgDAUAw8JQccMrAADwATswCbMwTRQU9FkgLRZwvnpVTnJ8jU2wOzeJxWnDzuFf2PFUE5Pg5auys2kY6j-XaNsKyG7iYkmEPs",
     },
 ];
+
+#[cfg(test)]
+mod tests {
+    use crate::EngineSettings;
+
+    use super::PRESETS;
+
+    #[test]
+    fn parse_presets() -> Result<(), Box<dyn std::error::Error>> {
+        for preset in &PRESETS {
+            EngineSettings::try_restore(preset.state)?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn presets_are_canonical() -> Result<(), Box<dyn std::error::Error>> {
+        for preset in &PRESETS {
+            let settings = EngineSettings::try_restore(preset.state).unwrap();
+            let serialized = settings.serialize().unwrap();
+            assert_eq!(preset.state, serialized, "Preset: {}", preset.name);
+        }
+        Ok(())
+    }
+}
