@@ -367,28 +367,30 @@ pub fn Canvas(props: &Props) -> Html {
                 move |event: WheelEvent| {
                     let zoom_factor = get_zoom_factor(event.shift_key());
 
-                    if event.delta_y() > 0_f64 {
-                        if event.ctrl_key() && event.alt_key() {
-                            settings.update(|s| s.zoom_out(zoom_factor));
+                    if !(event.ctrl_key() && !event.alt_key() && !event.shift_key()) {
+                        if event.delta_y() > 0_f64 {
+                            if event.ctrl_key() && event.alt_key() {
+                                settings.update(|s| s.zoom_out(zoom_factor));
+                            } else {
+                                settings.update(|s| {
+                                    s.zoom_out_around(
+                                        event.client_x().try_into().unwrap(),
+                                        event.client_y().try_into().unwrap(),
+                                        zoom_factor,
+                                    )
+                                });
+                            }
+                        } else if event.ctrl_key() && event.alt_key() {
+                            settings.update(|s| s.zoom_in(zoom_factor));
                         } else {
                             settings.update(|s| {
-                                s.zoom_out_around(
+                                s.zoom_in_around(
                                     event.client_x().try_into().unwrap(),
                                     event.client_y().try_into().unwrap(),
                                     zoom_factor,
                                 )
                             });
                         }
-                    } else if event.ctrl_key() && event.alt_key() {
-                        settings.update(|s| s.zoom_in(zoom_factor));
-                    } else {
-                        settings.update(|s| {
-                            s.zoom_in_around(
-                                event.client_x().try_into().unwrap(),
-                                event.client_y().try_into().unwrap(),
-                                zoom_factor,
-                            )
-                        });
                     }
                 }
             });
