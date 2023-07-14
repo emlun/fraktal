@@ -197,7 +197,7 @@ pub fn Controls(props: &Props) -> Html {
         >
             <div>
                 <div class={ classes!("Precision-Slider", "flex-row", "flex-align-center") }>
-                    <span>{ "Precision:" }</span>
+                    <span>{ "Detail level:" }</span>
 
                     <button
                         type="button"
