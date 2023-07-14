@@ -24,7 +24,17 @@ fn extract_tree_ref(version: &str) -> &str {
 
 #[function_component]
 pub fn App() -> Html {
-    let sidebar_expanded = use_state(|| true);
+    let sidebar_expanded = use_state(|| -> bool {
+        let window: Window = web_sys::window().unwrap();
+        window
+            .location()
+            .search()
+            .and_then(|search| UrlSearchParams::new_with_str(&search))
+            .ok()
+            .and_then(|search| search.get("settings"))
+            .and_then(|settings| settings.parse().ok())
+            .unwrap_or(true)
+    });
 
     let settings = use_state(|| {
         let window: Window = web_sys::window().unwrap();
