@@ -1,4 +1,6 @@
 .Sidebar {
+  $transition-duration: 200ms;
+
   background-color: rgba(0, 0, 40, 0.6);
   color: white;
   display: flex;
@@ -9,7 +11,7 @@
   opacity: 0;
   position: absolute;
   top: 0;
-  transition: opacity 0.2s;
+  transition: opacity $transition-duration;
 
   &:hover {
     background-color: rgba(0, 0, 40, 0.8);
@@ -37,7 +39,7 @@
     .toggle-icon {
       flex-grow: 0;
       transform: rotate(90deg);
-      transition: transform 0.2s;
+      transition: transform $transition-duration;
 
       &:first-child::before, &:last-child::after {
         content: "»"
@@ -49,7 +51,7 @@
     max-height: 0;
     overflow: hidden;
     padding: 0 1em;
-    transition: max-height 0.2s;
+    transition: max-height $transition-duration;
   }
 
   button, select, input, a.button {
