@@ -286,6 +286,10 @@ pub fn Controls(props: &Props) -> Html {
                         { "Pan: Click and drag" }
                     </p>
                     <p>
+                        { "Center view: " }
+                        <kbd>{ "Ctrl" }</kbd>{ "\u{00a0}+\u{00a0}" }<kbd>{ "Alt" }</kbd>
+                        { "\u{00a0}+\u{00a0}click" } </p>
+                    <p>
                         { "Zoom around pointer: Mouse\u{00a0}wheel, double\u{00a0}click, " }
                         <kbd>{ "Ctrl" }</kbd>
                         { "\u{00a0}+\u{00a0}double\u{00a0}click" }

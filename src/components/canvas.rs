@@ -346,19 +346,34 @@ pub fn Canvas(props: &Props) -> Html {
                 }
             });
 
+            let on_click = Closure::new({
+                let settings = settings.clone();
+                move |event: MouseEvent| {
+                    if event.ctrl_key() && event.alt_key() {
+                        let x: i32 = event.offset_x();
+                        let y: i32 = event.offset_y();
+                        let w: i32 = settings.get_width().try_into().unwrap();
+                        let h: i32 = settings.get_height().try_into().unwrap();
+                        settings.update(|s| s.pan(x - w / 2, y - h / 2));
+                    }
+                }
+            });
+
             let on_double_click = Closure::new({
                 let settings = settings.clone();
                 move |event: MouseEvent| {
-                    let x = event.client_x().try_into().unwrap();
-                    let y = event.client_y().try_into().unwrap();
-                    let zoom_factor = get_zoom_factor(event.shift_key());
-                    settings.update(|s| {
-                        if event.ctrl_key() {
-                            s.zoom_out_around(x, y, zoom_factor)
-                        } else {
-                            s.zoom_in_around(x, y, zoom_factor)
-                        }
-                    });
+                    if !event.alt_key() {
+                        let x = event.client_x().try_into().unwrap();
+                        let y = event.client_y().try_into().unwrap();
+                        let zoom_factor = get_zoom_factor(event.shift_key());
+                        settings.update(|s| {
+                            if event.ctrl_key() {
+                                s.zoom_out_around(x, y, zoom_factor)
+                            } else {
+                                s.zoom_in_around(x, y, zoom_factor)
+                            }
+                        });
+                    }
                 }
             });
 
@@ -419,6 +434,7 @@ pub fn Canvas(props: &Props) -> Html {
                 }
             }
 
+            addevl(&wrapper, "click", &on_click);
             addevl(&wrapper, "dblclick", &on_double_click);
             addevl(&wrapper, "mousedown", &on_mouse_down);
             addevl(&wrapper, "mousemove", &on_mouse_move);
@@ -426,6 +442,7 @@ pub fn Canvas(props: &Props) -> Html {
             addevl(&wrapper, "wheel", &on_wheel);
 
             move || {
+                remevl(&wrapper, "click", &on_click);
                 remevl(&wrapper, "dblclick", &on_double_click);
                 remevl(&wrapper, "mousedown", &on_mouse_down);
                 remevl(&wrapper, "mousemove", &on_mouse_move);
