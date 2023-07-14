@@ -18,6 +18,12 @@ pub struct Props {
     #[prop_or_default]
     pub content_classes: Option<Vec<&'static str>>,
 
+    #[prop_or(false)]
+    pub icon_left: bool,
+
+    #[prop_or(true)]
+    pub icon_right: bool,
+
     pub title: &'static str,
 }
 
@@ -30,6 +36,15 @@ pub fn CollapseBox(props: &Props) -> Html {
         .map(|el| el.client_height().to_string());
     let content_height_unit = content_height.as_ref().map(|_| "px").unwrap_or("initial");
 
+    let toggle_icon = html! { <span class={ classes!("toggle-icon") }/> };
+    let toggle_icon_left = Some(toggle_icon.clone()).filter(|_| props.icon_left);
+    let toggle_icon_right = Some(toggle_icon).filter(|_| props.icon_right);
+
+    let title_align = match (props.icon_left, props.icon_right) {
+        (true, true) => css! { text-align: center; },
+        _ => css! { text-align: left; },
+    };
+
     html! {
         <div
             class={ classes!("CollapseBox", Some("expanded").filter(|_| *expanded), &props.classes) }
@@ -39,10 +54,11 @@ pub fn CollapseBox(props: &Props) -> Html {
                 type="button"
                 onclick={ move |_| {expanded.set(!*expanded); } }
             >
-                <span class={ classes!("toggle-text") }>
+                { toggle_icon_left }
+                <span class={ classes!("toggle-text", title_align) }>
                     { props.title }
                 </span>
-                <span class={ classes!("toggle-icon") }/>
+                { toggle_icon_right }
             </button>
             <div class={
                 classes!(

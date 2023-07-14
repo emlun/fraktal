@@ -21,20 +21,27 @@
     padding: 0.5em 1em;
     transition: border-bottom $transition-duration;
     width: 100%;
-  }
 
-  .toggle-text {
-    flex-grow: 1;
-    text-align: left;
-  }
+    & > .toggle-text {
+      flex-grow: 1;
+    }
 
-  .toggle-icon {
-    flex-grow: 0;
-    transform: rotate(90deg);
-    transition: transform $transition-duration;
+    & > .toggle-icon {
+      flex-grow: 0;
+      transform: rotate(90deg);
+      transition: transform $transition-duration;
 
-    &:first-child::before, &:last-child::after {
-      content: "»"
+      &:first-child::before, &:last-child::after {
+        content: "»"
+      }
+
+      &:first-child {
+        margin-right: 0.5em;
+      }
+
+      &:last-child {
+        margin-left: 0.5em;
+      }
     }
   }
 
@@ -59,11 +66,10 @@
   &.expanded {
     & > .toggle {
       border-bottom: $border;
-    }
 
-    .toggle-icon {
-      transform: rotate(90deg) scaleX(-1);
+      & > .toggle-icon {
+        transform: rotate(90deg) scaleX(-1);
+      }
     }
   }
-
 }
