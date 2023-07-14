@@ -11,6 +11,13 @@ use yew::Properties;
 #[derive(PartialEq, Properties)]
 pub struct Props {
     pub children: Children,
+
+    #[prop_or_default]
+    pub classes: Option<Vec<&'static str>>,
+
+    #[prop_or_default]
+    pub content_classes: Option<Vec<&'static str>>,
+
     pub title: &'static str,
 }
 
@@ -25,7 +32,7 @@ pub fn CollapseBox(props: &Props) -> Html {
 
     html! {
         <div
-            class={ classes!("CollapseBox", Some("expanded").filter(|_| *expanded)) }
+            class={ classes!("CollapseBox", Some("expanded").filter(|_| *expanded), &props.classes) }
         >
             <button
                 class={ classes!("toggle") }
@@ -43,7 +50,7 @@ pub fn CollapseBox(props: &Props) -> Html {
                     css!{ max-height: ${content_height.as_deref().unwrap_or("")}${content_height_unit}; }
                 )
             }>
-                <div ref={content_ref} class={ classes!("Content") }>
+                <div ref={content_ref} class={ classes!("Content", &props.content_classes) }>
                     { for props.children.iter() }
                 </div>
             </div>
