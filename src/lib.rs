@@ -153,17 +153,25 @@ impl Gradient {
     }
 
     fn set_pivot_value(&mut self, index: usize, value: usize, max_value: usize) -> Option<usize> {
-        let min_value = self.pivots.get(index - 1).map(|p| p.value + 1).unwrap_or(0);
-        let max_value = self
-            .pivots
-            .get(index + 1)
-            .map(|p| p.value - 1)
-            .unwrap_or(max_value);
+        let new_value = std::cmp::max(std::cmp::min(value, max_value), 0);
+
+        if let Some(i) = index.checked_sub(1) {
+            if new_value <= self.pivots[i].value {
+                self.set_pivot_value(i, new_value - 1, max_value);
+            }
+        }
+
+        if let Some(i) = index.checked_add(1).filter(|i| *i < self.pivots.len()) {
+            log!("if let", i, new_value, self.pivots[i].value);
+            if new_value >= self.pivots[i].value {
+                log!("increase", i, "to", new_value + 1);
+                self.set_pivot_value(i, new_value + 1, max_value);
+            }
+        }
 
         self.pivots.get_mut(index).map(|pivot| {
-            let v = std::cmp::max(std::cmp::min(value, max_value), min_value);
-            pivot.value = v;
-            v
+            pivot.value = new_value;
+            new_value
         })
     }
 
