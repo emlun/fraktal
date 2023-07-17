@@ -4,7 +4,7 @@ pub struct Preset {
     pub state: &'static str,
 }
 
-pub static PRESETS: [Preset; 8] = [
+pub static PRESETS: [Preset; 9] = [
     Preset {
         name: "Classic",
         state: "0:eNptisEJACAMA_NwB8dxAZdwA8fsVieCto82ELiEk6rsYTG4bVmiP5iC9U-EOcMBjOYO_A",
@@ -36,6 +36,10 @@ pub static PRESETS: [Preset; 8] = [
     Preset {
         name: "Wildfire",
         state: "0:eNplizsNgDAABY-EwIYGLIAAUIAHnKADNTB36lIBXWvi9ZdOveTl3XIAq_u_dNw-nBTswU5DeSMd2oYqL4uuqbp5ZrVWQhEBThDJ",
+    },
+    Preset {
+        name: "Xen lightning",
+        state: "0:eNpFjD0OQEAYRLdBJCRKotVqdbJuoXeCjcIdNOIILiBxA4UbUEg0JGgcQDt-PhsvmeTNFFPb81ZYY8tFEHXZztmLCJnDJHiifqVU_r3XSOI1x6STn4OP1CBPqgONSb64HuQnbi7urx5p",
     },
 ];
 
