@@ -740,12 +740,11 @@ impl Engine {
 
     pub fn compute(&mut self, work_limit: usize) -> usize {
         let mut total_work = 0;
+        let corner_diff = self.btm_right - self.top_left;
+        let re_span = corner_diff.re;
+        let im_span = corner_diff.im;
 
         while let Some(dirty_region) = self.dirty_regions.pop() {
-            let corner_diff = self.btm_right - self.top_left;
-            let re_span = corner_diff.re;
-            let im_span = corner_diff.im;
-
             let mut none_escaped = true;
 
             for (x, y) in dirty_region.border() {
