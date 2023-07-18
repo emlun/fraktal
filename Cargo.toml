@@ -45,6 +45,9 @@ rand = "^0.8.5"
 # Transitive dependency of rand
 getrandom = { version = "^0.2.10", features = ["js"] }
 
+[build-dependencies]
+git2 = "^0.17"
+
 [dev-dependencies]
 wasm-bindgen-test = "^0.2"
 
