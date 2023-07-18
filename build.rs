@@ -1,4 +1,5 @@
-use std::{path::Path, process::Command};
+use std::path::Path;
+use std::process::Command;
 
 fn main() {
     let out_dir = std::env::var_os("OUT_DIR").expect("Failed to determine output directory");
