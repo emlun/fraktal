@@ -1,19 +1,8 @@
-.Canvas-Container {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
+.Canvas {
   height: 100%;
-  justify-content: flex-end;
+  left: 0;
+  position: absolute;
+  top: 0;
   width: 100%;
-
-
-  .main-canvas {
-    height: 100%;
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 100%;
-    z-index: -1000;
-  }
+  z-index: -1000;
 }
