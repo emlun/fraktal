@@ -391,10 +391,6 @@ impl EngineSettings {
         Self::default()
     }
 
-    pub fn throw_if_null(&self) -> bool {
-        true
-    }
-
     pub fn get_width(&self) -> usize {
         self.size.current().0
     }
