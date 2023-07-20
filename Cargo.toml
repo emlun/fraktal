@@ -50,3 +50,7 @@ git2 = "^0.17"
 
 [dev-dependencies]
 wasm-bindgen-test = "^0.2"
+
+[profile.dev]
+# Rendering is painfully slow without optimizations
+opt-level = 3
