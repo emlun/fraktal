@@ -5,7 +5,7 @@ pub mod components;
 mod crate_info;
 mod mandelbrot;
 pub mod math;
-mod presets;
+pub mod presets;
 mod rect;
 mod yew;
 
@@ -792,6 +792,10 @@ impl Engine {
         }
 
         total_work
+    }
+
+    pub fn reset(&mut self) {
+        self.dirtify_all();
     }
 
     pub fn render(&mut self) {

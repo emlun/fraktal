@@ -51,6 +51,21 @@ git2 = "^0.17"
 [dev-dependencies]
 wasm-bindgen-test = "^0.2"
 
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+# Criterion dependency is incompatible with wasi32 architecture
+criterion = "^0.5"
+
 [profile.dev]
 # Rendering is painfully slow without optimizations
 opt-level = 3
+
+[lib]
+bench = false
+
+[[bin]]
+name = "fraktal"
+bench = false
+
+[[bench]]
+name = "bench"
+harness = false
