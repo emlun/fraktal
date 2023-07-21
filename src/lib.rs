@@ -756,7 +756,7 @@ impl Engine {
                     let c_offset: Complex<f64> = (c_offset_re, c_offset_im).into();
 
                     let c = self.top_left + c_offset;
-                    let escape_count = mandelbrot::check(c, self.iteration_limit, 2.0);
+                    let escape_count = mandelbrot::check(c, self.iteration_limit, 4.0);
                     self.image.escape_counts[i] = escape_count;
                     if escape_count < self.iteration_limit {
                         none_escaped = false;

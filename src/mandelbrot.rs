@@ -1,7 +1,6 @@
 use super::complex::Complex;
 
-pub fn check(c: Complex<f64>, iteration_limit: usize, escape_abs: f64) -> usize {
-    let escape_abs_squared = escape_abs * escape_abs;
+pub fn check(c: Complex<f64>, iteration_limit: usize, escape_abs_squared: f64) -> usize {
     let mut z = c;
     let mut i = 0;
 
