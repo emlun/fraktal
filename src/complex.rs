@@ -30,31 +30,24 @@ where
     }
 }
 
-impl<Num> Complex<Num>
+impl<'a, Num> Complex<Num>
 where
     Num: Add<Output = Num>,
     Num: Sub<Output = Num>,
     Num: Mul<Output = Num>,
     Num: Copy,
+    Num: From<u8>,
 {
-    pub fn square(self) -> Self {
-        Complex {
-            re: self.re * self.re - self.im * self.im,
-            im: self.re * self.im + self.im * self.re,
-        }
-    }
-}
-
-impl<'a, Num> Complex<Num>
-where
-    &'a Num: Mul<&'a Num, Output = Num>,
-    Num: Add<Output = Num>,
-    Num: 'a,
-{
-    pub fn abs_squared(&'a self) -> Num {
-        let a = &self.re * &self.re;
-        let b = &self.im * &self.im;
-        a + b
+    pub fn abs_squared_and_square(&'a self) -> (Num, Self) {
+        let rere = self.re * self.re;
+        let imim = self.im * self.im;
+        (
+            rere + imim,
+            Complex {
+                re: rere - imim,
+                im: Num::from(2) * self.re * self.im,
+            },
+        )
     }
 }
 
