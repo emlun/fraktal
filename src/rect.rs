@@ -57,7 +57,7 @@ where
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct RectRegion {
     pub x0: i32,
     pub y0: i32,

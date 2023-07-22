@@ -511,8 +511,8 @@ impl Default for EngineSettings {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-struct ByDistToFocus {
+#[derive(Debug, Eq, Hash, PartialEq)]
+pub(crate) struct ByDistToFocus {
     d: i32,
     value: RectRegion,
 }
@@ -796,5 +796,83 @@ impl Engine {
 
     pub fn render(&mut self) {
         self.image.render_pixels(self.iteration_limit);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use std::collections::hash_map::DefaultHasher;
+
+    use std::hash::Hash;
+    use std::hash::Hasher;
+
+    use crate::presets::PRESETS;
+    use crate::ByDistToFocus;
+
+    use super::Engine;
+    use super::EngineSettings;
+
+    fn compute_and_render(mut settings: EngineSettings, work_limit: usize) -> u64 {
+        let mut engine = Engine::new(&settings);
+        engine.apply_settings(&mut settings);
+        engine.compute(work_limit);
+        engine.render();
+
+        let mut hasher = DefaultHasher::new();
+        engine.image_data().hash(&mut hasher);
+        let dirty_regions: Vec<ByDistToFocus> = engine.dirty_regions.into_iter().collect();
+        dirty_regions.len().hash(&mut hasher);
+        dirty_regions.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[test]
+    fn render_defaults() {
+        let settings = EngineSettings::default();
+        let hash = compute_and_render(settings, 1_000_000);
+        const EXPECTED_HASH: u64 = 6440149199439867248;
+
+        assert_eq!(hash, EXPECTED_HASH, "Incorrect hash for default settings",);
+    }
+
+    #[test]
+    fn render_presets() {
+        const PRESET_HASHES: &[(&str, u64)] = &[
+            ("Classic", 2402749417319996074),
+            ("Hyperspace", 8431504707132117489),
+            ("My burning heart", 11737716349129866885),
+            ("Poseidon's armory", 10582495367963685427),
+            ("The Radiance", 10229493864890202083),
+            ("Singularity", 16834773413870134230),
+            ("The day they came", 11582418815664262185),
+            ("Wildfire", 10072988223159844746),
+            ("Xen lightning", 2312505457917857925),
+        ];
+
+        assert_eq!(
+            PRESETS.len(),
+            PRESET_HASHES.len(),
+            "Wrong number of preset hashes"
+        );
+
+        for preset in &PRESETS {
+            let (_, expected_hash) = PRESET_HASHES
+                .iter()
+                .find(|(name, _)| *name == preset.name)
+                .unwrap_or_else(|| panic!("Preset hash not found: {}", preset.name));
+
+            let settings = EngineSettings::restore(preset.state)
+                .unwrap()
+                .set_size(1920, 1080);
+
+            let hash = compute_and_render(settings, 1_000_000);
+
+            assert_eq!(
+                hash, *expected_hash,
+                "Incorrect hash for preset {}",
+                preset.name
+            );
+        }
     }
 }
