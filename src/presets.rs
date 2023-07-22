@@ -49,7 +49,7 @@ mod tests {
 
     use super::PRESETS;
 
-    pub static LEGACY_PRESETS: [&'static str; 8] = [
+    pub static LEGACY_PRESETS: [&str; 8] = [
         "0:eNptikENACAMA_vAAz4wgAFM4ACZc3WEZMBja9Lk2pyUZXX7g9MSJarDEMx7IuwxNOcNBmUPLg",
         "0:eNpljCsKgEAAREcE81abyWSyi9VgsHkPT2EUD-QeRQTNWg0y7hcW9pV5DMMAxT1_hwSGd1zPFoanQW6NCh0ZIiidlOgoEt9enLxXPUVqddl2hp-1m_zt_R1g",
         "0:eNpli6ENgDAURD8JEgwOPGiCIRg0Dk2YgRnKGDgkmgm-gwG6Rk0nuLZpq_qSS564d8lfjdvH1V0eU6u5W566b975LCgCt5wSsAYR1vfMOwtCbAHCED4GhoAWgg",
