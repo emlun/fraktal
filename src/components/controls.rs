@@ -36,53 +36,20 @@ fn get_state_href(state_string: Option<&str>) -> Result<String, JsValue> {
 }
 
 #[derive(PartialEq, Properties)]
-pub struct Props {
-    pub settings: UseStateHandle<EngineSettings>,
+struct GradientProps {
+    settings: UseStateHandle<EngineSettings>,
 }
 
 #[styled_component]
-pub fn Controls(props: &Props) -> Html {
+fn Gradient(props: &GradientProps) -> Html {
     let gradient = props.settings.get_gradient();
     let num_colors = props.settings.get_iteration_limit();
-
-    let max_precision = use_state(|| std::cmp::max(100, num_colors));
-
-    let state_string = props.settings.serialize();
-    let state_href = get_state_href(state_string.as_deref()).unwrap_or_default();
 
     let set_pivot_value = use_callback(
         |(index, value), settings| {
             settings.update(|s| s.gradient_set_pivot_value(index, value));
         },
         props.settings.clone(),
-    );
-
-    let on_set_num_colors = use_callback(
-        |num_colors: usize, settings| {
-            settings.update(|s| s.set_iteration_limit(num_colors));
-        },
-        props.settings.clone(),
-    );
-
-    let on_reduce_max_precision = use_callback(
-        move |_, (num_colors, max_precision, on_set_num_colors)| {
-            max_precision.set((**max_precision) / 2);
-            on_set_num_colors.emit(num_colors / 2);
-        },
-        (num_colors, max_precision.clone(), on_set_num_colors.clone()),
-    );
-
-    let on_increase_max_precision = use_callback(
-        |_, (max_precision, num_colors, on_set_num_colors)| {
-            if num_colors >= max_precision {
-                let new_max = **max_precision * 2;
-                max_precision.set(new_max);
-                on_set_num_colors.emit(new_max);
-            } else {
-                on_set_num_colors.emit(**max_precision);
-            }
-        },
-        (max_precision.clone(), num_colors, on_set_num_colors.clone()),
     );
 
     let set_pivot_color = use_callback(
@@ -113,6 +80,132 @@ pub fn Controls(props: &Props) -> Html {
         props.settings.clone(),
     );
 
+    let pivots: Html = gradient
+        .get_pivots()
+        .iter()
+        .enumerate()
+        .map(|(index, pivot): (usize, &GradientPivot)| {
+            let color_hex = pivot.color.as_hex();
+
+            html! {
+                < key={ index }>
+                    <input
+                        class={ classes!("flex-stretch")}
+                        max={ ( num_colors - 1 ).to_string() }
+                        min={ 0 }
+                        oninput={
+                            let set_pivot_value = set_pivot_value.clone();
+                            move |e: InputEvent| {
+                                if let Some(value) = e.target()
+                                    .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
+                                    .and_then(|el| el.value().parse().ok()) {
+                                    set_pivot_value.emit((index, value));
+                                }
+                            }
+                        }
+                        type="range"
+                        value={ pivot.value.to_string() }
+                    />
+                    <input
+                        oninput={
+                            let set_pivot_color = set_pivot_color.clone();
+                            move |e: InputEvent| {
+                                if let Some(el) = e.target()
+                                    .and_then(|t| t.dyn_into::<HtmlInputElement>().ok()) {
+                                    set_pivot_color.emit((index, el.value()));
+                                }
+                            }
+                        }
+                        type="color"
+                        value={ color_hex }
+                    />
+                    <button
+                        onclick={
+                            let add_gradient_pivot = add_gradient_pivot.clone();
+                            move |_| add_gradient_pivot.emit(index)
+                        }
+                        type="button"
+                    >
+                        { "+" }
+                    </button>
+                    <button
+                        onclick={
+                            let delete_gradient_pivot = delete_gradient_pivot.clone();
+                            move |_| delete_gradient_pivot.emit(index)
+                        }
+                        type="button"
+                    >
+                        { "-" }
+                    </button>
+                </>
+            }
+        })
+        .collect();
+
+    html! {
+        <div class={ classes!("Gradient") }>
+
+            { pivots }
+
+            <span class={ classes!("grid-first-column") }>{ "Color inside set: " }</span>
+            <input
+                onchange={
+                    let on_set_inside_color = on_set_inside_color.clone();
+                    move |e: Event| {
+                        if let Some(el) = e.target()
+                            .and_then(|t| t.dyn_into::<HtmlInputElement>().ok()) {
+                                on_set_inside_color.emit(el.value());
+                            }
+                    }
+                }
+                type="color"
+                value={ gradient.get_inside_color().as_hex() }
+            />
+        </div>
+    }
+}
+
+#[derive(PartialEq, Properties)]
+pub struct Props {
+    pub settings: UseStateHandle<EngineSettings>,
+}
+
+#[styled_component]
+pub fn Controls(props: &Props) -> Html {
+    let num_colors = props.settings.get_iteration_limit();
+    let max_precision = use_state(|| std::cmp::max(100, num_colors));
+
+    let state_string = props.settings.serialize();
+    let state_href = get_state_href(state_string.as_deref()).unwrap_or_default();
+
+    let on_set_num_colors = use_callback(
+        |num_colors: usize, settings| {
+            settings.update(|s| s.set_iteration_limit(num_colors));
+        },
+        props.settings.clone(),
+    );
+
+    let on_reduce_max_precision = use_callback(
+        move |_, (num_colors, max_precision, on_set_num_colors)| {
+            max_precision.set((**max_precision) / 2);
+            on_set_num_colors.emit(num_colors / 2);
+        },
+        (num_colors, max_precision.clone(), on_set_num_colors.clone()),
+    );
+
+    let on_increase_max_precision = use_callback(
+        |_, (max_precision, num_colors, on_set_num_colors)| {
+            if num_colors >= max_precision {
+                let new_max = **max_precision * 2;
+                max_precision.set(new_max);
+                on_set_num_colors.emit(new_max);
+            } else {
+                on_set_num_colors.emit(**max_precision);
+            }
+        },
+        (max_precision.clone(), num_colors, on_set_num_colors.clone()),
+    );
+
     let on_zoom_in = use_callback(
         |_, settings| {
             settings.update(|s| s.zoom_in(2_f64));
@@ -126,70 +219,6 @@ pub fn Controls(props: &Props) -> Html {
         },
         props.settings.clone(),
     );
-
-    let gradient_html: Html = {
-        gradient
-            .get_pivots()
-            .iter()
-            .enumerate()
-            .map(|(index, pivot): (usize, &GradientPivot)| {
-                let color_hex = pivot.color.as_hex();
-
-                html! {
-                    < key={ index }>
-                        <input
-                            class={ classes!("flex-stretch")}
-                            max={ ( num_colors - 1 ).to_string() }
-                            min={ 0 }
-                            oninput={
-                                let set_pivot_value = set_pivot_value.clone();
-                                move |e: InputEvent| {
-                                    if let Some(value) = e.target()
-                                        .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
-                                        .and_then(|el| el.value().parse().ok()) {
-                                        set_pivot_value.emit((index, value));
-                                    }
-                                }
-                            }
-                            type="range"
-                            value={ pivot.value.to_string() }
-                        />
-                        <input
-                            oninput={
-                                let set_pivot_color = set_pivot_color.clone();
-                                move |e: InputEvent| {
-                                    if let Some(el) = e.target()
-                                        .and_then(|t| t.dyn_into::<HtmlInputElement>().ok()) {
-                                        set_pivot_color.emit((index, el.value()));
-                                    }
-                                }
-                            }
-                            type="color"
-                            value={ color_hex }
-                        />
-                        <button
-                            onclick={
-                                let add_gradient_pivot = add_gradient_pivot.clone();
-                                move |_| add_gradient_pivot.emit(index)
-                            }
-                            type="button"
-                        >
-                            { "+" }
-                        </button>
-                        <button
-                            onclick={
-                                let delete_gradient_pivot = delete_gradient_pivot.clone();
-                                move |_| delete_gradient_pivot.emit(index)
-                            }
-                            type="button"
-                        >
-                            { "-" }
-                        </button>
-                    </>
-                }
-            })
-            .collect()
-    };
 
     html! {
         <form
@@ -237,24 +266,7 @@ pub fn Controls(props: &Props) -> Html {
                 </div>
 
                 <p class={ css!{ margin-bottom: ${"0.2em"}; }}>{ "Color map:" }</p>
-                <div class={ classes!("Gradient") }>
-                    { gradient_html }
-
-                    <span>{ "Color inside set: " }</span>
-                    <input
-                        onchange={
-                            let on_set_inside_color = on_set_inside_color.clone();
-                            move |e: Event| {
-                                if let Some(el) = e.target()
-                                .and_then(|t| t.dyn_into::<HtmlInputElement>().ok()) {
-                                    on_set_inside_color.emit(el.value());
-                                }
-                            }
-                        }
-                        type="color"
-                        value={ gradient.get_inside_color().as_hex() }
-                    />
-                </div>
+                <Gradient settings={ props.settings.clone() }/>
 
                 <CollapseBox title="Presets">
                     <Presets current={ state_string.map(AttrValue::from) } />
