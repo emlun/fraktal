@@ -15,7 +15,6 @@ mod utils;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::BinaryHeap;
-use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::Clamped;
 
 use crate::complex::Complex;
@@ -23,7 +22,6 @@ use crate::rect::RectRegion;
 use crate::utils::Latch;
 use crate::utils::Pristine;
 
-#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Color {
     r: u8,
@@ -73,7 +71,6 @@ impl Color {
     }
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GradientPivot {
     pub value: usize,
@@ -93,7 +90,6 @@ impl GradientPivot {
     }
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Gradient {
     inside: Color,
@@ -122,9 +118,7 @@ impl Gradient {
     pub fn get_inside_color(&self) -> Color {
         self.inside
     }
-}
 
-impl Gradient {
     fn set_inside_color(&mut self, color: Color) {
         self.inside = color;
     }
@@ -306,7 +300,6 @@ impl Image {
     }
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct Point {
     pub x: f64,
@@ -318,7 +311,6 @@ pub struct Viewpoint {
     pub scale: f64,
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct EngineSettings {
     #[serde(skip)]
@@ -385,7 +377,6 @@ impl EngineSettings {
     }
 }
 
-#[wasm_bindgen]
 impl EngineSettings {
     pub fn new() -> Self {
         Self::default()
