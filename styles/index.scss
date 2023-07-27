@@ -43,6 +43,10 @@ a:hover {
   flex-shrink: 1;
 }
 
+.grid-first-column {
+  grid-column: 1;
+}
+
 .Sidebar-Content {
   display: flex;
   flex-direction: column;
@@ -65,5 +69,6 @@ a:hover {
 @import 'CollapseBox';
 @import 'Controls';
 @import 'GithubCorner';
+@import 'Gradient-Ribbon';
 @import 'Presets';
 @import 'Sidebar';

@@ -15,6 +15,7 @@ mod utils;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::BinaryHeap;
+use std::rc::Rc;
 use wasm_bindgen::Clamped;
 
 use crate::complex::Complex;
@@ -318,7 +319,7 @@ pub struct EngineSettings {
     center: Latch<Complex<f64>>,
     scale: Latch<f64>,
     iteration_limit: Latch<usize>,
-    gradient: Pristine<Gradient>,
+    gradient: Pristine<Rc<Gradient>>,
     #[serde(skip)]
     zoom_focus: Latch<Option<(usize, usize)>>,
 }
@@ -394,8 +395,8 @@ impl EngineSettings {
         *self.iteration_limit.current()
     }
 
-    pub fn get_gradient(&self) -> Gradient {
-        self.gradient.get().clone()
+    pub fn get_gradient(&self) -> &Rc<Gradient> {
+        self.gradient.get()
     }
 
     pub fn serialize(&self) -> Option<String> {
@@ -441,7 +442,7 @@ impl EngineSettings {
     }
 
     pub fn set_iteration_limit(mut self, iteration_limit: usize) -> Self {
-        if let Some(pivot) = self.gradient.get_mut().pivots.last_mut() {
+        if let Some(pivot) = Rc::make_mut(&mut self.gradient).pivots.last_mut() {
             pivot.value = iteration_limit;
         }
         self.iteration_limit.set(iteration_limit);
@@ -449,31 +450,34 @@ impl EngineSettings {
     }
 
     pub fn gradient_set_pivot_value(mut self, index: usize, value: usize) -> Self {
-        self.gradient
-            .set_pivot_value(index, value, *self.iteration_limit.current());
+        Rc::make_mut(&mut self.gradient).set_pivot_value(
+            index,
+            value,
+            *self.iteration_limit.current(),
+        );
         self
     }
 
     pub fn gradient_set_pivot_color(mut self, index: usize, color: &str) -> Self {
         if let Ok(color) = Color::parse_hex(color) {
-            self.gradient.set_pivot_color(index, color);
+            Rc::make_mut(&mut self.gradient).set_pivot_color(index, color);
         }
         self
     }
 
     pub fn gradient_insert_pivot(mut self, index: usize) -> Self {
-        self.gradient.insert_pivot(index);
+        Rc::make_mut(&mut self.gradient).insert_pivot(index);
         self
     }
 
     pub fn gradient_delete_pivot(mut self, index: usize) -> Self {
-        self.gradient.delete_pivot(index);
+        Rc::make_mut(&mut self.gradient).delete_pivot(index);
         self
     }
 
     pub fn gradient_set_inside_color(mut self, color: &str) -> Self {
         if let Ok(color) = Color::parse_hex(color) {
-            self.gradient.set_inside_color(color);
+            Rc::make_mut(&mut self.gradient).set_inside_color(color);
         }
         self
     }

@@ -16,6 +16,7 @@ use yew::Properties;
 use yew::UseStateHandle;
 
 use crate::components::collapse_box::CollapseBox;
+use crate::components::gradient_ribbon::GradientRibbon;
 use crate::components::presets::Presets;
 use crate::yew::state::UpdateUseStateHandle;
 use crate::EngineSettings;
@@ -90,7 +91,7 @@ fn Gradient(props: &GradientProps) -> Html {
             html! {
                 < key={ index }>
                     <input
-                        class={ classes!("flex-stretch")}
+                        class={ classes!("grid-first-column")}
                         max={ ( num_colors - 1 ).to_string() }
                         min={ 0 }
                         oninput={
@@ -144,6 +145,11 @@ fn Gradient(props: &GradientProps) -> Html {
 
     html! {
         <div class={ classes!("Gradient") }>
+            <GradientRibbon
+                classes={ vec!["grid-first-column"] }
+                gradient={ gradient }
+                { num_colors }
+            />
 
             { pivots }
 
