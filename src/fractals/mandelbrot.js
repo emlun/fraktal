@@ -1,4 +1,3 @@
-import Complex from 'complex.js';
 import Immutable from 'immutable';
 
 import { contained } from './constants';
@@ -7,24 +6,19 @@ import { contained } from './constants';
 export const name = 'Mandelbrot set';
 const defaultEscapeAbs = 2;
 
-function step(z, c) {
-  return z.mul(z).add(c);
-}
-
-function iterate(c, iterationLimit, escapeAbs = defaultEscapeAbs) {
-  return function recur(z, i = 0) {
+function check(c, iterationLimit, escapeAbs = defaultEscapeAbs) {
+  let z = c;
+  let i = 0;
+  while (i < iterationLimit) {
     if (z.abs() >= escapeAbs) {
       return i;
-    } else if (i >= iterationLimit) {
-      return contained;
-    } else {
-      return recur(step(z, c), i + 1);
     }
-  };
-}
 
-function check(c, iterationLimit) {
-  return iterate(c, iterationLimit)(new Complex(0, 0));
+    z = z.mul(z).add(c);
+    i += 1;
+  }
+
+  return contained;
 }
 
 export function makeCheck() {
