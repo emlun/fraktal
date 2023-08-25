@@ -42,16 +42,12 @@ where
     }
 }
 
-impl<'a, Num> Complex<Num>
-where
-    &'a Num: Mul<&'a Num, Output = Num>,
-    Num: Add<Output = Num>,
-    Num: 'a,
+impl Complex<f64>
 {
-    pub fn abs_squared(&'a self) -> Num {
+    pub fn abs(&self) -> f64 {
         let a = &self.re * &self.re;
         let b = &self.im * &self.im;
-        a + b
+        (a + b).sqrt()
     }
 }
 
