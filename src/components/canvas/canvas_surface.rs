@@ -188,8 +188,7 @@ pub fn Canvas(props: &Props) -> Html {
                             if dt > 1000_f64 / 60_f64 {
                                 compute_limit /= 1.5;
                             } else if dt < 1000_f64 / 100_f64
-                                && f64::try_from(u32::try_from(computed).unwrap()).unwrap()
-                                    >= compute_limit
+                                && f64::from(u32::try_from(computed).unwrap()) >= compute_limit
                             {
                                 compute_limit *= 1.5;
                             }
