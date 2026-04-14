@@ -39,7 +39,7 @@ console_error_panic_hook = { version = "^0.1.1", optional = true }
 
 yew = { version = "^0.20.0", features = ["csr"] }
 stylist = { version = "^0.12.0", features = ["macros", "yew_integration"] }
-rand = "^0.8.5"
+rand = "^0.9.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # Transitive dependency of rand
